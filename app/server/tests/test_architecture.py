@@ -20,7 +20,11 @@ def violations(files):
                     if not node.module:  # `from .. import x`: x names the folder
                         targets = [base + [a.name] for a in node.names] if not base else [base]
                 else:
-                    targets.append((node.module or "").split(".")[1:] if (node.module or "").startswith("collector_server") else [])
+                    mod = node.module or ""
+                    if mod == "collector_server":  # `from collector_server import production`
+                        targets += [[a.name] for a in node.names]
+                    elif mod.startswith("collector_server."):
+                        targets.append(mod.split(".")[1:])
             elif isinstance(node, ast.Import):
                 targets += [a.name.split(".")[1:] for a in node.names if a.name.startswith("collector_server")]
             for t in targets:
@@ -50,6 +54,8 @@ def test_flags_a_collection_module_importing_production():
     assert len(violations([("collection/a.py", "from ..production import x")])) == 1
     assert len(violations([("collection/a.py", "from collector_server.production.x import y")])) == 1
     assert len(violations([("collection/a.py", "import collector_server.production.x")])) == 1
+    assert len(violations([("collection/a.py", "from collector_server import production")])) == 1
+    assert violations([("collection/a.py", "from collector_server import shared")]) == []
     assert violations([("collection/a.py", "from ..shared.x import y\nfrom .x import z\nimport os")]) == []
 
 
