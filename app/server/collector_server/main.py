@@ -6,23 +6,23 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .api import build_router
-from .browser import FolderBrowser
-from .clock import SystemClock
-from .collector_repository import CollectorRepository
-from .database import Database
-from .executor import TransferExecutor
-from .file_transfer import FileTransfer
-from .local_mover import LocalMover
-from .move_repository import MoveRepository
-from .planner import TransferPlanner
-from .run_repository import RunRepository
-from .run_service import RunService
-from .scheduler import Scheduler
-from .seed import seed_demo
-from .service import CollectorService
-from .source_checker import LocalSourceChecker
-from .undo import UndoService
+from .collection.api import build_router
+from .collection.browser import FolderBrowser
+from .collection.clock import SystemClock
+from .collection.collector_repository import CollectorRepository
+from .collection.database import Database
+from .collection.executor import TransferExecutor
+from .collection.file_transfer import FileTransfer
+from .collection.local_mover import LocalMover
+from .collection.move_repository import MoveRepository
+from .collection.planner import TransferPlanner
+from .collection.run_repository import RunRepository
+from .collection.run_service import RunService
+from .collection.scheduler import Scheduler
+from .collection.seed import seed_demo
+from .collection.service import CollectorService
+from .collection.source_checker import LocalSourceChecker
+from .collection.undo import UndoService
 
 TICK_SECONDS = 30
 

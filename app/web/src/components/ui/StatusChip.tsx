@@ -1,4 +1,4 @@
-import type { Tone } from '../../lib/types';
+import type { Tone } from '../../collection/lib/types';
 
 const TONE_CLASS: Record<Tone, string> = {
   ok: 'bg-ok-soft text-ok',

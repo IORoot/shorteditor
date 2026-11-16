@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from './lib/api';
-import type { Collector, PlanResult, Run, ScheduleDraft } from './lib/types';
+import { api } from './collection/lib/api';
+import type { Collector, PlanResult, Run, ScheduleDraft } from './collection/lib/types';
 import { useLoad } from './hooks/useLoad';
 import { AppHeader } from './components/shell/AppHeader';
 import { AppShell } from './components/shell/AppShell';
-import { CollectorList } from './features/collectors/CollectorList';
-import { RunHistory } from './features/runs/RunHistory';
-import { SchedulePanel } from './features/schedule/SchedulePanel';
-import { CollectorActions } from './features/collectors/CollectorActions';
-import { NewCollectorDialog } from './features/collectors/NewCollectorDialog';
-import { DeleteCollectorDialog } from './features/collectors/DeleteCollectorDialog';
-import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
-import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
+import { CollectorList } from './collection/features/collectors/CollectorList';
+import { RunHistory } from './collection/features/runs/RunHistory';
+import { SchedulePanel } from './collection/features/schedule/SchedulePanel';
+import { CollectorActions } from './collection/features/collectors/CollectorActions';
+import { NewCollectorDialog } from './collection/features/collectors/NewCollectorDialog';
+import { DeleteCollectorDialog } from './collection/features/collectors/DeleteCollectorDialog';
+import { EditCollectorScreen } from './collection/features/editor/EditCollectorScreen';
+import { PlanDialog, type PlanMode } from './collection/features/transfer/PlanDialog';
 
 function draftFrom(collector: Collector): ScheduleDraft {
   const { enabled, kind, time, weekdays, dayOfMonth, cron } = collector.schedule;
