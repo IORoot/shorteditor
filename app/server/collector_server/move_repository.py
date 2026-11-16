@@ -19,4 +19,4 @@ class MoveRepository:
         return [MoveRecord(r["id"], r["run_id"], r["source"], r["destination"], r["transfer"]) for r in rows]
 
     def count(self, run_id: int) -> int:
-        return int(self._db.query("SELECT COUNT(*) AS n FROM moves WHERE run_id = ?", (run_id,))[0]["n"])
+        return int(self._db.query("SELECT COUNT(*) AS n FROM moves WHERE run_id = ? AND transfer != 'mkdir'", (run_id,))[0]["n"])

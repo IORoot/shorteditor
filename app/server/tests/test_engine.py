@@ -138,3 +138,25 @@ def test_undo_errors(engine):
     _, run = new_run(engine)
     with pytest.raises(ValueError, match="can't be undone"):
         engine["undo"].undo(run.id)
+
+
+def test_undo_removes_every_folder_the_run_created_even_nested_ones(engine):
+    make_clip(engine["source"] / "a.mp4", SAT)
+    record, run = new_run(engine, folder_template="2026/{date:YYYY-MM-DD}_{suffix}", group_by="day")
+    engine["mover"].move(record, run.id, lambda _t: None)
+    assert (engine["output"] / "2026" / "2026-11-14_coach").is_dir()
+    (engine["output"] / "2026" / "2026-11-14_coach" / ".DS_Store").write_bytes(b"finder")
+    engine["runs"].update(run.id, status="done", can_undo=True)
+    engine["undo"].undo(run.id)
+    assert (engine["source"] / "a.mp4").exists()
+    assert not (engine["output"] / "2026").exists()
+
+
+def test_undo_keeps_a_folder_the_run_did_not_empty(engine):
+    make_clip(engine["source"] / "a.mp4", SAT)
+    record, run = new_run(engine)
+    engine["mover"].move(record, run.id, lambda _t: None)
+    (engine["output"] / "2026-11-14_Sat_coach" / "mine.txt").write_text("keep")
+    engine["runs"].update(run.id, status="done", can_undo=True)
+    engine["undo"].undo(run.id)
+    assert (engine["output"] / "2026-11-14_Sat_coach" / "mine.txt").exists()

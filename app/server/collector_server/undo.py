@@ -20,25 +20,37 @@ class UndoService:
             raise LookupError("Run not found")
         if not run.can_undo:
             raise ValueError("This run can't be undone")
-        restored, skipped, folders = 0, 0, set()
+        restored, skipped = 0, 0
+        # Rows are replayed newest first, so files go before the folders the run created.
         for record in reversed(self._moves.for_run(run_id)):
             try:
-                if self._reverse(record.transfer, record.source, record.destination):
+                if record.transfer == "mkdir":
+                    self._try_remove_folder(record.destination)  # a folder that still holds files is left alone
+                elif self._reverse(record.transfer, record.source, record.destination):
                     restored += 1
-                    folders.add(os.path.dirname(record.destination))
                 else:
                     skipped += 1
             except OSError:
                 skipped += 1
-        for folder in sorted(folders, key=len, reverse=True):
-            try:
-                os.rmdir(folder)
-            except OSError:
-                pass
         note = f"Undone: restored {restored}" + (f", {skipped} could not be restored" if skipped else "")
         updated = self._runs.update(run_id, outcome=f"{run.outcome} · {note}", can_undo=False)
         assert updated is not None
         return updated
+
+    def _try_remove_folder(self, folder: str) -> None:
+        try:
+            self._remove_folder(folder)
+        except OSError:
+            pass
+
+    @staticmethod
+    def _remove_folder(folder: str) -> None:
+        """Removes a folder the run created once it is empty. Finder's .DS_Store doesn't count as content."""
+        if not os.path.isdir(folder):
+            return
+        if os.listdir(folder) == [".DS_Store"]:
+            os.remove(os.path.join(folder, ".DS_Store"))
+        os.rmdir(folder)
 
     def _reverse(self, transfer: str, source: str, destination: str) -> bool:
         if transfer == "move":

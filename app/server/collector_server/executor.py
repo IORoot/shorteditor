@@ -18,6 +18,8 @@ class TransferExecutor:
         try:
             for group in plan.groups:
                 for item in group.files:
+                    for folder in self._files.make_folders(item.destination):
+                        self._moves.add(run_id, "", folder, "mkdir")
                     self._transfer(transfer, item.source, item.destination)
                     self._moves.add(run_id, item.source, item.destination, transfer)
                     done += 1

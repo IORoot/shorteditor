@@ -38,6 +38,19 @@ class FileTransfer:
         return digest.hexdigest()
 
     @staticmethod
+    def make_folders(destination: str) -> list[str]:
+        """Creates any missing parent folders for destination and returns them, outermost first."""
+        missing: list[str] = []
+        folder = os.path.dirname(destination)
+        while folder and not os.path.isdir(folder):
+            missing.append(folder)
+            folder = os.path.dirname(folder)
+        created = list(reversed(missing))
+        for path in created:
+            os.mkdir(path)
+        return created
+
+    @staticmethod
     def _prepare(destination: str) -> None:
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         if os.path.lexists(destination):
