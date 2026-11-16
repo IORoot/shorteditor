@@ -29,13 +29,13 @@ class StatusNote(CamelModel):
     text: str
 
 
-SourceType = Literal["local", "mount", "ssh"]
+SourceType = Literal["local", "ssh"]
 GroupBy = Literal["none", "day", "week", "month", "window"]
 Transfer = Literal["move", "copy", "link"]
 
 
 RuleKind = Literal["name", "glob", "regex", "date_range", "weekday", "window"]
-DateSourceKind = Literal["metadata", "filename", "mtime"]
+DateSourceKind = Literal["modified", "created", "filename"]
 
 
 class FilterRule(CamelModel):
@@ -48,6 +48,8 @@ class FilterRule(CamelModel):
     start: str = ""
     end: str = ""
     case_sensitive: bool = False
+    date_source: DateSourceKind = "modified"
+    filename_pattern: str = ""
 
 
 class FilterGroup(CamelModel):
@@ -76,7 +78,7 @@ class CollectorConfig(CamelModel):
     suffix: str = ""
     filters: list[FilterGroup] = Field(default_factory=list)
     random_selection: RandomSelection = Field(default_factory=RandomSelection)
-    date_sources: list[DateSourceKind] = Field(default_factory=lambda: ["mtime"])
+    date_source: DateSourceKind = "modified"
     filename_pattern: str = ""
 
 

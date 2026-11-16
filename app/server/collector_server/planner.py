@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from .clock import Clock
-from .date_source import ClipDateResolver
+from .date_source import ClipTimes, DateRule, read_times
 from .domain import CollectorRecord
 from .filter_engine import ClipFacts, FilterEngine
 from .folder_lister import walk_files
@@ -14,14 +14,15 @@ from .random_selector import RandomSelector
 from .token_template import ClipContext, FolderTemplate
 from .transfer_plan import PlannedFile, PlannedGroup, TransferPlan
 
-_SOURCE_LABEL = {"metadata": "video metadata", "filename": "filename", "mtime": "modified time"}
+_SOURCE_LABEL = {"modified": "modified time", "created": "created time", "filename": "filename"}
 
 
 @dataclass(frozen=True)
 class Clip:
     path: str
     size: int
-    when: datetime
+    when: datetime  # the folder date for this clip
+    times: ClipTimes  # what the filter rules read from
 
 
 @dataclass
@@ -46,7 +47,7 @@ class TransferPlanner:
             raise ValueError("{window:...} tokens aren't supported yet")
         FilterEngine(collector.filters)
         RandomSelector(collector.random_selection)
-        ClipDateResolver(collector.date_sources, collector.filename_pattern, None)
+        DateRule(collector.date_source, collector.filename_pattern)
 
     def plan(self, collector: CollectorRecord) -> TransferPlan:
         self.validate(collector)
@@ -60,7 +61,7 @@ class TransferPlanner:
         plan.unmatched = self._names(unmatched, collector.source)
         plan.not_selected = self._names(left_out, collector.source)
         if clips:
-            plan.notes.append(self._date_note(sources, collector.date_sources))
+            plan.notes.append(self._date_note(sources, collector.date_source))
         if not plan.total_files:
             plan.notes.append("No files found in the input folder." if not clips else "No clips matched the filters.")
         return plan
@@ -68,7 +69,7 @@ class TransferPlanner:
     def select(self, collector: CollectorRecord, clips: list[Clip], now: datetime) -> Selection:
         """Filters, then random selection: the one place that decides which clips are collected."""
         engine, selector = FilterEngine(collector.filters), RandomSelector(collector.random_selection)
-        matched = [c for c in clips if engine.accepts(ClipFacts(os.path.basename(c.path), c.when))]
+        matched = [c for c in clips if engine.accepts(ClipFacts(os.path.basename(c.path), c.times))]
         unmatched = self._without(clips, matched)
         left_out: list[Clip] = []
         if selector.overall:
@@ -83,13 +84,18 @@ class TransferPlanner:
         return Selection(buckets, unmatched, left_out)
 
     def read_clips(self, collector: CollectorRecord, now: datetime) -> tuple[list[Clip], Counter]:
-        resolver = ClipDateResolver(collector.date_sources, collector.filename_pattern, now.tzinfo)
+        folder_date = DateRule(collector.date_source, collector.filename_pattern)
         sources: Counter = Counter()
         clips: list[Clip] = []
         for path, size in walk_files(collector.source, collector.output_folder):
-            when, kind = resolver.resolve(path)
+            times = read_times(path, now.tzinfo)
+            when = folder_date.pick(os.path.basename(path), times)
+            if when is None:
+                when, kind = times.modified, "fallback"
+            else:
+                kind = collector.date_source
             sources[kind] += 1
-            clips.append(Clip(path, size, when))
+            clips.append(Clip(path, size, when, times))
         return sorted(clips, key=lambda clip: clip.path), sources
 
     def _bucket(self, clips: list[Clip], collector: CollectorRecord, now: datetime) -> dict[str, list[Clip]]:
@@ -129,11 +135,11 @@ class TransferPlanner:
         return [os.path.relpath(clip.path, source) for clip in clips]
 
     @staticmethod
-    def _date_note(counts: Counter, configured: list[str]) -> str:
-        if not counts or set(counts) == {"mtime"} and configured == ["mtime"]:
-            return "Dates come from file modified time."
-        parts = [f"{_SOURCE_LABEL[kind]} for {counts[kind]}" for kind in ("metadata", "filename", "mtime") if counts[kind]]
-        return "Dates come from " + ", ".join(parts) + "."
+    def _date_note(counts: Counter, source: str) -> str:
+        parts = [f"{_SOURCE_LABEL[kind]} for {counts[kind]}" for kind in ("modified", "created", "filename") if counts[kind]]
+        if counts["fallback"]:
+            parts.append(f"modified time for {counts['fallback']} with no readable date")
+        return "Folder dates come from " + ", ".join(parts) + "."
 
     @staticmethod
     def _group_date(group_by: str, when: datetime, now: datetime) -> datetime:

@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { makeConfig } from '../../../test/fixtures';
 import { newRule } from '../../../lib/filters';
 import type { FilterRule } from '../../../lib/types';
-import { DateSourcesSection } from './DateSourcesSection';
 import { FilterGroupCard } from './FilterGroupCard';
 import { FilterRuleRow } from './FilterRuleRow';
 import { FiltersSection } from './FiltersSection';
@@ -90,6 +89,31 @@ describe('FilterRuleRow', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'glob', caseSensitive: true }));
   });
 
+  it('shows a date source select only on date rules', () => {
+    render(<FilterRuleRow rule={newRule('weekday')} onChange={() => undefined} onRemove={() => undefined} />);
+    expect(screen.getByLabelText('Date from')).toHaveValue('modified');
+  });
+
+  it('hides the date source select on text rules', () => {
+    render(<FilterRuleRow rule={newRule('name')} onChange={() => undefined} onRemove={() => undefined} />);
+    expect(screen.queryByLabelText('Date from')).not.toBeInTheDocument();
+  });
+
+  it('shows a filename pattern box only when the rule reads dates from filenames', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<FilterRuleRow rule={newRule('weekday')} onChange={onChange} onRemove={() => undefined} />);
+    expect(screen.queryByLabelText('Filename pattern')).not.toBeInTheDocument();
+    rerender(<FilterRuleRow rule={{ ...newRule('weekday'), dateSource: 'filename', filenamePattern: 'GX_YYYYMMDD' }} onChange={onChange} onRemove={() => undefined} />);
+    expect(screen.getByLabelText('Filename pattern')).toHaveValue('GX_YYYYMMDD');
+  });
+
+  it('changes the date source on a date rule', () => {
+    const onChange = vi.fn();
+    render(<FilterRuleRow rule={newRule('window')} onChange={onChange} onRemove={() => undefined} />);
+    fireEvent.change(screen.getByLabelText('Date from'), { target: { value: 'created' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dateSource: 'created' }));
+  });
+
   it('removes the rule', () => {
     const onRemove = vi.fn();
     render(<FilterRuleRow rule={newRule()} onChange={() => undefined} onRemove={onRemove} />);
@@ -122,23 +146,6 @@ describe('FilterGroupCard', () => {
 });
 
 describe('FiltersSection', () => {
-  it('hides the date source until a filter reads the clip date', () => {
-    render(<FiltersSection config={makeConfig({ filters: [{ rules: [{ ...newRule('name'), value: 'proxy' }] }] })} onChange={() => undefined} />);
-    expect(screen.queryByText('Date source')).not.toBeInTheDocument();
-  });
-
-  it('shows the date source when a date rule exists', () => {
-    render(<FiltersSection config={makeConfig({ filters: [{ rules: [newRule('weekday')] }] })} onChange={() => undefined} />);
-    expect(screen.getByText('Date source')).toBeInTheDocument();
-  });
-
-  it('keeps the saved date source when it is hidden', () => {
-    const onChange = vi.fn();
-    render(<FiltersSection config={makeConfig({ dateSources: ['filename'], filenamePattern: 'GX_YYYYMMDD' })} onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
-    expect(onChange.mock.calls[0][0]).toMatchObject({ dateSources: ['filename'], filenamePattern: 'GX_YYYYMMDD' });
-  });
-
   it('explains that with no filters everything is collected', () => {
     render(<FiltersSection config={makeConfig()} onChange={() => undefined} />);
     expect(screen.getByText(/every video file in the input folder is collected/)).toBeInTheDocument();
@@ -205,43 +212,3 @@ describe('RandomSelectionField', () => {
   });
 });
 
-describe('DateSourcesSection', () => {
-  it('numbers the enabled sources and lists unused ones unchecked', () => {
-    render(<DateSourcesSection sources={['filename', 'mtime']} filenamePattern="" onChange={() => undefined} />);
-    expect(screen.getByLabelText('Video metadata')).not.toBeChecked();
-    expect(screen.getByLabelText('Filename pattern', { selector: 'input[type=checkbox]' })).toBeChecked();
-    expect(screen.getByLabelText('File modified time')).toBeChecked();
-  });
-
-  it('enables a source (added last) and disables one', () => {
-    const onChange = vi.fn();
-    render(<DateSourcesSection sources={['mtime']} filenamePattern="" onChange={onChange} />);
-    fireEvent.click(screen.getByLabelText('Video metadata'));
-    expect(onChange).toHaveBeenLastCalledWith(['mtime', 'metadata'], '');
-    fireEvent.click(screen.getByLabelText('File modified time'));
-    expect(onChange).toHaveBeenLastCalledWith([], '');
-  });
-
-  it('reorders enabled sources and disables arrows that cannot move', () => {
-    const onChange = vi.fn();
-    render(<DateSourcesSection sources={['metadata', 'mtime']} filenamePattern="" onChange={onChange} />);
-    expect(screen.getByRole('button', { name: 'Move Video metadata up' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move File modified time down' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Move File modified time up' }));
-    expect(onChange).toHaveBeenLastCalledWith(['mtime', 'metadata'], '');
-  });
-
-  it('shows and edits the filename pattern when that source is on', () => {
-    const onChange = vi.fn();
-    render(<DateSourcesSection sources={['filename', 'mtime']} filenamePattern="GX_YYYYMMDD" onChange={onChange} />);
-    const pattern = screen.getByPlaceholderText('GX_YYYYMMDD_HHmmss');
-    expect(pattern).toHaveValue('GX_YYYYMMDD');
-    fireEvent.change(pattern, { target: { value: 'VID_YYYYMMDD' } });
-    expect(onChange).toHaveBeenLastCalledWith(['filename', 'mtime'], 'VID_YYYYMMDD');
-  });
-
-  it('hides the pattern field when the filename source is off', () => {
-    render(<DateSourcesSection sources={['mtime']} filenamePattern="" onChange={() => undefined} />);
-    expect(screen.queryByPlaceholderText('GX_YYYYMMDD_HHmmss')).not.toBeInTheDocument();
-  });
-});

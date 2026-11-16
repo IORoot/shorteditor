@@ -182,8 +182,8 @@ describe('App', () => {
   });
 
   it('opens the edit screen even when the backend is older and sends no filter settings', async () => {
-    const { filters, randomSelection, dateSources, filenamePattern, ...oldConfig } = collector.config;
-    void filters; void randomSelection; void dateSources; void filenamePattern;
+    const { filters, randomSelection, dateSource, filenamePattern, ...oldConfig } = collector.config;
+    void filters; void randomSelection; void dateSource; void filenamePattern;
     mockBackend({
       '/api/collectors': () => jsonResponse([{ ...collector, config: oldConfig }]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -197,8 +197,8 @@ describe('App', () => {
   });
 
   it('tells you to restart the backend when saving to an older one', async () => {
-    const { filters, randomSelection, dateSources, filenamePattern, ...oldConfig } = collector.config;
-    void filters; void randomSelection; void dateSources; void filenamePattern;
+    const { filters, randomSelection, dateSource, filenamePattern, ...oldConfig } = collector.config;
+    void filters; void randomSelection; void dateSource; void filenamePattern;
     const old = { ...collector, config: oldConfig };
     mockBackend({
       '/api/collectors': () => jsonResponse([old]),

@@ -29,7 +29,7 @@ class CollectorRecord:
     suffix: str = ""
     filters: list[FilterGroup] = field(default_factory=list)
     random_selection: RandomSelection = field(default_factory=RandomSelection)
-    date_sources: list[str] = field(default_factory=lambda: ["mtime"])
+    date_source: str = "modified"
     filename_pattern: str = ""
 
     @classmethod
@@ -40,7 +40,7 @@ class CollectorRecord:
             time="00:00", weekdays=[], day_of_month=1, cron="", last_slot=None, source_type=config.source_type,
             ssh_host=config.host, ssh_user=config.user, ssh_key_path=config.key_path, output_folder=config.output_folder,
             folder_template=config.folder_template, group_by=config.group_by, suffix=config.suffix, filters=config.filters,
-            random_selection=config.random_selection, date_sources=config.date_sources, filename_pattern=config.filename_pattern,
+            random_selection=config.random_selection, date_source=config.date_source, filename_pattern=config.filename_pattern,
         )
 
     def config(self) -> CollectorConfig:
@@ -58,7 +58,7 @@ class CollectorRecord:
             suffix=self.suffix,
             filters=self.filters,
             random_selection=self.random_selection,
-            date_sources=self.date_sources,  # type: ignore[arg-type]
+            date_source=self.date_source,  # type: ignore[arg-type]
             filename_pattern=self.filename_pattern,
         )
 

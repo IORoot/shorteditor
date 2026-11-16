@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import type { FilterRule, RuleKind } from '../../../lib/types';
-import { RULE_KINDS, TEXT_KINDS, newRule } from '../../../lib/filters';
+import { DATE_KINDS, RULE_KINDS, TEXT_KINDS, newRule } from '../../../lib/filters';
+import { DateSourceSelect, FilenamePatternField } from '../DateSourceFields';
 import { SelectField } from '../../../components/ui/SelectField';
 import { RuleInputs } from './RuleInputs';
 
@@ -11,8 +12,10 @@ export interface FilterRuleRowProps {
 }
 
 export function FilterRuleRow({ rule, onChange, onRemove }: FilterRuleRowProps) {
-  const changeKind = (kind: RuleKind) => onChange({ ...newRule(kind, rule.exclude), caseSensitive: rule.caseSensitive });
+  const changeKind = (kind: RuleKind) =>
+    onChange({ ...newRule(kind, rule.exclude), caseSensitive: rule.caseSensitive, dateSource: rule.dateSource, filenamePattern: rule.filenamePattern });
   const isText = TEXT_KINDS.includes(rule.kind);
+  const isDate = DATE_KINDS.includes(rule.kind);
   return (
     <div className="flex items-center gap-2.5">
       <SelectField
@@ -36,6 +39,12 @@ export function FilterRuleRow({ rule, onChange, onRemove }: FilterRuleRowProps) 
         >
           Aa
         </button>
+      ) : null}
+      {isDate ? (
+        <DateSourceSelect label="Date from" value={rule.dateSource} surface onChange={(dateSource) => onChange({ ...rule, dateSource })} />
+      ) : null}
+      {isDate && rule.dateSource === 'filename' ? (
+        <FilenamePatternField label="Filename pattern" value={rule.filenamePattern} onChange={(filenamePattern) => onChange({ ...rule, filenamePattern })} />
       ) : null}
       <button type="button" aria-label="Remove rule" onClick={onRemove} className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-3 hover:bg-fill-2">
         <X size={16} aria-hidden="true" />

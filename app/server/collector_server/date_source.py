@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import dataclass
 from datetime import datetime, tzinfo
 
-from . import mp4_metadata
-
-KINDS = ("metadata", "filename", "mtime")
+DATE_SOURCES = ("modified", "created", "filename")
 _TOKENS = re.compile(r"(YYYY|MM|DD|HH|mm|ss)")
 _GROUPS = {"YYYY": r"(?P<Y>\d{4})", "MM": r"(?P<M>\d{2})", "DD": r"(?P<D>\d{2})", "HH": r"(?P<h>\d{2})", "mm": r"(?P<m>\d{2})", "ss": r"(?P<s>\d{2})"}
 
 
 def compile_pattern(pattern: str) -> re.Pattern[str]:
-    tokens = [part for part in _TOKENS.findall(pattern)]
+    tokens = _TOKENS.findall(pattern)
     if len(set(tokens)) != len(tokens):
         raise ValueError("Each date token may appear only once in the filename pattern")
     if not {"YYYY", "MM", "DD"} <= set(tokens):
@@ -20,35 +19,37 @@ def compile_pattern(pattern: str) -> re.Pattern[str]:
     return re.compile("".join(_GROUPS.get(part, re.escape(part)) for part in _TOKENS.split(pattern)))
 
 
-class ClipDateResolver:
-    def __init__(self, sources: list[str], filename_pattern: str, zone: tzinfo | None) -> None:
-        if not sources:
-            raise ValueError("Pick at least one date source")
-        if len(set(sources)) != len(sources) or any(kind not in KINDS for kind in sources):
-            raise ValueError("Date sources must be metadata, filename or mtime, each used once")
-        self._sources = sources
-        self._zone = zone
-        self._pattern = compile_pattern(filename_pattern) if "filename" in sources else None
+@dataclass(frozen=True)
+class ClipTimes:
+    modified: datetime
+    created: datetime
 
-    def resolve(self, path: str) -> tuple[datetime, str]:
-        for kind in self._sources:
-            when = self._try(kind, path)
-            if when is not None:
-                return when, kind
-        return self._mtime(path), "mtime"
 
-    def _try(self, kind: str, path: str) -> datetime | None:
-        if kind == "metadata":
-            if not path.lower().endswith((".mp4", ".mov")):
-                return None
-            created = mp4_metadata.creation_time(path)
-            return created.astimezone(self._zone) if created else None
-        if kind == "filename":
-            return self._from_name(os.path.basename(path))
-        return self._mtime(path)
+def read_times(path: str, zone: tzinfo | None) -> ClipTimes:
+    stat = os.stat(path)
+    # st_birthtime is the creation time on macOS; other systems fall back to modified time.
+    created = getattr(stat, "st_birthtime", stat.st_mtime)
+    return ClipTimes(datetime.fromtimestamp(stat.st_mtime, zone), datetime.fromtimestamp(created, zone))
 
-    def _from_name(self, name: str) -> datetime | None:
-        match = self._pattern.search(name) if self._pattern else None
+
+class DateRule:
+    """Picks one clip date: file modified time, created time, or a date read from the filename."""
+
+    def __init__(self, source: str, pattern: str = "") -> None:
+        if source not in DATE_SOURCES:
+            raise ValueError("Date source must be modified, created or filename")
+        self._source = source
+        self._pattern = compile_pattern(pattern) if source == "filename" else None
+
+    def pick(self, name: str, times: ClipTimes) -> datetime | None:
+        if self._source == "modified":
+            return times.modified
+        if self._source == "created":
+            return times.created
+        return self._from_name(name, times.modified.tzinfo)
+
+    def _from_name(self, name: str, zone: tzinfo | None) -> datetime | None:
+        match = self._pattern.search(name)
         if match is None:
             return None
         parts = match.groupdict()
@@ -56,10 +57,7 @@ class ClipDateResolver:
             return datetime(
                 int(parts["Y"]), int(parts["M"]), int(parts["D"]),
                 int(parts.get("h") or 0), int(parts.get("m") or 0), int(parts.get("s") or 0),
-                tzinfo=self._zone,
+                tzinfo=zone,
             )
         except ValueError:
             return None
-
-    def _mtime(self, path: str) -> datetime:
-        return datetime.fromtimestamp(os.stat(path).st_mtime, self._zone)

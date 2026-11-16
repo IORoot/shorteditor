@@ -51,8 +51,7 @@ describe('SourceSection', () => {
   it('changes the source type', () => {
     const onChange = vi.fn();
     render(<SourceSection config={makeConfig({ sourceType: 'local' })} onChange={onChange} onBrowseInput={() => undefined} />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Mount' }));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ sourceType: 'mount' }));
+    expect(screen.queryByRole('radio', { name: 'Mount' })).not.toBeInTheDocument();
   });
 });
 
@@ -229,6 +228,6 @@ describe('EditCollectorScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save collector' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].filters[0].rules[0]).toMatchObject({ kind: 'name', value: 'coach' });
-    expect(save.mock.calls[0][1].dateSources).toEqual(['mtime']);
+    expect(save.mock.calls[0][1].dateSource).toBe('modified');
   });
 });

@@ -10,18 +10,13 @@ export const RULE_KINDS: { value: RuleKind; label: string }[] = [
 ];
 
 export const DATE_SOURCES: { value: DateSourceKind; label: string }[] = [
-  { value: 'metadata', label: 'Video metadata' },
+  { value: 'modified', label: 'Modified time' },
+  { value: 'created', label: 'Created time' },
   { value: 'filename', label: 'Filename pattern' },
-  { value: 'mtime', label: 'File modified time' },
 ];
 
 export const TEXT_KINDS: RuleKind[] = ['name', 'glob', 'regex'];
 export const DATE_KINDS: RuleKind[] = ['date_range', 'weekday', 'window'];
-
-/** True when any rule in any group reads the clip's date, which is when the date source matters. */
-export function usesDates(groups: FilterGroup[]): boolean {
-  return groups.some((group) => group.rules.some((rule) => DATE_KINDS.includes(rule.kind)));
-}
 
 export function newRule(kind: RuleKind = 'name', exclude = false): FilterRule {
   return {
@@ -34,6 +29,8 @@ export function newRule(kind: RuleKind = 'name', exclude = false): FilterRule {
     start: kind === 'window' ? '09:00' : '',
     end: kind === 'window' ? '13:00' : '',
     caseSensitive: false,
+    dateSource: 'modified',
+    filenamePattern: '',
   };
 }
 
@@ -57,9 +54,4 @@ export function moveBy<T>(items: T[], index: number, delta: number): T[] {
   const copy = [...items];
   [copy[index], copy[target]] = [copy[target], copy[index]];
   return copy;
-}
-
-export function orderedSources(enabled: DateSourceKind[]): { kind: DateSourceKind; on: boolean }[] {
-  const rest = DATE_SOURCES.map((s) => s.value).filter((kind) => !enabled.includes(kind));
-  return [...enabled.map((kind) => ({ kind, on: true })), ...rest.map((kind) => ({ kind, on: false }))];
 }

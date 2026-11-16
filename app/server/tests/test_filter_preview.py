@@ -93,7 +93,7 @@ def test_label_formats_day_date_and_time(previewer, source, tmp_path):
 
 def test_dates_follow_the_configured_date_source(previewer, source, tmp_path):
     make_clip(source / "GX_20250102_030405.mp4", datetime(2026, 11, 1, 0, 0, tzinfo=LONDON))
-    result = run(previewer, source, tmp_path, date_sources=["filename", "mtime"], filename_pattern="GX_YYYYMMDD_HHmmss")
+    result = run(previewer, source, tmp_path, date_source="filename", filename_pattern="GX_YYYYMMDD_HHmmss")
     clip = next(c for c in result.clips if c.name.startswith("GX_2025"))
     assert clip.when.startswith("2025-01-02T03:04:05")
 

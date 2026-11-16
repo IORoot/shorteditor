@@ -6,13 +6,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
+from .date_source import ClipTimes, DateRule
 from .models import FilterGroup, FilterRule
 
 
 @dataclass(frozen=True)
 class ClipFacts:
     name: str
-    when: datetime
+    times: ClipTimes
 
 
 Predicate = Callable[[ClipFacts], bool]
@@ -67,13 +68,24 @@ def _text_predicate(rule: FilterRule) -> Predicate:
     return lambda facts: fnmatch.fnmatchcase(fold(facts.name), needle)
 
 
+def _dated(rule: FilterRule, check: Callable[[datetime], bool]) -> Predicate:
+    """A rule that reads the clip date from the source chosen on that rule. No readable date means no match."""
+    date_rule = DateRule(rule.date_source, rule.filename_pattern)
+
+    def predicate(facts: ClipFacts) -> bool:
+        when = date_rule.pick(facts.name, facts.times)
+        return when is not None and check(when)
+
+    return predicate
+
+
 def _date_range_predicate(rule: FilterRule) -> Predicate:
     start, end = _parse_date(rule.date_from, "From date"), _parse_date(rule.date_to, "To date")
     if start is None and end is None:
         raise ValueError("A date range needs a from or to date")
     if start and end and start > end:
         raise ValueError("The from date must not be after the to date")
-    return lambda facts: (start is None or facts.when.date() >= start) and (end is None or facts.when.date() <= end)
+    return _dated(rule, lambda when: (start is None or when.date() >= start) and (end is None or when.date() <= end))
 
 
 def _window_predicate(rule: FilterRule) -> Predicate:
@@ -81,7 +93,7 @@ def _window_predicate(rule: FilterRule) -> Predicate:
     start, end = _parse_time(rule.start, "Window start"), _parse_time(rule.end, "Window end")
     if end <= start:
         raise ValueError("Window end must be after the start")
-    return lambda facts: _weekday(facts.when) in days and start <= facts.when.time().replace(second=0, microsecond=0) < end
+    return _dated(rule, lambda when: _weekday(when) in days and start <= when.time().replace(second=0, microsecond=0) < end)
 
 
 def build_predicate(rule: FilterRule) -> Predicate:
@@ -91,7 +103,7 @@ def build_predicate(rule: FilterRule) -> Predicate:
         return _date_range_predicate(rule)
     if rule.kind == "weekday":
         days = _checked_days(rule.days)
-        return lambda facts: _weekday(facts.when) in days
+        return _dated(rule, lambda when: _weekday(when) in days)
     return _window_predicate(rule)
 
 

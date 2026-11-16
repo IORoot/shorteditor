@@ -24,7 +24,7 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         day_of_month=row["day_of_month"],
         cron=row["cron"],
         last_slot=last_slot,
-        source_type=row["source_type"],
+        source_type=_stored_source_type(row["source_type"]),
         ssh_host=row["ssh_host"],
         ssh_user=row["ssh_user"],
         ssh_key_path=row["ssh_key_path"],
@@ -34,7 +34,7 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         suffix=row["suffix"],
         filters=[FilterGroup.model_validate(group) for group in json.loads(row["filters"])],
         random_selection=RandomSelection.model_validate(json.loads(row["random_selection"])),
-        date_sources=json.loads(row["date_sources"]),
+        date_source=_stored_source(row["date_sources"]),
         filename_pattern=row["filename_pattern"],
     )
 
@@ -76,7 +76,7 @@ class CollectorRepository:
                 config.suffix,
                 json.dumps([group.model_dump(mode="json") for group in config.filters]),
                 json.dumps(config.random_selection.model_dump(mode="json")),
-                json.dumps(config.date_sources),
+                json.dumps([config.date_source]),
                 config.filename_pattern,
                 collector_id,
             ),
@@ -108,3 +108,18 @@ class CollectorRepository:
 
     def set_last_slot(self, collector_id: int, when: datetime) -> None:
         self._db.execute("UPDATE collectors SET last_slot=? WHERE id=?", (when.isoformat(), collector_id))
+
+
+def _stored_source_type(raw: str) -> str:
+    """Collectors saved with the removed Mount source are read back as local folders."""
+    return "local" if raw == "mount" else raw
+
+
+def _stored_source(raw: str) -> str:
+    """The column used to hold a list of sources; older values map onto the single choice."""
+    values = json.loads(raw) or []
+    if "filename" in values:
+        return "filename"
+    if "created" in values:
+        return "created"
+    return "modified"

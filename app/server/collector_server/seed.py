@@ -25,7 +25,7 @@ _DEMO = [
         ScheduleDraft(enabled=True, kind="daily", time="23:00"),
     ),
     (
-        CollectorConfig(name="Phone Uploads", source_type="mount", input_folder="/Volumes/Phones", output_folder="/Volumes/Edit/Phones", transfer="copy", group_by="none", folder_template="phones"),
+        CollectorConfig(name="Phone Uploads", source_type="local", input_folder="/Volumes/Phones", output_folder="/Volumes/Edit/Phones", transfer="copy", group_by="none", folder_template="phones"),
         ScheduleDraft(enabled=True, kind="cron", time="00:00", cron="0 */6 * * *"),
     ),
     (

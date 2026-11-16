@@ -102,18 +102,18 @@ def test_random_selection_runs_after_the_filters(collectors, clock, dirs):
 def test_date_source_filename_changes_grouping_and_filter_dates(collectors, clock, dirs):
     source, _ = dirs
     make_clip(source / "GX_20261101_100000.mp4", SAT)
-    plan = plan_for(collectors, clock, dirs, date_sources=["filename", "mtime"], filename_pattern="GX_YYYYMMDD_HHmmss")
+    plan = plan_for(collectors, clock, dirs, date_source="filename", filename_pattern="GX_YYYYMMDD_HHmmss")
     assert plan.groups[0].folder == "2026-11-01_Sun_coach"
-    assert "filename for 1" in plan.notes[-1]
+    assert plan.notes[-1] == "Folder dates come from filename for 1."
 
 
-def test_metadata_dates_are_used_and_mixed_sources_are_reported(collectors, clock, dirs):
+def test_unreadable_filenames_fall_back_to_modified_time_and_are_reported(collectors, clock, dirs):
     source, _ = dirs
-    make_mp4(source / "a.mp4", datetime(2026, 11, 7, 12, 0, tzinfo=timezone.utc), SAT)
-    make_clip(source / "b.mp4", SAT)
-    plan = plan_for(collectors, clock, dirs, date_sources=["metadata", "mtime"])
+    make_clip(source / "GX_20261107_120000.mp4", SAT)
+    make_clip(source / "holiday.mp4", SAT)
+    plan = plan_for(collectors, clock, dirs, date_source="filename", filename_pattern="GX_YYYYMMDD_HHmmss")
     assert [g.folder for g in plan.groups] == ["2026-11-07_Sat_coach", "2026-11-14_Sat_coach"]
-    assert plan.notes[-1] == "Dates come from video metadata for 1, modified time for 1."
+    assert plan.notes[-1] == "Folder dates come from filename for 1, modified time for 1 with no readable date."
 
 
 def test_invalid_filter_configuration_is_rejected_before_scanning(collectors, clock, dirs):

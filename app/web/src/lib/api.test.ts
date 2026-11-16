@@ -87,13 +87,13 @@ describe('ApiClient', () => {
   });
 
   it('fills in missing filter settings when an older backend lists collectors', async () => {
-    const { filters, randomSelection, dateSources, filenamePattern, ...oldConfig } = makeConfig();
-    void filters; void randomSelection; void dateSources; void filenamePattern;
+    const { filters, randomSelection, dateSource, filenamePattern, ...oldConfig } = makeConfig();
+    void filters; void randomSelection; void dateSource; void filenamePattern;
     const old = { ...makeCollector(), config: oldConfig };
     const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse([old])));
     const [collector] = await client.listCollectors();
     expect(collector.config.filters).toEqual([]);
-    expect(collector.config.dateSources).toEqual(['mtime']);
+    expect(collector.config.dateSource).toBe('modified');
   });
 
   it('refuses to report a save as successful when an old backend dropped the filters', async () => {

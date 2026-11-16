@@ -7,7 +7,6 @@ import { FolderField } from './FolderField';
 
 const SOURCE_OPTIONS: { value: SourceType; label: string }[] = [
   { value: 'local', label: 'Local folder' },
-  { value: 'mount', label: 'Mount' },
   { value: 'ssh', label: 'SSH' },
 ];
 
@@ -21,7 +20,7 @@ export function SourceSection({ config, onChange, onBrowseInput }: SourceSection
   const set = (patch: Partial<CollectorConfig>) => onChange({ ...config, ...patch });
   const isSsh = config.sourceType === 'ssh';
   return (
-    <SectionCard title="Source" description="Where clips are collected from. Local folders, mounted volumes and SSH hosts are supported.">
+    <SectionCard title="Source" description="Where clips are collected from. Local folders and SSH hosts are supported.">
       <div className="flex flex-col gap-1.5">
         <span className="text-caption font-semibold text-text-2">Source type</span>
         <SegmentedControl label="Source type" options={SOURCE_OPTIONS} value={config.sourceType} onChange={(sourceType) => set({ sourceType })} />

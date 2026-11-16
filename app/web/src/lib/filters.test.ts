@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULE_KINDS, defaultRandom, moveBy, newGroup, newRule, orderedSources, removeAt, replaceAt } from './filters';
+import { RULE_KINDS, defaultRandom, moveBy, newGroup, newRule, removeAt, replaceAt } from './filters';
 
 describe('newRule', () => {
   it('starts a name rule empty and included', () => {
@@ -37,15 +37,5 @@ describe('group and list helpers', () => {
 
   it('has a disabled random selection by default', () => {
     expect(defaultRandom.enabled).toBe(false);
-  });
-});
-
-describe('orderedSources', () => {
-  it('lists enabled sources in order, then the unused ones unchecked', () => {
-    expect(orderedSources(['filename', 'mtime'])).toEqual([
-      { kind: 'filename', on: true },
-      { kind: 'mtime', on: true },
-      { kind: 'metadata', on: false },
-    ]);
   });
 });

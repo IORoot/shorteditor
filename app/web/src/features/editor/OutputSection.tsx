@@ -6,6 +6,7 @@ import { FormField } from '../../components/ui/FormField';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { FolderField } from './FolderField';
+import { DateSourceSelect, FilenamePatternField } from './DateSourceFields';
 import { TokenRow } from './TokenRow';
 
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
@@ -55,6 +56,18 @@ export function OutputSection({ config, onChange, onBrowseOutput }: OutputSectio
         onChange={(event) => set({ folderTemplate: event.target.value })}
       />
       <TokenRow onInsert={insert} />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-caption font-semibold text-text-2">Date for folder names</span>
+          <DateSourceSelect label="Folder date" value={config.dateSource} onChange={(dateSource) => set({ dateSource })} />
+        </div>
+        {config.dateSource === 'filename' ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-caption font-semibold text-text-2">Filename pattern</span>
+            <FilenamePatternField label="Folder filename pattern" value={config.filenamePattern} onChange={(filenamePattern) => set({ filenamePattern })} />
+          </div>
+        ) : null}
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <span className="text-caption font-semibold text-text-2">Group by</span>

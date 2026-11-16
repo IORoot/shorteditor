@@ -9912,6 +9912,43 @@
                             },
                             {
                               "type": "frame",
+                              "id": "uW3am",
+                              "name": "Date From Select",
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "HamuV",
+                                  "name": "Date From Value",
+                                  "fill": "$text",
+                                  "content": "Modified time",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "NGtQQ",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "Ila6g",
                               "name": "Remove",
                               "width": 32,
@@ -10398,6 +10435,43 @@
                             },
                             {
                               "type": "frame",
+                              "id": "H7Fss",
+                              "name": "Date From Select",
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "FtR72",
+                                  "name": "Date From Value",
+                                  "fill": "$text",
+                                  "content": "Modified time",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "H5RYW2",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "w5Zf6J",
                               "name": "Remove",
                               "width": 32,
@@ -10714,337 +10788,6 @@
                           ]
                         }
                       ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "bBVy0",
-                      "name": "Date Source",
-                      "width": "fill_container",
-                      "stroke": "$line",
-                      "strokeWidth": {
-                        "top": 1
-                      },
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": [
-                        18,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "eslo8",
-                          "layout": "vertical",
-                          "gap": 2,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "jcCad",
-                              "name": "Date source",
-                              "fill": "$text",
-                              "content": "Date source",
-                              "fontFamily": "Inter",
-                              "fontSize": 14,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "j4fI1h",
-                              "name": "Where a clip's date comes from. The first source that works is used.",
-                              "fill": "$text-2",
-                              "content": "Where a clip's date comes from. The first source that works is used.",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "O53fn",
-                          "name": "Source Video metadata",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "mmauH",
-                              "name": "1",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "1",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "CRTnC",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "pN0jO",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "zl8WF",
-                              "name": "Video metadata",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "Video metadata",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "HWz6j",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "icon",
-                              "id": "svDFc",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "EfKE4",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "S5MyX",
-                          "name": "Source Filename pattern",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "EyldO",
-                              "name": "2",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "2",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "ctZxP",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "JzDSH",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "H3k99",
-                              "name": "Filename pattern",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "Filename pattern",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "l0mTH",
-                              "name": "Input GX_YYYYMMDD_HHmmss",
-                              "width": "fill_container",
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "sPCyy",
-                                  "name": "GX_YYYYMMDD_HHmmss",
-                                  "fill": "$text",
-                                  "content": "GX_YYYYMMDD_HHmmss",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "icon",
-                              "id": "syJFK",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "CC6li",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "iaxAb",
-                          "name": "Source File modified time",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "wyZKj",
-                              "name": "3",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "3",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "ZWTIl",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "Y1wNc",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "pyyye",
-                              "name": "File modified time",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "File modified time",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Pz9t2",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "icon",
-                              "id": "PBnZA",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "qukc8",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        }
-                      ]
                     }
                   ]
                 },
@@ -11086,6 +10829,107 @@
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Ee6Hl",
+                      "name": "Folder Date",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T4b6v",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Date for folder names",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZxRcd",
+                          "name": "Date From Select",
+                          "fill": "$surface",
+                          "cornerRadius": 10,
+                          "stroke": "$line",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yPRVm",
+                              "name": "Date From Value",
+                              "fill": "$text",
+                              "content": "Modified time",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "mkoyi",
+                              "name": "chevron-down",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$text-2"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k9fBq",
+                      "name": "Filename Pattern Row",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "s0TUJv",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Filename pattern (shown when Filename is picked)",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "K80P7",
+                          "name": "Pattern Input",
+                          "width": "fill_container",
+                          "fill": "$fill-2",
+                          "cornerRadius": 10,
+                          "padding": [
+                            8,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "nFF3I",
+                              "name": "Pattern",
+                              "fill": "$text",
+                              "content": "GX_YYYYMMDD",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
                         }
                       ]
                     },
@@ -13905,6 +13749,43 @@
                             },
                             {
                               "type": "frame",
+                              "id": "CDYzE",
+                              "name": "Date From Select",
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Fi4CQ",
+                                  "name": "Date From Value",
+                                  "fill": "$text",
+                                  "content": "Modified time",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "cELRW",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "uOWkI",
                               "name": "Remove",
                               "width": 32,
@@ -14391,6 +14272,43 @@
                             },
                             {
                               "type": "frame",
+                              "id": "du8ZF",
+                              "name": "Date From Select",
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "B4NxRp",
+                                  "name": "Date From Value",
+                                  "fill": "$text",
+                                  "content": "Modified time",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "Z9Vcg",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "XOxPZ",
                               "name": "Remove",
                               "width": 32,
@@ -14707,337 +14625,6 @@
                           ]
                         }
                       ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "q2xy3a",
-                      "name": "Date Source",
-                      "width": "fill_container",
-                      "stroke": "$line",
-                      "strokeWidth": {
-                        "top": 1
-                      },
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": [
-                        18,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "t0JjSK",
-                          "layout": "vertical",
-                          "gap": 2,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "y2o000",
-                              "name": "Date source",
-                              "fill": "$text",
-                              "content": "Date source",
-                              "fontFamily": "Inter",
-                              "fontSize": 14,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "o5SqKs",
-                              "name": "Where a clip's date comes from. The first source that works is used.",
-                              "fill": "$text-2",
-                              "content": "Where a clip's date comes from. The first source that works is used.",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "qQeDj",
-                          "name": "Source Video metadata",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "k7YHQ",
-                              "name": "1",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "1",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "kF66i",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "yeZig",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "Hdjg8",
-                              "name": "Video metadata",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "Video metadata",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "uT5WO",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "icon",
-                              "id": "CvTCM",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "hnzgC",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "T81Owe",
-                          "name": "Source Filename pattern",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "pcqd6",
-                              "name": "2",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "2",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "FVL5t",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "OfVLa",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "ksxp1",
-                              "name": "Filename pattern",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "Filename pattern",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "xo0pg",
-                              "name": "Input GX_YYYYMMDD_HHmmss",
-                              "width": "fill_container",
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "Y2KcV",
-                                  "name": "GX_YYYYMMDD_HHmmss",
-                                  "fill": "$text",
-                                  "content": "GX_YYYYMMDD_HHmmss",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "icon",
-                              "id": "FNEca",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "uKZsR",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "IIn17",
-                          "name": "Source File modified time",
-                          "width": "fill_container",
-                          "fill": "$fill-2",
-                          "cornerRadius": 12,
-                          "gap": 12,
-                          "padding": [
-                            10,
-                            12
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "BwATF",
-                              "name": "3",
-                              "fill": "$text-3",
-                              "textGrowth": "fixed-width",
-                              "width": 14,
-                              "content": "3",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "OgY3J",
-                              "width": 18,
-                              "height": 18,
-                              "fill": "$accent",
-                              "cornerRadius": 5,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "ke74E",
-                                  "name": "check",
-                                  "width": 12,
-                                  "height": 12,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "$on-accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "a807H",
-                              "name": "File modified time",
-                              "fill": "$text",
-                              "textGrowth": "fixed-width",
-                              "width": 170,
-                              "content": "File modified time",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "TfGki",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "icon",
-                              "id": "QJsfF",
-                              "name": "arrow-up",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-up",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "Ieh66",
-                              "name": "arrow-down",
-                              "width": 14,
-                              "height": 14,
-                              "icon": "arrow-down",
-                              "library": "lucide",
-                              "fill": "$text-3"
-                            }
-                          ]
-                        }
-                      ]
                     }
                   ]
                 },
@@ -15079,6 +14666,107 @@
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uNzHo",
+                      "name": "Folder Date",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aJMth",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Date for folder names",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rFoiu",
+                          "name": "Date From Select",
+                          "fill": "$surface",
+                          "cornerRadius": 10,
+                          "stroke": "$line",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Szxwu",
+                              "name": "Date From Value",
+                              "fill": "$text",
+                              "content": "Modified time",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "fuab0",
+                              "name": "chevron-down",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$text-2"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k1ahw",
+                      "name": "Filename Pattern Row",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lH6BG",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Filename pattern (shown when Filename is picked)",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "xGRd0",
+                          "name": "Pattern Input",
+                          "width": "fill_container",
+                          "fill": "$fill-2",
+                          "cornerRadius": 10,
+                          "padding": [
+                            8,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "u3rBDy",
+                              "name": "Pattern",
+                              "fill": "$text",
+                              "content": "GX_YYYYMMDD",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
                         }
                       ]
                     },

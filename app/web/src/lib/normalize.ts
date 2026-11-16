@@ -1,12 +1,22 @@
 import { defaultRandom } from './filters';
-import type { Collector, CollectorConfig } from './types';
+import type { Collector, CollectorConfig, FilterRule } from './types';
+
+/** Rules saved before these fields existed get the defaults. */
+function normalizeRule(rule: FilterRule): FilterRule {
+  return {
+    ...rule,
+    caseSensitive: rule.caseSensitive ?? false,
+    dateSource: rule.dateSource ?? 'modified',
+    filenamePattern: rule.filenamePattern ?? '',
+  };
+}
 
 export function normalizeConfig(config: CollectorConfig): CollectorConfig {
   return {
     ...config,
-    filters: config.filters ?? [],
+    filters: (config.filters ?? []).map((group) => ({ ...group, rules: group.rules.map(normalizeRule) })),
     randomSelection: config.randomSelection ?? { ...defaultRandom },
-    dateSources: config.dateSources ?? ['mtime'],
+    dateSource: config.dateSource ?? 'modified',
     filenamePattern: config.filenamePattern ?? '',
   };
 }

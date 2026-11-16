@@ -4,8 +4,8 @@ import { isOutdatedBackendConfig, normalizeCollector, normalizeConfig } from './
 import type { CollectorConfig } from './types';
 
 function oldBackendConfig(): CollectorConfig {
-  const { filters, randomSelection, dateSources, filenamePattern, ...rest } = makeConfig();
-  void filters; void randomSelection; void dateSources; void filenamePattern;
+  const { filters, randomSelection, dateSource, filenamePattern, ...rest } = makeConfig();
+  void filters; void randomSelection; void dateSource; void filenamePattern;
   return rest as CollectorConfig;
 }
 
@@ -14,12 +14,12 @@ describe('normalizeConfig', () => {
     const config = normalizeConfig(oldBackendConfig());
     expect(config.filters).toEqual([]);
     expect(config.randomSelection).toMatchObject({ enabled: false, mode: 'percent' });
-    expect(config.dateSources).toEqual(['mtime']);
+    expect(config.dateSource).toBe('modified');
     expect(config.filenamePattern).toBe('');
   });
 
   it('leaves existing values alone', () => {
-    const config = makeConfig({ filters: [{ rules: [] }], dateSources: ['filename'], filenamePattern: 'X_YYYYMMDD' });
+    const config = makeConfig({ filters: [{ rules: [] }], dateSource: 'filename', filenamePattern: 'X_YYYYMMDD' });
     expect(normalizeConfig(config)).toEqual(config);
   });
 

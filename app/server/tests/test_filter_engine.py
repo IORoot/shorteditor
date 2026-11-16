@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 
+from collector_server.date_source import ClipTimes
 from collector_server.filter_engine import ClipFacts, FilterEngine
 from collector_server.models import FilterGroup, FilterRule
 from tests.conftest import LONDON
@@ -19,7 +20,7 @@ def engine(*groups: list[FilterRule]) -> FilterEngine:
 
 
 def accepts(e: FilterEngine, name: str, when: datetime = SAT_0930) -> bool:
-    return e.accepts(ClipFacts(name, when))
+    return e.accepts(ClipFacts(name, ClipTimes(modified=when, created=when)))
 
 
 def test_no_groups_accepts_everything():
@@ -125,3 +126,20 @@ def test_empty_groups_are_ignored_not_treated_as_match_none():
 def test_invalid_rules_raise_clear_errors(bad, message):
     with pytest.raises(ValueError, match=message):
         engine([bad])
+
+
+def test_each_date_rule_reads_its_own_source():
+    modified = datetime(2026, 11, 14, 9, 0, tzinfo=LONDON)  # Saturday
+    created = datetime(2026, 11, 16, 9, 0, tzinfo=LONDON)  # Monday
+    facts = ClipFacts("GX_20261114_090000.mp4", ClipTimes(modified=modified, created=created))
+    assert FilterEngine([FilterGroup(rules=[rule("weekday", days=[6], date_source="modified")])]).accepts(facts)
+    assert not FilterEngine([FilterGroup(rules=[rule("weekday", days=[6], date_source="created")])]).accepts(facts)
+    assert FilterEngine([FilterGroup(rules=[rule("weekday", days=[6], date_source="filename", filename_pattern="GX_YYYYMMDD")])]).accepts(facts)
+
+
+def test_unreadable_date_is_never_matched_so_an_exclude_rule_keeps_the_clip():
+    facts = ClipFacts("holiday.mp4", ClipTimes(modified=SAT_0930, created=SAT_0930))
+    dated = FilterRule(kind="weekday", days=[6], date_source="filename", filename_pattern="GX_YYYYMMDD")
+    assert not FilterEngine([FilterGroup(rules=[dated])]).accepts(facts)
+    excluded = FilterRule(kind="weekday", days=[6], exclude=True, date_source="filename", filename_pattern="GX_YYYYMMDD")
+    assert FilterEngine([FilterGroup(rules=[excluded])]).accepts(facts)

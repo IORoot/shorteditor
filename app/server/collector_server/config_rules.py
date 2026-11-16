@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .date_source import ClipDateResolver
+from .date_source import DateRule
 from .filter_engine import FilterEngine
 from .models import CollectorConfig
 from .random_selector import RandomSelector
@@ -21,4 +21,4 @@ def validate_config(config: CollectorConfig) -> None:
         raise ValueError("{window:...} tokens need Group by: Window")
     FilterEngine(config.filters)
     RandomSelector(config.random_selection)
-    ClipDateResolver(config.date_sources, config.filename_pattern, None)
+    DateRule(config.date_source, config.filename_pattern)
