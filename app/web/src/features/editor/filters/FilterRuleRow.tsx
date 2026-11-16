@@ -17,11 +17,12 @@ export function FilterRuleRow({ rule, onChange, onRemove }: FilterRuleRowProps) 
       <SelectField
         label="Include or exclude"
         className="w-28"
+        surface
         value={rule.exclude ? 'exclude' : 'include'}
         options={[{ value: 'include', label: 'Include' }, { value: 'exclude', label: 'Exclude' }]}
         onChange={(mode) => onChange({ ...rule, exclude: mode === 'exclude' })}
       />
-      <SelectField label="Rule type" className="w-44" value={rule.kind} options={RULE_KINDS} onChange={changeKind} />
+      <SelectField label="Rule type" className="w-44" surface value={rule.kind} options={RULE_KINDS} onChange={changeKind} />
       <RuleInputs rule={rule} onChange={onChange} />
       <button type="button" aria-label="Remove rule" onClick={onRemove} className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-3 hover:bg-fill-2">
         <X size={16} aria-hidden="true" />

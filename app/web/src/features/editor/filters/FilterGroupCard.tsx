@@ -12,7 +12,7 @@ export interface FilterGroupCardProps {
 
 export function FilterGroupCard({ index, group, onChange, onRemove }: FilterGroupCardProps) {
   return (
-    <div role="group" aria-label={`Group ${index + 1}`} className="flex flex-col gap-3 rounded-[14px] border border-line p-4">
+    <div role="group" aria-label={`Group ${index + 1}`} className="flex flex-col gap-3 rounded-[14px] border border-line bg-base-200 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-small font-semibold">Group {index + 1}</span>

@@ -1,7 +1,7 @@
 import type { FilterRule } from '../../../lib/types';
 import { DayPicker } from '../../schedule/DayPicker';
 
-const BOX = 'input input-sm rounded-[10px] border-0 bg-fill-2 px-3 text-small focus:outline-none focus:ring-2 focus:ring-primary/40';
+const BOX = 'input input-sm rounded-[10px] border border-line bg-surface px-3 text-small focus:outline-none focus:ring-2 focus:ring-primary/40';
 
 const PLACEHOLDER: Record<string, string> = { name: 'proxy', glob: 'GX01*.MP4', regex: '^GX\\d{4}' };
 
