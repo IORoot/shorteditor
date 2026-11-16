@@ -98,8 +98,9 @@ class CollectorRepository:
         rows = self._db.query("SELECT * FROM collectors WHERE id = ?", (collector_id,))
         return _to_record(rows[0]) if rows else None
 
-    def set_active(self, collector_id: int, active: bool) -> CollectorRecord | None:
-        self._db.execute("UPDATE collectors SET active=? WHERE id=?", (int(active), collector_id))
+    def set_active(self, collector_id: int, active: bool, now: datetime) -> CollectorRecord | None:
+        # Turning on starts the schedule from now, so slots missed while off don't fire at once.
+        self._db.execute("UPDATE collectors SET active=?, last_slot=CASE WHEN ? THEN ? ELSE last_slot END WHERE id=?", (int(active), int(active), now.isoformat(), collector_id))
         return self.get(collector_id)
 
     def save_schedule(self, collector_id: int, draft: ScheduleDraft, cron: str, now: datetime) -> CollectorRecord | None:

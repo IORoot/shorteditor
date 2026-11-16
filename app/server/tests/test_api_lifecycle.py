@@ -70,7 +70,7 @@ def test_a_turned_off_collector_refuses_run_now_in_the_run_service(collectors, r
     from collector_server.planner import TransferPlanner
     from collector_server.undo import UndoService
     record = collectors.add("Off", str(tmp_path))
-    collectors.set_active(record.id, False)
+    collectors.set_active(record.id, False, clock.now())
     service = RunService(collectors, TransferPlanner(clock), scheduler=None, undo=UndoService(None, runs, None))
     with pytest.raises(ValueError, match="turned off"):
         service.start_run(record.id)

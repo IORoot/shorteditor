@@ -54,6 +54,26 @@ def test_missed_slots_run_once_as_caught_up(setup, clock):
     assert scheduler.tick() == []
 
 
+def test_turned_off_collectors_never_run(setup, clock, collectors, runs):
+    scheduler, _, mover, collector_id = setup
+    CollectorService(collectors, runs, clock).set_active(collector_id, False)
+    clock.advance(hours=11)
+    assert scheduler.tick() == []
+    assert mover.calls == 0
+
+
+def test_turning_on_does_not_catch_up_missed_slots(setup, clock, collectors, runs):
+    scheduler, _, mover, collector_id = setup
+    service = CollectorService(collectors, runs, clock)
+    service.set_active(collector_id, False)
+    clock.advance(days=4)
+    service.set_active(collector_id, True)
+    assert scheduler.tick() == []
+    clock.advance(days=1)
+    assert len(scheduler.tick()) == 1
+    assert mover.calls == 1
+
+
 def test_disabled_collectors_never_run(collectors, runs, clock):
     service = CollectorService(collectors, runs, clock)
     record = collectors.add("Off", "/off")

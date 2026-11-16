@@ -28,7 +28,7 @@ class CollectorService:
         return self._present(record) if record else None
 
     def set_active(self, collector_id: int, active: bool) -> Collector | None:
-        record = self._collectors.set_active(collector_id, active)
+        record = self._collectors.set_active(collector_id, active, self._clock.now())
         return self._present(record) if record else None
 
     def create_collector(self, request: CollectorCreate) -> Collector:
