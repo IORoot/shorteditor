@@ -1,8 +1,8 @@
 import { KeyRound, Server, User } from 'lucide-react';
 import type { CollectorConfig, SourceType } from '../../lib/types';
-import { FormField } from '../../../components/ui/FormField';
-import { SectionCard } from '../../../components/ui/SectionCard';
-import { SegmentedControl } from '../../../components/ui/SegmentedControl';
+import { FormField } from '../../../shared/components/ui/FormField';
+import { SectionCard } from '../../../shared/components/ui/SectionCard';
+import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl';
 import { FolderField } from './FolderField';
 
 const SOURCE_OPTIONS: { value: SourceType; label: string }[] = [

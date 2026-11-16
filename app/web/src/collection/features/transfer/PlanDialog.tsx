@@ -1,9 +1,9 @@
 import { Check, Folder, Info, X } from 'lucide-react';
 import type { PlanResult, Transfer } from '../../lib/types';
-import type { LoadState } from '../../../hooks/useLoad';
-import { formatBytes, plural, suffixAdded } from '../../../lib/format';
-import { Button } from '../../../components/ui/Button';
-import { StatusChip } from '../../../components/ui/StatusChip';
+import type { LoadState } from '../../../shared/hooks/useLoad';
+import { formatBytes, plural, suffixAdded } from '../../../shared/lib/format';
+import { Button } from '../../../shared/components/ui/Button';
+import { StatusChip } from '../../../shared/components/ui/StatusChip';
 
 export type PlanMode = 'dry' | 'run';
 

@@ -8,9 +8,9 @@ from fastapi import FastAPI
 
 from .collection.api import build_router
 from .collection.browser import FolderBrowser
-from .collection.clock import SystemClock
+from .shared.clock import SystemClock
 from .collection.collector_repository import CollectorRepository
-from .collection.database import Database
+from .shared.database import Database
 from .collection.executor import TransferExecutor
 from .collection.file_transfer import FileTransfer
 from .collection.local_mover import LocalMover

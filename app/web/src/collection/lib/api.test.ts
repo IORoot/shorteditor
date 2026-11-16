@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiClient, ApiError } from './api';
+import { ApiClient } from './api';
+import { ApiError } from '../../shared/lib/http';
 import type { ScheduleDraft } from './types';
 import { makeCollector, makeConfig } from '../test/fixtures';
 

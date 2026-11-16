@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button } from '../../../components/ui/Button';
-import { FormField } from '../../../components/ui/FormField';
+import { Button } from '../../../shared/components/ui/Button';
+import { FormField } from '../../../shared/components/ui/FormField';
 
 export interface NewCollectorDialogProps {
   busy: boolean;

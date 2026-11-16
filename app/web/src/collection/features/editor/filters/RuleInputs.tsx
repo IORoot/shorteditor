@@ -1,5 +1,5 @@
 import type { FilterRule, RandomSelection } from '../../../lib/types';
-import { SelectField } from '../../../../components/ui/SelectField';
+import { SelectField } from '../../../../shared/components/ui/SelectField';
 import { DayPicker } from '../../schedule/DayPicker';
 
 const BOX = 'input input-sm rounded-[10px] border border-line bg-surface px-3 text-small focus:outline-none focus:ring-2 focus:ring-primary/40';

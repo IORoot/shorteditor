@@ -1,7 +1,7 @@
 import { Plus, RotateCw } from 'lucide-react';
 import type { Collector } from '../../lib/types';
-import type { LoadState } from '../../../hooks/useLoad';
-import { Button } from '../../../components/ui/Button';
+import type { LoadState } from '../../../shared/hooks/useLoad';
+import { Button } from '../../../shared/components/ui/Button';
 import { CollectorRow } from './CollectorRow';
 
 export interface CollectorListProps {

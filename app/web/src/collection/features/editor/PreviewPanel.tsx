@@ -1,6 +1,6 @@
 import { ArrowDown, Film, Info } from 'lucide-react';
 import type { FolderPreview } from '../../lib/types';
-import type { LoadState } from '../../../hooks/useLoad';
+import type { LoadState } from '../../../shared/hooks/useLoad';
 import { TOKENS } from '../../lib/tokens';
 
 export const SAMPLE_FILE = 'GX011234.MP4';

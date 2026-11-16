@@ -4,7 +4,7 @@ import sqlite3
 import json
 from datetime import datetime
 
-from .database import Database
+from ..shared.database import Database
 from .domain import CollectorRecord
 from .models import CollectorConfig, FilterGroup, ScheduleDraft
 

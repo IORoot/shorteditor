@@ -4,7 +4,7 @@ import threading
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-from .clock import Clock
+from ..shared.clock import Clock
 from .collector_repository import CollectorRepository
 from .domain import CollectorRecord, RunRecord
 from .cron import CronExpression

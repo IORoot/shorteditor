@@ -1,7 +1,8 @@
 import { CalendarClock, History, Hand } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { Run, RunStatus, Tone } from '../../lib/types';
-import { StatusChip } from '../../../components/ui/StatusChip';
+import type { Run, RunStatus } from '../../lib/types';
+import type { Tone } from '../../../shared/lib/types';
+import { StatusChip } from '../../../shared/components/ui/StatusChip';
 
 const STATUS: Record<RunStatus, { tone: Tone; label: string }> = {
   running: { tone: 'info', label: 'Running' },

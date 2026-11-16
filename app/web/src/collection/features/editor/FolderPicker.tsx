@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Check, CornerLeftUp, Folder, X } from 'lucide-react';
 import { api } from '../../lib/api';
-import { useLoad } from '../../../hooks/useLoad';
-import { Button } from '../../../components/ui/Button';
+import { useLoad } from '../../../shared/hooks/useLoad';
+import { Button } from '../../../shared/components/ui/Button';
 
 export interface FolderPickerProps {
   startPath: string;

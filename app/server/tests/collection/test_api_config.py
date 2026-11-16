@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from collector_server.collection.api import create_app
 from collector_server.collection.browser import FolderBrowser
-from collector_server.collection.database import Database
+from collector_server.shared.database import Database
 from collector_server.collection.seed import seed_demo
 from collector_server.collection.service import CollectorService
 

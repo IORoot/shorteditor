@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { CollectorConfig } from '../../../lib/types';
 import { newGroup, removeAt, replaceAt } from '../../../lib/filters';
-import { SectionCard } from '../../../../components/ui/SectionCard';
+import { SectionCard } from '../../../../shared/components/ui/SectionCard';
 import { FilterGroupCard } from './FilterGroupCard';
 
 export interface FiltersSectionProps {

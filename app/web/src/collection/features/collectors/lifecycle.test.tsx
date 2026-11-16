@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiClient, ApiError } from '../../lib/api';
+import { ApiClient } from '../../lib/api';
+import { ApiError } from '../../../shared/lib/http';
 import { makeCollector } from '../../test/fixtures';
 import { CollectorList } from './CollectorList';
 import { DeleteCollectorDialog } from './DeleteCollectorDialog';

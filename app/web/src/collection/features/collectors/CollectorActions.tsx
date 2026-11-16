@@ -1,5 +1,5 @@
 import { Eye, Play, SlidersHorizontal } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
+import { Button } from '../../../shared/components/ui/Button';
 
 export interface CollectorActionsProps {
   onEdit: () => void;

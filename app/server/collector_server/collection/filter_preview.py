@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from .clock import Clock
+from ..shared.clock import Clock
 from .domain import CollectorRecord
 from .models import ClipVerdict, CollectorConfig, FilterPreviewResult
 from .planner import Clip, TransferPlanner

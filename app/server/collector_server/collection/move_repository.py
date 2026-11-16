@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .database import Database
+from ..shared.database import Database
 from .domain import MoveRecord
 
 

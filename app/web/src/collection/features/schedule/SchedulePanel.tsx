@@ -1,10 +1,10 @@
 import { Check, Info, RotateCcw, Shield, PlugZap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ScheduleDraft, ScheduleKind } from '../../lib/types';
-import { Button } from '../../../components/ui/Button';
-import { FormField } from '../../../components/ui/FormField';
-import { SegmentedControl } from '../../../components/ui/SegmentedControl';
-import { Toggle } from '../../../components/ui/Toggle';
+import { Button } from '../../../shared/components/ui/Button';
+import { FormField } from '../../../shared/components/ui/FormField';
+import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl';
+import { Toggle } from '../../../shared/components/ui/Toggle';
 import { DayPicker } from './DayPicker';
 
 export interface SchedulePanelProps {

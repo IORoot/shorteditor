@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .clock import Clock
+from ..shared.clock import Clock
 from .collector_repository import CollectorRepository
 from .domain import CollectorRecord
 from .config_rules import validate_config

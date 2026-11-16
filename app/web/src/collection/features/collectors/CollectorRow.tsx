@@ -1,7 +1,7 @@
 import { Timer } from 'lucide-react';
 import type { Collector } from '../../lib/types';
-import { StatusChip } from '../../../components/ui/StatusChip';
-import { Toggle } from '../../../components/ui/Toggle';
+import { StatusChip } from '../../../shared/components/ui/StatusChip';
+import { Toggle } from '../../../shared/components/ui/Toggle';
 
 export interface CollectorRowProps {
   collector: Collector;

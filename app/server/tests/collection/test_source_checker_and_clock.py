@@ -1,6 +1,6 @@
 import pytest
 
-from collector_server.collection.clock import SystemClock
+from collector_server.shared.clock import SystemClock
 from collector_server.collection.mover import UnavailableMover
 from collector_server.collection.source_checker import LocalSourceChecker
 

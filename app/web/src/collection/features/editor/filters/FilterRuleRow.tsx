@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import type { FilterRule, RuleKind } from '../../../lib/types';
 import { DATE_KINDS, RULE_KINDS, TEXT_KINDS, newRule } from '../../../lib/filters';
 import { DateSourceSelect, FilenamePatternField } from '../DateSourceFields';
-import { SelectField } from '../../../../components/ui/SelectField';
+import { SelectField } from '../../../../shared/components/ui/SelectField';
 import { RuleInputs } from './RuleInputs';
 
 export interface FilterRuleRowProps {

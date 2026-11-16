@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './collection/lib/api';
 import type { Collector, PlanResult, Run, ScheduleDraft } from './collection/lib/types';
-import { useLoad } from './hooks/useLoad';
-import { AppHeader } from './components/shell/AppHeader';
-import { AppShell } from './components/shell/AppShell';
+import { useLoad } from './shared/hooks/useLoad';
+import { AppHeader } from './shared/components/shell/AppHeader';
+import { AppShell } from './shared/components/shell/AppShell';
 import { CollectorList } from './collection/features/collectors/CollectorList';
 import { RunHistory } from './collection/features/runs/RunHistory';
 import { SchedulePanel } from './collection/features/schedule/SchedulePanel';

@@ -6,7 +6,6 @@ export type SourceType = 'local' | 'ssh';
 export type GroupBy = 'none' | 'day' | 'week' | 'month';
 export type RuleKind = 'name' | 'glob' | 'regex' | 'date_range' | 'weekday' | 'window' | 'random';
 export type DateSourceKind = 'modified' | 'created' | 'filename';
-export type Tone = 'ok' | 'warn' | 'bad' | 'info';
 
 export interface ScheduleDraft {
   enabled: boolean;

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import type { CollectorConfig, FilterPreviewResult } from '../lib/types';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import { useLoad } from '../../hooks/useLoad';
+import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
+import { useLoad } from '../../shared/hooks/useLoad';
 
 export interface FilterPreviewState {
   result: FilterPreviewResult | null;

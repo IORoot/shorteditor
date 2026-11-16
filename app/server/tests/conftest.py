@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from collector_server.collection.collector_repository import CollectorRepository
-from collector_server.collection.database import Database
+from collector_server.shared.database import Database
 from collector_server.collection.run_repository import RunRepository
 
 LONDON = ZoneInfo("Europe/London")

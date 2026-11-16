@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from .clock import Clock
+from ..shared.clock import Clock
 from .date_source import ClipTimes, DateRule, read_times
 from .domain import CollectorRecord
 from .filter_engine import ClipFacts, FilterEngine

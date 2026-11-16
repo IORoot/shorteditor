@@ -1,6 +1,6 @@
 import { FolderOpen, FolderSearch } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
-import { FormField } from '../../../components/ui/FormField';
+import { Button } from '../../../shared/components/ui/Button';
+import { FormField } from '../../../shared/components/ui/FormField';
 
 export interface FolderFieldProps {
   label: string;

@@ -1,6 +1,6 @@
 import { DATE_SOURCES } from '../../lib/filters';
 import type { DateSourceKind } from '../../lib/types';
-import { SelectField } from '../../../components/ui/SelectField';
+import { SelectField } from '../../../shared/components/ui/SelectField';
 
 export interface DateSourceSelectProps {
   label: string;

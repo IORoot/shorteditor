@@ -1,5 +1,5 @@
 import type { Run } from '../../lib/types';
-import type { LoadState } from '../../../hooks/useLoad';
+import type { LoadState } from '../../../shared/hooks/useLoad';
 import { RunRow } from './RunRow';
 
 export interface RunHistoryProps {
