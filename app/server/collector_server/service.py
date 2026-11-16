@@ -4,7 +4,9 @@ from .clock import Clock
 from .collector_repository import CollectorRepository
 from .domain import CollectorRecord
 from .config_rules import validate_config
-from .models import Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
+from .filter_preview import FilterPreviewer
+from .planner import TransferPlanner
+from .models import Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
 from .presenters import format_moment, present_run
 from .preview import FolderPreviewer
 from .run_repository import RunRepository
@@ -16,6 +18,7 @@ class CollectorService:
         self._collectors = collectors
         self._runs = runs
         self._clock = clock
+        self._filter_previewer = FilterPreviewer(TransferPlanner(clock), clock)
 
     def list_collectors(self) -> list[Collector]:
         return [self._present(record) for record in self._collectors.list()]
@@ -36,6 +39,9 @@ class CollectorService:
 
     def preview_folder(self, request: FolderPreviewRequest) -> FolderPreview:
         return FolderPreviewer().preview(request, self._clock.now())
+
+    def preview_filters(self, config: CollectorConfig) -> FilterPreviewResult:
+        return self._filter_previewer.preview(config)
 
     def save_schedule(self, collector_id: int, draft: ScheduleDraft) -> Collector | None:
         rule = ScheduleRule(draft)

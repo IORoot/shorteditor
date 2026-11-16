@@ -36,7 +36,7 @@ def test_groups_clips_by_day_with_the_template(collectors, clock, dirs):
     assert "modified time" in plan.notes[-1]
 
 
-def test_ignores_non_video_hidden_and_output_folder_files(collectors, clock, dirs):
+def test_collects_non_video_files_but_ignores_hidden_and_output_folder_files(collectors, clock, dirs):
     source, output = dirs
     inner_out = source / "collected"
     inner_out.mkdir()
@@ -46,7 +46,7 @@ def test_ignores_non_video_hidden_and_output_folder_files(collectors, clock, dir
     make_clip(source / ".cache" / "x.mp4", SAT_14)
     make_clip(inner_out / "already.mp4", SAT_14)
     plan = plan_for(collectors, clock, source, inner_out)
-    assert [f.name for g in plan.groups for f in g.files] == ["keep.MP4"]
+    assert sorted(f.name for g in plan.groups for f in g.files) == ["keep.MP4", "notes.txt"]
 
 
 def test_scans_subfolders_and_renames_duplicate_names(collectors, clock, dirs):
@@ -85,7 +85,7 @@ def test_empty_source_has_a_note(collectors, clock, dirs):
     source, output = dirs
     plan = plan_for(collectors, clock, source, output)
     assert plan.total_files == 0
-    assert plan.notes == ["No video files found in the input folder."]
+    assert plan.notes == ["No files found in the input folder."]
 
 
 @pytest.mark.parametrize(

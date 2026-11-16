@@ -1,5 +1,5 @@
 import { isOutdatedBackendConfig, normalizeCollector } from './normalize';
-import type { BrowseResult, Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft } from './types';
+import type { BrowseResult, Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft } from './types';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -59,6 +59,10 @@ export class ApiClient {
 
   async previewFolder(request: FolderPreviewRequest): Promise<FolderPreview> {
     return this.send<FolderPreview>('/api/preview/folder', 'POST', request);
+  }
+
+  async previewFilters(config: CollectorConfig): Promise<FilterPreviewResult> {
+    return this.send<FilterPreviewResult>('/api/preview/filters', 'POST', config);
   }
 
   async browse(path?: string): Promise<BrowseResult> {

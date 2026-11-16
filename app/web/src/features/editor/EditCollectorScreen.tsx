@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Check, ChevronLeft, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { Collector, CollectorConfig } from '../../lib/types';
+import { useFilterPreview } from '../../hooks/useFilterPreview';
 import { useFolderPreview } from '../../hooks/useFolderPreview';
 import { Button } from '../../components/ui/Button';
 import { FormField } from '../../components/ui/FormField';
 import { SectionCard } from '../../components/ui/SectionCard';
+import { FilterPreviewCard } from './filterPreview/FilterPreviewCard';
 import { FiltersSection } from './filters/FiltersSection';
 import { FolderPicker } from './FolderPicker';
 import { OutputSection } from './OutputSection';
@@ -26,6 +28,7 @@ export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollec
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const preview = useFolderPreview(config, SAMPLE_DATE);
+  const filterPreview = useFilterPreview(config);
 
   const save = async () => {
     setSaving(true);
@@ -71,7 +74,10 @@ export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollec
         <FiltersSection config={config} onChange={setConfig} />
         <OutputSection config={config} onChange={setConfig} onBrowseOutput={() => setPicker('output')} />
       </div>
-      <PreviewPanel state={preview} outputFolder={config.outputFolder} />
+      <div className="flex min-w-0 flex-col gap-5">
+        <FilterPreviewCard preview={filterPreview} />
+        <PreviewPanel state={preview} outputFolder={config.outputFolder} />
+      </div>
       {picker ? (
         <FolderPicker
           startPath={picker === 'input' ? config.inputFolder : config.outputFolder}

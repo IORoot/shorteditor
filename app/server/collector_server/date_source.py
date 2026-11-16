@@ -39,6 +39,8 @@ class ClipDateResolver:
 
     def _try(self, kind: str, path: str) -> datetime | None:
         if kind == "metadata":
+            if not path.lower().endswith((".mp4", ".mov")):
+                return None
             created = mp4_metadata.creation_time(path)
             return created.astimezone(self._zone) if created else None
         if kind == "filename":

@@ -32,6 +32,17 @@ class CollectorRecord:
     date_sources: list[str] = field(default_factory=lambda: ["mtime"])
     filename_pattern: str = ""
 
+    @classmethod
+    def from_config(cls, config: CollectorConfig) -> "CollectorRecord":
+        """An unsaved record, for previews that run the planner on what the editor currently shows."""
+        return cls(
+            id=0, name=config.name, source=config.input_folder, transfer=config.transfer, enabled=False, kind="daily",
+            time="00:00", weekdays=[], day_of_month=1, cron="", last_slot=None, source_type=config.source_type,
+            ssh_host=config.host, ssh_user=config.user, ssh_key_path=config.key_path, output_folder=config.output_folder,
+            folder_template=config.folder_template, group_by=config.group_by, suffix=config.suffix, filters=config.filters,
+            random_selection=config.random_selection, date_sources=config.date_sources, filename_pattern=config.filename_pattern,
+        )
+
     def config(self) -> CollectorConfig:
         return CollectorConfig(
             name=self.name,

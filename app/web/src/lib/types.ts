@@ -76,6 +76,21 @@ export interface FolderPreviewRequest {
   sampleDate: string;
 }
 
+export interface ClipVerdict {
+  name: string;
+  when: string;
+  label: string;
+  selected: boolean;
+  reason: string;
+}
+
+export interface FilterPreviewResult {
+  clips: ClipVerdict[];
+  selectedCount: number;
+  total: number;
+  truncated: boolean;
+}
+
 export interface FolderPreview {
   relativePath: string;
   fullPath: string;

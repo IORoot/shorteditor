@@ -99,6 +99,21 @@ class FolderPreviewRequest(CamelModel):
     window_start: str = "09-00"
 
 
+class ClipVerdict(CamelModel):
+    name: str
+    when: str
+    label: str
+    selected: bool
+    reason: str
+
+
+class FilterPreviewResult(CamelModel):
+    clips: list[ClipVerdict]
+    selected_count: int
+    total: int
+    truncated: bool = False
+
+
 class FolderPreview(CamelModel):
     relative_path: str
     full_path: str

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from collections import Counter
-from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -10,11 +9,11 @@ from .clock import Clock
 from .date_source import ClipDateResolver
 from .domain import CollectorRecord
 from .filter_engine import ClipFacts, FilterEngine
+from .folder_lister import walk_files
 from .random_selector import RandomSelector
 from .token_template import ClipContext, FolderTemplate
 from .transfer_plan import PlannedFile, PlannedGroup, TransferPlan
 
-VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".m4v", ".avi", ".mts", ".mxf"})
 _SOURCE_LABEL = {"metadata": "video metadata", "filename": "filename", "mtime": "modified time"}
 
 
@@ -23,6 +22,13 @@ class Clip:
     path: str
     size: int
     when: datetime
+
+
+@dataclass
+class Selection:
+    buckets: dict[str, list[Clip]]
+    unmatched: list[Clip]
+    left_out: list[Clip]
 
 
 class TransferPlanner:
@@ -47,7 +53,20 @@ class TransferPlanner:
         if not os.path.isdir(collector.source):
             raise FileNotFoundError(f"Input folder not found: {collector.source}")
         now = self._clock.now()
-        clips, sources = self._read_clips(collector, now)
+        clips, sources = self.read_clips(collector, now)
+        selection = self.select(collector, clips, now)
+        buckets, unmatched, left_out = selection.buckets, selection.unmatched, selection.left_out
+        plan = self._build(collector.output_folder, buckets)
+        plan.unmatched = self._names(unmatched, collector.source)
+        plan.not_selected = self._names(left_out, collector.source)
+        if clips:
+            plan.notes.append(self._date_note(sources, collector.date_sources))
+        if not plan.total_files:
+            plan.notes.append("No files found in the input folder." if not clips else "No clips matched the filters.")
+        return plan
+
+    def select(self, collector: CollectorRecord, clips: list[Clip], now: datetime) -> Selection:
+        """Filters, then random selection: the one place that decides which clips are collected."""
         engine, selector = FilterEngine(collector.filters), RandomSelector(collector.random_selection)
         matched = [c for c in clips if engine.accepts(ClipFacts(os.path.basename(c.path), c.when))]
         unmatched = self._without(clips, matched)
@@ -61,20 +80,13 @@ class TransferPlanner:
                 kept = selector.pick(items, relative)
                 left_out += self._without(items, kept)
                 buckets[relative] = kept
-        plan = self._build(collector.output_folder, buckets)
-        plan.unmatched = self._names(unmatched, collector.source)
-        plan.not_selected = self._names(left_out, collector.source)
-        if clips:
-            plan.notes.append(self._date_note(sources, collector.date_sources))
-        if not plan.total_files:
-            plan.notes.append("No video files found in the input folder." if not clips else "No clips matched the filters.")
-        return plan
+        return Selection(buckets, unmatched, left_out)
 
-    def _read_clips(self, collector: CollectorRecord, now: datetime) -> tuple[list[Clip], Counter]:
+    def read_clips(self, collector: CollectorRecord, now: datetime) -> tuple[list[Clip], Counter]:
         resolver = ClipDateResolver(collector.date_sources, collector.filename_pattern, now.tzinfo)
         sources: Counter = Counter()
         clips: list[Clip] = []
-        for path, size in self._scan(collector.source, collector.output_folder):
+        for path, size in walk_files(collector.source, collector.output_folder):
             when, kind = resolver.resolve(path)
             sources[kind] += 1
             clips.append(Clip(path, size, when))
@@ -122,17 +134,6 @@ class TransferPlanner:
             return "Dates come from file modified time."
         parts = [f"{_SOURCE_LABEL[kind]} for {counts[kind]}" for kind in ("metadata", "filename", "mtime") if counts[kind]]
         return "Dates come from " + ", ".join(parts) + "."
-
-    @staticmethod
-    def _scan(source: str, output: str) -> Iterator[tuple[str, int]]:
-        skip = os.path.realpath(output) + os.sep if output else None
-        for root, dirs, names in os.walk(source, followlinks=False):
-            dirs[:] = [d for d in dirs if not d.startswith(".") and not (skip and (os.path.realpath(os.path.join(root, d)) + os.sep).startswith(skip))]
-            for name in names:
-                if name.startswith(".") or os.path.splitext(name)[1].lower() not in VIDEO_EXTENSIONS:
-                    continue
-                path = os.path.join(root, name)
-                yield path, os.stat(path).st_size
 
     @staticmethod
     def _group_date(group_by: str, when: datetime, now: datetime) -> datetime:

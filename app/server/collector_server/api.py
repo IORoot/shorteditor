@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, FastAPI, HTTPException
 
 from .browser import FolderBrowser
-from .models import BrowseResult, Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft
+from .models import BrowseResult, Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft
 from .presenters import present_plan, present_run
 from .run_service import RunService
 from .service import CollectorService
@@ -55,6 +55,13 @@ def build_router(service: CollectorService, browser: FolderBrowser, runs: RunSer
         try:
             return service.preview_folder(request)
         except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @router.post("/preview/filters", response_model=FilterPreviewResult)
+    def preview_filters(config: CollectorConfig) -> FilterPreviewResult:
+        try:
+            return service.preview_filters(config)
+        except (ValueError, FileNotFoundError) as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
 
     @router.get("/fs/browse", response_model=BrowseResult)
