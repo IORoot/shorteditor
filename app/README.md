@@ -15,9 +15,9 @@ Design source: `../designs/video-editor.pen` (Style Guide, Components, Collectio
 
 ## Layout
 
-Server: `cron.py` (parser and next-run), `schedule.py` (draft to cron and summary), `scheduler.py` (due slots, catch-up once, no overlap, source check),
-`*_repository.py` (SQLite access), `service.py` (presentation), `api.py` (routes). Collaborators (`Clock`, `SourceChecker`, `Mover`) are injected.
-Web: `components/ui` (Button, Toggle, StatusChip, FormField, Checkbox, SegmentedControl), `components/shell`, `features/{collectors,runs,schedule}`, `lib/api.ts`.
+Server: `server/collector_server/{collection,shared}` plus `main.py` as the app root. `shared` holds `database`, `clock`, `camel_model` and `handoff`; `collection` holds everything else (cron, schedule, scheduler, repositories, service, api). Tests are under `server/tests/{collection,shared}`.
+Web: `web/src/{collection,shared,production,output}` with `App.tsx` and `main.tsx` as the app root. `collection` has `features/`, `hooks/`, `lib/` and `test/`; `shared` has `components/{ui,shell}`, `hooks/`, `lib/` (including `http.ts`), `contracts/` and `test/setup.ts`; `production` and `output` are empty placeholders with a README.
+Stages may import only themselves and `shared`, enforced by `src/architecture.test.ts` and `tests/test_architecture.py`. Stages hand data to each other through `shared/contracts` (web) and `collector_server/shared/handoff.py` (server).
 
 ## Runs
 

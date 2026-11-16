@@ -23,5 +23,6 @@ describe('architecture', () => {
 
   it('scans real files', () => {
     expect(files.length).toBeGreaterThan(50);
+    expect(files.filter((f) => f.path.startsWith('shared/')).length).toBeGreaterThan(5);
   });
 });

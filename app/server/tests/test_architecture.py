@@ -61,3 +61,4 @@ def test_flags_a_collection_module_importing_production():
 
 def test_scan_finds_files():
     assert len(_files()) > 30
+    assert len([f for f in _files() if f[0].startswith("shared/")]) > 3
