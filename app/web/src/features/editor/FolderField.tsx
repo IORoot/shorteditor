@@ -1,4 +1,4 @@
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, FolderSearch } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { FormField } from '../../components/ui/FormField';
 
@@ -22,7 +22,7 @@ export function FolderField({ label, value, onChange, onBrowse, browseDisabled =
         onChange={(event) => onChange(event.target.value)}
         className="flex-1 font-mono"
       />
-      <Button onClick={onBrowse} disabled={browseDisabled} aria-label={`Browse for ${label.toLowerCase()}`}>
+      <Button icon={<FolderSearch size={15} aria-hidden="true" />} onClick={onBrowse} disabled={browseDisabled} aria-label={`Browse for ${label.toLowerCase()}`}>
         Browse…
       </Button>
     </div>

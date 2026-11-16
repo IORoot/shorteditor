@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
-from .models import CollectorConfig, ScheduleDraft
+from .models import CollectorConfig, FilterGroup, RandomSelection, ScheduleDraft
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,10 @@ class CollectorRecord:
     folder_template: str = "{date:YYYY-MM-DD}_{weekday}"
     group_by: str = "day"
     suffix: str = ""
+    filters: list[FilterGroup] = field(default_factory=list)
+    random_selection: RandomSelection = field(default_factory=RandomSelection)
+    date_sources: list[str] = field(default_factory=lambda: ["mtime"])
+    filename_pattern: str = ""
 
     def config(self) -> CollectorConfig:
         return CollectorConfig(
@@ -41,6 +45,10 @@ class CollectorRecord:
             group_by=self.group_by,  # type: ignore[arg-type]
             transfer=self.transfer,  # type: ignore[arg-type]
             suffix=self.suffix,
+            filters=self.filters,
+            random_selection=self.random_selection,
+            date_sources=self.date_sources,  # type: ignore[arg-type]
+            filename_pattern=self.filename_pattern,
         )
 
     def draft(self) -> ScheduleDraft:
@@ -63,3 +71,12 @@ class RunRecord:
     status: str
     outcome: str
     can_undo: bool
+
+
+@dataclass(frozen=True)
+class MoveRecord:
+    id: int
+    run_id: int
+    source: str
+    destination: str
+    transfer: str

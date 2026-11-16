@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './lib/api';
-import type { Collector, Run, ScheduleDraft } from './lib/types';
+import type { Collector, PlanResult, Run, ScheduleDraft } from './lib/types';
 import { useLoad } from './hooks/useLoad';
 import { AppHeader } from './components/shell/AppHeader';
 import { AppShell } from './components/shell/AppShell';
 import { CollectorList } from './features/collectors/CollectorList';
 import { RunHistory } from './features/runs/RunHistory';
 import { SchedulePanel } from './features/schedule/SchedulePanel';
-import { Button } from './components/ui/Button';
+import { CollectorActions } from './features/collectors/CollectorActions';
 import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
+import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
 
 const TABS = [
   { id: 'collection', label: 'Collection', enabled: true },
@@ -28,6 +29,10 @@ export default function App() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [localDraft, setLocalDraft] = useState<ScheduleDraft | null>(null);
   const [editing, setEditing] = useState(false);
+  const [dialog, setDialog] = useState<{ mode: PlanMode; opened: number } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const list = collectors.state.status === 'ready' ? collectors.state.data : [];
   const selected = useMemo(() => list.find((c) => c.id === selectedId) ?? list[0] ?? null, [list, selectedId]);
@@ -42,6 +47,45 @@ export default function App() {
   }, [selected?.id]);
 
   const runs = useLoad<Run[]>(selected ? () => api.listRuns(selected.id) : null, [selected?.id]);
+  const plan = useLoad<PlanResult>(dialog && selected ? () => api.dryRun(selected.id) : null, [dialog?.opened, selected?.id]);
+  const anyRunning = runs.state.status === 'ready' && runs.state.data.some((run) => run.status === 'running');
+
+  useEffect(() => {
+    if (!anyRunning) return;
+    const timer = setInterval(runs.reload, 1500);
+    return () => clearInterval(timer);
+  }, [anyRunning, runs.reload]);
+
+  const openDialog = (mode: PlanMode) => {
+    setDialogError(null);
+    setDialog({ mode, opened: Date.now() });
+  };
+
+  const confirmRun = async () => {
+    if (!selected) return;
+    setConfirming(true);
+    setDialogError(null);
+    try {
+      await api.startRun(selected.id);
+      setDialog(null);
+      runs.reload();
+    } catch (error) {
+      setDialogError(error instanceof Error ? error.message : 'Could not start the run');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const undoRun = async (runId: number) => {
+    setActionError(null);
+    try {
+      await api.undoRun(runId);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not undo the run');
+    }
+    runs.reload();
+  };
+
   const draft = localDraft ?? (selected ? draftFrom(selected) : null);
 
   const save = async () => {
@@ -107,25 +151,44 @@ export default function App() {
           onRetry={collectors.reload}
         />
       }
-      main={
+      title={
         selected ? (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-h1 font-bold tracking-[-0.6px]">{selected.name}</h1>
-                <p className="text-small text-text-2">{selected.source} · {selected.transfer}</p>
-              </div>
-              <div className="flex gap-2.5">
-                <Button onClick={() => setEditing(true)}>Edit</Button>
-                <Button>Dry run</Button>
-                <Button variant="primary">Run now</Button>
-              </div>
-            </div>
-            <RunHistory state={runs.state} onUndo={() => undefined} />
-          </>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-h1 font-bold tracking-[-0.6px]">{selected.name}</h1>
+            <p className="text-small text-text-2">{selected.source} · {selected.transfer}</p>
+          </div>
         ) : (
           <p className="text-body text-text-3">{collectors.state.status === 'error' ? 'Select a collector once the backend is reachable.' : 'Select a collector.'}</p>
         )
+      }
+      actions={
+        selected ? (
+          <CollectorActions
+            onEdit={() => setEditing(true)}
+            onDryRun={() => openDialog('dry')}
+            onRun={() => openDialog('run')}
+            runDisabled={anyRunning}
+          />
+        ) : null
+      }
+      main={
+        selected ? (
+          <div className="flex flex-1 flex-col gap-3">
+            {actionError ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{actionError}</p> : null}
+            <RunHistory state={runs.state} onUndo={undoRun} />
+            {dialog ? (
+              <PlanDialog
+                mode={dialog.mode}
+                collectorName={selected.name}
+                state={plan.state}
+                confirming={confirming}
+                error={dialogError}
+                onConfirm={confirmRun}
+                onClose={() => setDialog(null)}
+              />
+            ) : null}
+          </div>
+        ) : null
       }
       panel={
         selected && draft ? (

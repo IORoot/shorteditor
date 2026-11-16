@@ -1,4 +1,5 @@
-import type { BrowseResult, Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, Run, ScheduleDraft } from './types';
+import { isOutdatedBackendConfig, normalizeCollector } from './normalize';
+import type { BrowseResult, Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft } from './types';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -20,7 +21,7 @@ export class ApiClient {
   }
 
   async listCollectors(): Promise<Collector[]> {
-    return this.request<Collector[]>('/api/collectors');
+    return (await this.request<Collector[]>('/api/collectors')).map(normalizeCollector);
   }
 
   async listRuns(collectorId: number): Promise<Run[]> {
@@ -28,15 +29,32 @@ export class ApiClient {
   }
 
   async saveSchedule(collectorId: number, draft: ScheduleDraft): Promise<Collector> {
-    return this.request<Collector>(`/api/collectors/${collectorId}/schedule`, {
+    const saved = await this.request<Collector>(`/api/collectors/${collectorId}/schedule`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(draft),
     });
+    return normalizeCollector(saved);
+  }
+
+  async dryRun(collectorId: number): Promise<PlanResult> {
+    return this.send<PlanResult>(`/api/collectors/${collectorId}/dry-run`, 'POST', {});
+  }
+
+  async startRun(collectorId: number): Promise<Run> {
+    return this.send<Run>(`/api/collectors/${collectorId}/run`, 'POST', {});
+  }
+
+  async undoRun(runId: number): Promise<Run> {
+    return this.send<Run>(`/api/runs/${runId}/undo`, 'POST', {});
   }
 
   async saveConfig(collectorId: number, config: CollectorConfig): Promise<Collector> {
-    return this.send<Collector>(`/api/collectors/${collectorId}`, 'PUT', config);
+    const saved = await this.send<Collector>(`/api/collectors/${collectorId}`, 'PUT', config);
+    if (isOutdatedBackendConfig(saved.config)) {
+      throw new ApiError(0, 'The backend is out of date and did not save the filters. Restart the backend, then save again.');
+    }
+    return normalizeCollector(saved);
   }
 
   async previewFolder(request: FolderPreviewRequest): Promise<FolderPreview> {

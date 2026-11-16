@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS runs (
     outcome TEXT NOT NULL,
     can_undo INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS moves (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES runs(id),
+    source TEXT NOT NULL,
+    destination TEXT NOT NULL,
+    transfer TEXT NOT NULL
+);
 """
 
 
@@ -40,6 +47,10 @@ _NEW_COLUMNS = {
     "folder_template": "TEXT NOT NULL DEFAULT '{date:YYYY-MM-DD}_{weekday}'",
     "group_by": "TEXT NOT NULL DEFAULT 'day'",
     "suffix": "TEXT NOT NULL DEFAULT ''",
+    "filters": "TEXT NOT NULL DEFAULT '[]'",
+    "random_selection": "TEXT NOT NULL DEFAULT '{}'",
+    "date_sources": "TEXT NOT NULL DEFAULT '[\"mtime\"]'",
+    "filename_pattern": "TEXT NOT NULL DEFAULT ''",
 }
 
 

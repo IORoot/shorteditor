@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { Check, ChevronLeft, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { Collector, CollectorConfig } from '../../lib/types';
 import { useFolderPreview } from '../../hooks/useFolderPreview';
 import { Button } from '../../components/ui/Button';
 import { FormField } from '../../components/ui/FormField';
 import { SectionCard } from '../../components/ui/SectionCard';
+import { FiltersSection } from './filters/FiltersSection';
 import { FolderPicker } from './FolderPicker';
 import { OutputSection } from './OutputSection';
 import { PreviewPanel, SAMPLE_DATE } from './PreviewPanel';
@@ -56,8 +57,8 @@ export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollec
             <h1 className="text-h1 font-bold tracking-[-0.6px]">Edit Collector</h1>
           </div>
           <div className="flex gap-2.5">
-            <Button onClick={onCancel}>Cancel</Button>
-            <Button variant="primary" onClick={save} disabled={saving}>
+            <Button icon={<X size={15} aria-hidden="true" />} onClick={onCancel}>Cancel</Button>
+            <Button variant="primary" icon={<Check size={15} aria-hidden="true" />} onClick={save} disabled={saving}>
               {saving ? 'Saving…' : 'Save collector'}
             </Button>
           </div>
@@ -67,6 +68,7 @@ export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollec
           <FormField label="Name" value={config.name} onChange={(event) => setConfig({ ...config, name: event.target.value })} />
         </SectionCard>
         <SourceSection config={config} onChange={setConfig} onBrowseInput={() => setPicker('input')} />
+        <FiltersSection config={config} onChange={setConfig} />
         <OutputSection config={config} onChange={setConfig} onBrowseOutput={() => setPicker('output')} />
       </div>
       <PreviewPanel state={preview} outputFolder={config.outputFolder} />

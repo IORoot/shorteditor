@@ -37,6 +37,14 @@ describe('RunRow', () => {
   });
 });
 
+describe('RunRow running state', () => {
+  it('shows a Running chip with live progress text', () => {
+    render(<table><tbody><RunRow run={{ ...run, status: 'running', outcome: 'Moving 3 of 9…', canUndo: false }} onUndo={() => undefined} /></tbody></table>);
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('Moving 3 of 9…')).toBeInTheDocument();
+  });
+});
+
 describe('RunHistory', () => {
   it('shows loading when there is no state yet', () => {
     render(<RunHistory state={null} onUndo={() => undefined} />);

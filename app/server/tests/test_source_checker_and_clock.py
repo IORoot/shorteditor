@@ -24,4 +24,4 @@ def test_system_clock_is_timezone_aware():
 
 def test_unavailable_mover_always_raises():
     with pytest.raises(NotImplementedError):
-        UnavailableMover().move(None)  # type: ignore[arg-type]
+        UnavailableMover().move(None, 1, lambda _text: None)  # type: ignore[arg-type]

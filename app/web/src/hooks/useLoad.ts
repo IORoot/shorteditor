@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type LoadState<T> =
   | { status: 'loading' }
@@ -11,11 +11,13 @@ export function useLoad<T>(load: (() => Promise<T>) | null, deps: unknown[]): {
 } {
   const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
   const [version, setVersion] = useState(0);
+  const quiet = useRef(false);
 
   useEffect(() => {
     if (!load) return;
     let active = true;
-    setState({ status: 'loading' });
+    if (quiet.current) quiet.current = false;
+    else setState({ status: 'loading' });
     load()
       .then((data) => active && setState({ status: 'ready', data }))
       .catch((error: unknown) => {
@@ -29,6 +31,9 @@ export function useLoad<T>(load: (() => Promise<T>) | null, deps: unknown[]): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, ...deps]);
 
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const reload = useCallback(() => {
+    quiet.current = true;
+    setVersion((v) => v + 1);
+  }, []);
   return { state, reload };
 }

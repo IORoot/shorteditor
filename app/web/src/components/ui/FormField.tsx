@@ -13,11 +13,11 @@ export function FormField({ label, helper, error, icon, id, className = '', ...r
   const message = error ?? helper;
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={inputId} className="text-caption font-semibold text-text-2">
+      <label htmlFor={inputId} className="font-sans text-caption font-semibold text-text-2">
         {label}
       </label>
       <div className="relative flex items-center">
-        {icon ? <span className="absolute left-3 text-text-2">{icon}</span> : null}
+        {icon ? <span className="pointer-events-none absolute left-3 z-10 text-text-2">{icon}</span> : null}
         <input
           id={inputId}
           aria-invalid={error ? true : undefined}
@@ -25,7 +25,7 @@ export function FormField({ label, helper, error, icon, id, className = '', ...r
           {...rest}
         />
       </div>
-      {message ? <p className={`text-caption ${error ? 'text-bad' : 'text-text-3'}`}>{message}</p> : null}
+      {message ? <p className={`font-sans text-caption ${error ? 'text-bad' : 'text-text-3'}`}>{message}</p> : null}
     </div>
   );
 }

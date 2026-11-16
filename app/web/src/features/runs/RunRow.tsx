@@ -4,6 +4,7 @@ import type { Run, RunStatus, Tone } from '../../lib/types';
 import { StatusChip } from '../../components/ui/StatusChip';
 
 const STATUS: Record<RunStatus, { tone: Tone; label: string }> = {
+  running: { tone: 'info', label: 'Running' },
   done: { tone: 'ok', label: 'Done' },
   skipped: { tone: 'warn', label: 'Skipped' },
   failed: { tone: 'bad', label: 'Failed' },

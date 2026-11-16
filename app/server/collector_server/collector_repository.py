@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from datetime import datetime
 
 from .database import Database
 from .domain import CollectorRecord
-from .models import CollectorConfig, ScheduleDraft
+from .models import CollectorConfig, FilterGroup, RandomSelection, ScheduleDraft
 
 
 def _to_record(row: sqlite3.Row) -> CollectorRecord:
@@ -31,6 +32,10 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         folder_template=row["folder_template"],
         group_by=row["group_by"],
         suffix=row["suffix"],
+        filters=[FilterGroup.model_validate(group) for group in json.loads(row["filters"])],
+        random_selection=RandomSelection.model_validate(json.loads(row["random_selection"])),
+        date_sources=json.loads(row["date_sources"]),
+        filename_pattern=row["filename_pattern"],
     )
 
 
@@ -55,7 +60,8 @@ class CollectorRepository:
     def update_config(self, collector_id: int, config: CollectorConfig) -> CollectorRecord | None:
         self._db.execute(
             "UPDATE collectors SET name=?, source=?, transfer=?, source_type=?, ssh_host=?, ssh_user=?, ssh_key_path=?, "
-            "output_folder=?, folder_template=?, group_by=?, suffix=? WHERE id=?",
+            "output_folder=?, folder_template=?, group_by=?, suffix=?, filters=?, random_selection=?, date_sources=?, "
+            "filename_pattern=? WHERE id=?",
             (
                 config.name,
                 config.input_folder,
@@ -68,6 +74,10 @@ class CollectorRepository:
                 config.folder_template,
                 config.group_by,
                 config.suffix,
+                json.dumps([group.model_dump(mode="json") for group in config.filters]),
+                json.dumps(config.random_selection.model_dump(mode="json")),
+                json.dumps(config.date_sources),
+                config.filename_pattern,
                 collector_id,
             ),
         )

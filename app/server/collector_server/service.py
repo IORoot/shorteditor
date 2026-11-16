@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from .clock import Clock
 from .collector_repository import CollectorRepository
-from .domain import CollectorRecord, RunRecord
+from .domain import CollectorRecord
 from .config_rules import validate_config
 from .models import Collector, CollectorConfig, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
+from .presenters import format_moment, present_run
 from .preview import FolderPreviewer
 from .run_repository import RunRepository
 from .schedule import ScheduleRule
-
-
-def format_moment(when: datetime) -> str:
-    return f"{when:%a} {when.day} {when:%b}, {when:%H:%M}"
 
 
 class CollectorService:
@@ -32,7 +27,7 @@ class CollectorService:
     def list_runs(self, collector_id: int) -> list[Run] | None:
         if self._collectors.get(collector_id) is None:
             return None
-        return [self._present_run(run) for run in self._runs.recent(collector_id)]
+        return [present_run(run) for run in self._runs.recent(collector_id)]
 
     def update_config(self, collector_id: int, config: CollectorConfig) -> Collector | None:
         validate_config(config)
@@ -67,16 +62,4 @@ class CollectorService:
             transfer=record.transfer,  # type: ignore[arg-type]
             config=config,
             schedule=schedule,
-        )
-
-    @staticmethod
-    def _present_run(run: RunRecord) -> Run:
-        return Run(
-            id=run.id,
-            collector_id=run.collector_id,
-            started_at=format_moment(run.started_at),
-            trigger=run.trigger,  # type: ignore[arg-type]
-            status=run.status,  # type: ignore[arg-type]
-            outcome=run.outcome,
-            can_undo=run.can_undo,
         )

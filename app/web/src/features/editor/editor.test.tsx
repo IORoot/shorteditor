@@ -152,6 +152,17 @@ describe('FolderPicker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('lets you climb out of a folder that does not exist yet', async () => {
+    const browse = vi
+      .spyOn(api, 'browse')
+      .mockRejectedValueOnce(new Error('Folder not found: /Volumes/Edit/Collected'))
+      .mockResolvedValueOnce({ path: '/Volumes/Edit', parent: '/Volumes', entries: [] });
+    render(<FolderPicker startPath="/Volumes/Edit/Collected" onChoose={() => undefined} onClose={() => undefined} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Go to parent folder' }));
+    expect(await screen.findByText('No subfolders.')).toBeInTheDocument();
+    expect(browse).toHaveBeenLastCalledWith('/Volumes/Edit');
+  });
 });
 
 describe('EditCollectorScreen', () => {
@@ -206,5 +217,18 @@ describe('EditCollectorScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Browse for output folder' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Choose this folder' }));
     expect(screen.getByLabelText('Output folder')).toHaveValue('/Volumes/Other');
+  });
+
+  it('shows the filters section between source and output and saves the filters', async () => {
+    mockPreview();
+    const save = vi.spyOn(api, 'saveConfig').mockResolvedValue(collector);
+    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
+    expect(screen.getByRole('region', { name: 'Filters' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
+    fireEvent.change(screen.getByLabelText('Rule value'), { target: { value: 'coach' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save collector' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].filters[0].rules[0]).toMatchObject({ kind: 'name', value: 'coach' });
+    expect(save.mock.calls[0][1].dateSources).toEqual(['mtime']);
   });
 });

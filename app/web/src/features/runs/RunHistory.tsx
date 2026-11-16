@@ -9,7 +9,7 @@ export interface RunHistoryProps {
 
 export function RunHistory({ state, onUndo }: RunHistoryProps) {
   return (
-    <section aria-labelledby="history-title" className="flex min-h-0 flex-1 flex-col rounded-[20px] bg-surface p-6">
+    <section aria-labelledby="history-title" className="flex flex-1 flex-col rounded-[20px] bg-surface p-6">
       <div className="flex items-baseline justify-between pb-2.5">
         <h2 id="history-title" className="text-h3 font-semibold">History</h2>
         <span className="text-caption font-medium text-text-3">Last 5 runs</span>

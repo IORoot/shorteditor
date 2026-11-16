@@ -1,9 +1,11 @@
 export type ScheduleKind = 'daily' | 'weekly' | 'monthly' | 'cron';
 export type Transfer = 'move' | 'copy' | 'link';
-export type RunStatus = 'done' | 'skipped' | 'failed';
+export type RunStatus = 'running' | 'done' | 'skipped' | 'failed';
 export type RunTrigger = 'scheduled' | 'manual' | 'caught_up';
 export type SourceType = 'local' | 'mount' | 'ssh';
 export type GroupBy = 'none' | 'day' | 'week' | 'month' | 'window';
+export type RuleKind = 'name' | 'glob' | 'regex' | 'date_range' | 'weekday' | 'window';
+export type DateSourceKind = 'metadata' | 'filename' | 'mtime';
 export type Tone = 'ok' | 'warn' | 'bad' | 'info';
 
 export interface ScheduleDraft {
@@ -25,6 +27,29 @@ export interface StatusNote {
   text: string;
 }
 
+export interface FilterRule {
+  kind: RuleKind;
+  exclude: boolean;
+  value: string;
+  dateFrom: string;
+  dateTo: string;
+  days: number[];
+  start: string;
+  end: string;
+}
+
+export interface FilterGroup {
+  rules: FilterRule[];
+}
+
+export interface RandomSelection {
+  enabled: boolean;
+  mode: 'count' | 'percent';
+  value: number;
+  scope: 'overall' | 'folder';
+  seed: number;
+}
+
 export interface CollectorConfig {
   name: string;
   sourceType: SourceType;
@@ -37,6 +62,10 @@ export interface CollectorConfig {
   groupBy: GroupBy;
   transfer: Transfer;
   suffix: string;
+  filters: FilterGroup[];
+  randomSelection: RandomSelection;
+  dateSources: DateSourceKind[];
+  filenamePattern: string;
 }
 
 export interface FolderPreviewRequest {
@@ -81,4 +110,26 @@ export interface Run {
   status: RunStatus;
   outcome: string;
   canUndo: boolean;
+}
+
+export interface PlanGroup {
+  folder: string;
+  path: string;
+  renamed: boolean;
+  count: number;
+  bytes: number;
+  sample: string[];
+}
+
+export interface PlanResult {
+  transfer: Transfer;
+  totalFiles: number;
+  totalBytes: number;
+  folderCount: number;
+  groups: PlanGroup[];
+  notes: string[];
+  unmatched: number;
+  notSelected: number;
+  leftInPlace: number;
+  leftSample: string[];
 }

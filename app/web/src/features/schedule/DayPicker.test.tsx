@@ -22,4 +22,16 @@ describe('DayPicker', () => {
     expect(screen.getByRole('button', { name: 'Saturday' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Monday' })).toHaveAttribute('aria-pressed', 'false');
   });
+
+  it('starts the week on Monday and ends on Sunday', () => {
+    render(<DayPicker selected={[]} onChange={() => undefined} />);
+    const names = screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'));
+    expect(names).toEqual(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+  });
+
+  it('has a compact variant with smaller chips and a hidden legend', () => {
+    render(<DayPicker compact selected={[]} onChange={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Monday' }).className).toContain('size-7');
+    expect(screen.getByText('Days')).toHaveClass('sr-only');
+  });
 });

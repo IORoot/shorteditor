@@ -1,3 +1,4 @@
+import { RotateCw } from 'lucide-react';
 import type { Collector } from '../../lib/types';
 import type { LoadState } from '../../hooks/useLoad';
 import { Button } from '../../components/ui/Button';
@@ -21,7 +22,7 @@ export function CollectorList({ state, selectedId, onSelect, onToggle, onRetry }
       {state.status === 'error' ? (
         <div role="alert" className="flex flex-col items-start gap-2 px-3">
           <p className="text-small text-bad">Couldn’t reach the backend. {state.message}</p>
-          <Button onClick={onRetry}>Try again</Button>
+          <Button icon={<RotateCw size={15} aria-hidden="true" />} onClick={onRetry}>Try again</Button>
         </div>
       ) : null}
       {state.status === 'ready' && state.data.length === 0 ? (

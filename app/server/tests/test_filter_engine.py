@@ -1,0 +1,111 @@
+from datetime import datetime
+
+import pytest
+
+from collector_server.filter_engine import ClipFacts, FilterEngine
+from collector_server.models import FilterGroup, FilterRule
+from tests.conftest import LONDON
+
+SAT_0930 = datetime(2026, 11, 14, 9, 30, tzinfo=LONDON)
+MON_1800 = datetime(2026, 11, 16, 18, 0, tzinfo=LONDON)
+
+
+def rule(kind, **kw) -> FilterRule:
+    return FilterRule(kind=kind, **kw)
+
+
+def engine(*groups: list[FilterRule]) -> FilterEngine:
+    return FilterEngine([FilterGroup(rules=list(g)) for g in groups])
+
+
+def accepts(e: FilterEngine, name: str, when: datetime = SAT_0930) -> bool:
+    return e.accepts(ClipFacts(name, when))
+
+
+def test_no_groups_accepts_everything():
+    assert accepts(engine(), "anything.mp4")
+    assert accepts(engine([]), "anything.mp4")
+    assert not engine().active
+
+
+def test_name_rule_is_a_case_insensitive_substring():
+    e = engine([rule("name", value="Coach")])
+    assert accepts(e, "my-coach-clip.mp4") and not accepts(e, "other.mp4")
+
+
+def test_glob_rule_matches_the_whole_name_case_insensitively():
+    e = engine([rule("glob", value="gx01*.mp4")])
+    assert accepts(e, "GX011234.MP4") and not accepts(e, "proxy_GX011234.MP4")
+
+
+def test_regex_rule_searches_the_name():
+    e = engine([rule("regex", value=r"^GX\d{4}")])
+    assert accepts(e, "GX1234_a.mp4") and not accepts(e, "xGX1234.mp4")
+
+
+def test_date_range_is_inclusive_on_both_ends_and_can_be_open_ended():
+    e = engine([rule("date_range", date_from="2026-11-14", date_to="2026-11-14")])
+    assert accepts(e, "a.mp4", SAT_0930) and not accepts(e, "a.mp4", MON_1800)
+    assert accepts(engine([rule("date_range", date_from="2026-11-15")]), "a.mp4", MON_1800)
+    assert accepts(engine([rule("date_range", date_to="2026-11-14")]), "a.mp4", SAT_0930)
+    assert not accepts(engine([rule("date_range", date_to="2026-11-13")]), "a.mp4", SAT_0930)
+
+
+def test_weekday_rule_uses_sunday_as_zero():
+    assert accepts(engine([rule("weekday", days=[6])]), "a.mp4", SAT_0930)
+    assert not accepts(engine([rule("weekday", days=[0, 1])]), "a.mp4", SAT_0930)
+    assert accepts(engine([rule("weekday", days=[1])]), "a.mp4", MON_1800)
+
+
+def test_window_is_start_inclusive_and_end_exclusive():
+    e = engine([rule("window", days=[6], start="09:30", end="10:30")])
+    assert accepts(e, "a.mp4", datetime(2026, 11, 14, 9, 30, tzinfo=LONDON))
+    assert accepts(e, "a.mp4", datetime(2026, 11, 14, 10, 29, 59, tzinfo=LONDON))
+    assert not accepts(e, "a.mp4", datetime(2026, 11, 14, 10, 30, tzinfo=LONDON))
+    assert not accepts(e, "a.mp4", datetime(2026, 11, 14, 9, 29, tzinfo=LONDON))
+    assert not accepts(e, "a.mp4", datetime(2026, 11, 15, 9, 45, tzinfo=LONDON))
+
+
+def test_exclude_inverts_a_rule():
+    e = engine([rule("name", value="proxy", exclude=True)])
+    assert accepts(e, "clip.mp4") and not accepts(e, "proxy_clip.mp4")
+
+
+def test_rules_in_a_group_are_anded():
+    e = engine([rule("glob", value="*.mp4"), rule("weekday", days=[6]), rule("name", value="proxy", exclude=True)])
+    assert accepts(e, "a.mp4", SAT_0930)
+    assert not accepts(e, "a.mp4", MON_1800)
+    assert not accepts(e, "proxy_a.mp4", SAT_0930)
+    assert not accepts(e, "a.mov", SAT_0930)
+
+
+def test_groups_are_ored():
+    e = engine([rule("weekday", days=[6])], [rule("name", value="keep")])
+    assert accepts(e, "a.mp4", SAT_0930)
+    assert accepts(e, "keep.mp4", MON_1800)
+    assert not accepts(e, "a.mp4", MON_1800)
+
+
+def test_empty_groups_are_ignored_not_treated_as_match_none():
+    e = engine([], [rule("name", value="keep")])
+    assert accepts(e, "keep.mp4") and not accepts(e, "other.mp4")
+
+
+@pytest.mark.parametrize(
+    "bad,message",
+    [
+        (rule("name", value="  "), "needs a value"),
+        (rule("regex", value="("), "Invalid regex"),
+        (rule("date_range"), "from or to"),
+        (rule("date_range", date_from="14/11/2026"), "YYYY-MM-DD"),
+        (rule("date_range", date_from="2026-11-15", date_to="2026-11-14"), "not be after"),
+        (rule("weekday"), "at least one weekday"),
+        (rule("weekday", days=[7]), "between 0"),
+        (rule("window", days=[1], start="9:00", end="10:00"), "HH:MM"),
+        (rule("window", days=[1], start="25:00", end="26:00"), "HH:MM"),
+        (rule("window", days=[1], start="10:00", end="09:00"), "after the start"),
+    ],
+)
+def test_invalid_rules_raise_clear_errors(bad, message):
+    with pytest.raises(ValueError, match=message):
+        engine([bad])

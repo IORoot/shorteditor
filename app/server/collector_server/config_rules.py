@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from .date_source import ClipDateResolver
+from .filter_engine import FilterEngine
 from .models import CollectorConfig
+from .random_selector import RandomSelector
 from .token_template import FolderTemplate
 
 
@@ -16,3 +19,6 @@ def validate_config(config: CollectorConfig) -> None:
     template = FolderTemplate(config.folder_template)
     if template.uses_window() and config.group_by != "window":
         raise ValueError("{window:...} tokens need Group by: Window")
+    FilterEngine(config.filters)
+    RandomSelector(config.random_selection)
+    ClipDateResolver(config.date_sources, config.filename_pattern, None)

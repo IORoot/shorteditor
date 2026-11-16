@@ -34,6 +34,33 @@ GroupBy = Literal["none", "day", "week", "month", "window"]
 Transfer = Literal["move", "copy", "link"]
 
 
+RuleKind = Literal["name", "glob", "regex", "date_range", "weekday", "window"]
+DateSourceKind = Literal["metadata", "filename", "mtime"]
+
+
+class FilterRule(CamelModel):
+    kind: RuleKind
+    exclude: bool = False
+    value: str = ""
+    date_from: str = ""
+    date_to: str = ""
+    days: list[int] = Field(default_factory=list)
+    start: str = ""
+    end: str = ""
+
+
+class FilterGroup(CamelModel):
+    rules: list[FilterRule] = Field(default_factory=list)
+
+
+class RandomSelection(CamelModel):
+    enabled: bool = False
+    mode: Literal["count", "percent"] = "percent"
+    value: int = 10
+    scope: Literal["overall", "folder"] = "overall"
+    seed: int = 1
+
+
 class CollectorConfig(CamelModel):
     name: str
     source_type: SourceType = "local"
@@ -46,6 +73,10 @@ class CollectorConfig(CamelModel):
     group_by: GroupBy = "day"
     transfer: Transfer = "move"
     suffix: str = ""
+    filters: list[FilterGroup] = Field(default_factory=list)
+    random_selection: RandomSelection = Field(default_factory=RandomSelection)
+    date_sources: list[DateSourceKind] = Field(default_factory=lambda: ["mtime"])
+    filename_pattern: str = ""
 
 
 class Collector(CamelModel):
@@ -89,6 +120,28 @@ class Run(CamelModel):
     collector_id: int
     started_at: str
     trigger: Literal["scheduled", "manual", "caught_up"]
-    status: Literal["done", "skipped", "failed"]
+    status: Literal["running", "done", "skipped", "failed"]
     outcome: str
     can_undo: bool
+
+
+class PlanGroup(CamelModel):
+    folder: str
+    path: str
+    renamed: bool
+    count: int
+    bytes: int
+    sample: list[str]
+
+
+class PlanResult(CamelModel):
+    transfer: Transfer
+    total_files: int
+    total_bytes: int
+    folder_count: int
+    groups: list[PlanGroup]
+    notes: list[str]
+    unmatched: int = 0
+    not_selected: int = 0
+    left_in_place: int = 0
+    left_sample: list[str] = Field(default_factory=list)

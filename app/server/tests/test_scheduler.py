@@ -14,7 +14,7 @@ def setup(collectors, runs, clock):
     record = collectors.add("Coach", "/Volumes/Coach")
     service.save_schedule(record.id, ScheduleDraft(enabled=True, kind="daily", time="23:00"))
     checker, mover = FakeChecker(), FakeMover()
-    scheduler = Scheduler(collectors, runs, checker, mover, clock)
+    scheduler = Scheduler(collectors, runs, checker, mover, clock, undoable=lambda _id: True)
     return scheduler, checker, mover, record.id
 
 
@@ -91,7 +91,7 @@ def test_overlapping_runs_are_skipped_and_logged(collectors, runs, clock):
     holder: dict = {}
 
     class ReentrantMover:
-        def move(self, collector):  # noqa: ANN001
+        def move(self, collector, run_id, progress):  # noqa: ANN001
             holder["inner"] = holder["scheduler"].run(collector, "manual")
             return "outer finished"
 

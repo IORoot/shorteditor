@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiClient, ApiError } from './api';
 import type { ScheduleDraft } from './types';
-import { makeConfig } from '../test/fixtures';
+import { makeCollector, makeConfig } from '../test/fixtures';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -9,9 +9,9 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe('ApiClient', () => {
   it('lists collectors from the collectors endpoint', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([{ id: 1, name: 'Coach' }]));
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([makeCollector()]));
     const client = new ApiClient(fetchImpl);
-    await expect(client.listCollectors()).resolves.toEqual([{ id: 1, name: 'Coach' }]);
+    await expect(client.listCollectors()).resolves.toEqual([makeCollector()]);
     expect(fetchImpl).toHaveBeenCalledWith('/api/collectors', undefined);
   });
 
@@ -22,7 +22,7 @@ describe('ApiClient', () => {
   });
 
   it('sends the schedule draft as a PUT body', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: 2 }));
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(makeCollector({ id: 2 })));
     const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '23:00', weekdays: [], dayOfMonth: 1, cron: '' };
     await new ApiClient(fetchImpl).saveSchedule(2, draft);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
@@ -44,7 +44,7 @@ describe('ApiClient', () => {
   });
 
   it('saves a collector config with PUT', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: 3 }));
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(makeCollector({ id: 3 })));
     await new ApiClient(fetchImpl).saveConfig(3, makeConfig());
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/collectors/3');
@@ -70,5 +70,36 @@ describe('ApiClient', () => {
   it('falls back to a generic message when the error body is not JSON', async () => {
     const client = new ApiClient(vi.fn().mockResolvedValue(new Response('oops', { status: 500 })));
     await expect(client.listCollectors()).rejects.toThrow('failed with 500');
+  });
+
+  it('posts dry runs, starts runs and undoes runs', async () => {
+    const fetchImpl = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse({ id: 1 })));
+    const client = new ApiClient(fetchImpl);
+    await client.dryRun(4);
+    await client.startRun(4);
+    await client.undoRun(9);
+    const calls = fetchImpl.mock.calls as [string, RequestInit][];
+    expect(calls.map(([url, init]) => `${init.method} ${url}`)).toEqual([
+      'POST /api/collectors/4/dry-run',
+      'POST /api/collectors/4/run',
+      'POST /api/runs/9/undo',
+    ]);
+  });
+
+  it('fills in missing filter settings when an older backend lists collectors', async () => {
+    const { filters, randomSelection, dateSources, filenamePattern, ...oldConfig } = makeConfig();
+    void filters; void randomSelection; void dateSources; void filenamePattern;
+    const old = { ...makeCollector(), config: oldConfig };
+    const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse([old])));
+    const [collector] = await client.listCollectors();
+    expect(collector.config.filters).toEqual([]);
+    expect(collector.config.dateSources).toEqual(['mtime']);
+  });
+
+  it('refuses to report a save as successful when an old backend dropped the filters', async () => {
+    const { filters, ...oldConfig } = makeConfig();
+    void filters;
+    const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse({ ...makeCollector(), config: oldConfig })));
+    await expect(client.saveConfig(1, makeConfig())).rejects.toThrow(/out of date/);
   });
 });

@@ -11,12 +11,18 @@ from .browser import FolderBrowser
 from .clock import SystemClock
 from .collector_repository import CollectorRepository
 from .database import Database
-from .mover import UnavailableMover
+from .executor import TransferExecutor
+from .file_transfer import FileTransfer
+from .local_mover import LocalMover
+from .move_repository import MoveRepository
+from .planner import TransferPlanner
 from .run_repository import RunRepository
+from .run_service import RunService
 from .scheduler import Scheduler
 from .seed import seed_demo
 from .service import CollectorService
 from .source_checker import LocalSourceChecker
+from .undo import UndoService
 
 TICK_SECONDS = 30
 
@@ -26,9 +32,16 @@ def create_default_app() -> FastAPI:
     clock = SystemClock()
     collectors = CollectorRepository(db)
     runs = RunRepository(db)
+    moves = MoveRepository(db)
+    files = FileTransfer()
+    planner = TransferPlanner(clock)
+    mover = LocalMover(planner, TransferExecutor(files, moves))
+    scheduler = Scheduler(
+        collectors, runs, LocalSourceChecker(), mover, clock, undoable=lambda run_id: moves.count(run_id) > 0
+    )
     service = CollectorService(collectors, runs, clock)
+    run_service = RunService(collectors, planner, scheduler, UndoService(moves, runs, files))
     seed_demo(collectors, service.save_schedule)
-    scheduler = Scheduler(collectors, runs, LocalSourceChecker(), UnavailableMover(), clock)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -42,7 +55,7 @@ def create_default_app() -> FastAPI:
         task.cancel()
 
     app = FastAPI(title="Short Editor", lifespan=lifespan)
-    app.include_router(build_router(service, FolderBrowser()))
+    app.include_router(build_router(service, FolderBrowser(), run_service))
     return app
 
 

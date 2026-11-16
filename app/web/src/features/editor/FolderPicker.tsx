@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Folder } from 'lucide-react';
+import { Check, CornerLeftUp, Folder, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLoad } from '../../hooks/useLoad';
 import { Button } from '../../components/ui/Button';
@@ -8,6 +8,10 @@ export interface FolderPickerProps {
   startPath: string;
   onChoose: (path: string) => void;
   onClose: () => void;
+}
+
+function parentOf(path: string): string {
+  return path.replace(/\/[^/]*$/, '') || '/';
 }
 
 export function FolderPicker({ startPath, onChoose, onClose }: FolderPickerProps) {
@@ -23,7 +27,10 @@ export function FolderPicker({ startPath, onChoose, onClose }: FolderPickerProps
         <div className="min-h-40 flex-1 overflow-y-auto">
           {listing.state.status === 'loading' ? <p role="status" className="text-small text-text-3">Loading…</p> : null}
           {listing.state.status === 'error' ? (
-            <p role="alert" className="text-small text-bad">{listing.state.message}</p>
+            <div className="flex flex-col items-start gap-2">
+              <p role="alert" className="text-small text-bad">{listing.state.message}</p>
+              {path && path !== '/' ? <Button icon={<CornerLeftUp size={15} aria-hidden="true" />} onClick={() => setPath(parentOf(path))}>Go to parent folder</Button> : null}
+            </div>
           ) : null}
           {current ? (
             <ul className="flex flex-col">
@@ -47,8 +54,8 @@ export function FolderPicker({ startPath, onChoose, onClose }: FolderPickerProps
           ) : null}
         </div>
         <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!current} onClick={() => current && onChoose(current.path)}>
+          <Button icon={<X size={15} aria-hidden="true" />} onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon={<Check size={15} aria-hidden="true" />} disabled={!current} onClick={() => current && onChoose(current.path)}>
             Choose this folder
           </Button>
         </div>

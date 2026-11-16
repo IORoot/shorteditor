@@ -26,4 +26,18 @@ describe('useLoad', () => {
     const { result } = renderHook(() => useLoad(null, []));
     expect(result.current.state.status).toBe('loading');
   });
+
+  it('keeps showing the data while a reload is in flight', async () => {
+    let resolveSecond: (value: string) => void = () => undefined;
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce('first')
+      .mockImplementationOnce(() => new Promise<string>((resolve) => (resolveSecond = resolve)));
+    const { result } = renderHook(() => useLoad(load, []));
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'first' }));
+    act(() => result.current.reload());
+    expect(result.current.state).toEqual({ status: 'ready', data: 'first' });
+    await act(async () => resolveSecond('second'));
+    expect(result.current.state).toEqual({ status: 'ready', data: 'second' });
+  });
 });

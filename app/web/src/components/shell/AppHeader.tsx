@@ -15,7 +15,7 @@ export interface AppHeaderProps {
 
 export function AppHeader({ tabs, activeTab, status }: AppHeaderProps) {
   return (
-    <header className="sticky top-4 z-10 mx-4 flex h-[52px] items-center justify-between rounded-full bg-surface pl-5 pr-2.5 shadow-[0_6px_28px_#0000001a]">
+    <header className="sticky top-4 z-10 flex h-[52px] items-center justify-between rounded-full bg-surface pl-5 pr-2.5 shadow-[0_6px_28px_#0000001a]">
       <div className="flex w-64 items-center gap-2.5">
         <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-content">
           <Scissors size={16} aria-hidden="true" />

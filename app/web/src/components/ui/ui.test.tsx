@@ -5,6 +5,7 @@ import { Checkbox } from './Checkbox';
 import { FormField } from './FormField';
 import { SegmentedControl } from './SegmentedControl';
 import { StatusChip } from './StatusChip';
+import { SelectField } from './SelectField';
 import { Toggle } from './Toggle';
 
 describe('Button', () => {
@@ -97,5 +98,15 @@ describe('SegmentedControl', () => {
     expect(screen.getByRole('radio', { name: 'Daily' })).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(screen.getByRole('radio', { name: 'Weekly' }));
     expect(onChange).toHaveBeenCalledWith('weekly');
+  });
+});
+
+describe('SelectField', () => {
+  it('shows the options and reports the selected value', () => {
+    const onChange = vi.fn();
+    render(<SelectField label="Scope" value="a" options={[{ value: 'a', label: 'All' }, { value: 'b', label: 'Each' }]} onChange={onChange} />);
+    expect(screen.getByLabelText('Scope')).toHaveValue('a');
+    fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'b' } });
+    expect(onChange).toHaveBeenCalledWith('b');
   });
 });

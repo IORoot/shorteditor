@@ -39,7 +39,7 @@ class FakeMover:
         self.error = error
         self.calls = 0
 
-    def move(self, collector) -> str:  # noqa: ANN001
+    def move(self, collector, run_id=0, progress=None) -> str:  # noqa: ANN001
         self.calls += 1
         if self.error:
             raise self.error

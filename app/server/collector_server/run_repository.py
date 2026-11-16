@@ -39,6 +39,24 @@ class RunRepository:
         rows = self._db.query("SELECT * FROM runs WHERE id = ?", (cursor.lastrowid,))
         return _to_record(rows[0])
 
+    def get(self, run_id: int) -> RunRecord | None:
+        rows = self._db.query("SELECT * FROM runs WHERE id = ?", (run_id,))
+        return _to_record(rows[0]) if rows else None
+
+    def update(
+        self,
+        run_id: int,
+        status: str | None = None,
+        outcome: str | None = None,
+        can_undo: bool | None = None,
+    ) -> RunRecord | None:
+        fields = {"status": status, "outcome": outcome, "can_undo": None if can_undo is None else int(can_undo)}
+        changes = {name: value for name, value in fields.items() if value is not None}
+        if changes:
+            assignments = ", ".join(f"{name} = ?" for name in changes)
+            self._db.execute(f"UPDATE runs SET {assignments} WHERE id = ?", (*changes.values(), run_id))
+        return self.get(run_id)
+
     def recent(self, collector_id: int, limit: int = 5) -> list[RunRecord]:
         rows = self._db.query(
             "SELECT * FROM runs WHERE collector_id = ? ORDER BY started_at DESC, id DESC LIMIT ?",

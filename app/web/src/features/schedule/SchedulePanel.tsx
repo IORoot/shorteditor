@@ -1,4 +1,4 @@
-import { Info, RotateCcw, Shield, PlugZap } from 'lucide-react';
+import { Check, Info, RotateCcw, Shield, PlugZap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ScheduleDraft, ScheduleKind } from '../../lib/types';
 import { Button } from '../../components/ui/Button';
@@ -33,7 +33,7 @@ const RULES: { icon: ReactNode; text: string }[] = [
 export function SchedulePanel({ draft, summary, nextRun, saving, error, onChange, onSave }: SchedulePanelProps) {
   const set = (patch: Partial<ScheduleDraft>) => onChange({ ...draft, ...patch });
   return (
-    <div className="flex h-full flex-col gap-5 rounded-[20px] bg-surface p-6">
+    <div className="flex flex-1 flex-col gap-4 rounded-[20px] bg-surface p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-h3 font-semibold">Schedule</h2>
         <Toggle label="Schedule enabled" checked={draft.enabled} onChange={(enabled) => set({ enabled })} />
@@ -52,10 +52,10 @@ export function SchedulePanel({ draft, summary, nextRun, saving, error, onChange
         <FormField label="Time" type="time" value={draft.time} onChange={(event) => set({ time: event.target.value })} />
       )}
       {error ? <p role="alert" className="text-caption text-bad">{error}</p> : null}
-      <Button variant="primary" onClick={onSave} disabled={saving}>
+      <Button variant="primary" icon={<Check size={15} aria-hidden="true" />} onClick={onSave} disabled={saving}>
         {saving ? 'Saving…' : 'Save schedule'}
       </Button>
-      <ul className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
+      <ul className="mt-auto flex flex-col gap-2.5 border-t border-line pt-4">
         {RULES.map((rule) => (
           <li key={rule.text} className="flex items-start gap-2.5 text-caption text-text-2">
             <span className="mt-0.5 text-text-2">{rule.icon}</span>
