@@ -1,21 +1,11 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { violations } from './architecture';
 
-const SRC = __dirname;
+const raw = import.meta.glob('/src/**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-function walk(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) return walk(p);
-    return /\.tsx?$/.test(name) ? [p] : [];
-  });
-}
-
-const files = ['collection', 'production', 'output', 'shared'].flatMap((stage) =>
-  walk(join(SRC, stage)).map((p) => ({ path: relative(SRC, p), source: readFileSync(p, 'utf8') })),
-);
+const files = Object.entries(raw)
+  .map(([key, source]) => ({ path: key.replace('/src/', ''), source }))
+  .filter((f) => /^(collection|production|output|shared)\//.test(f.path));
 
 describe('architecture', () => {
   it('no stage imports another stage', () => {
