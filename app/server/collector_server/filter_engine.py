@@ -54,17 +54,17 @@ def _text_predicate(rule: FilterRule) -> Predicate:
     value = rule.value.strip()
     if not value:
         raise ValueError("A name, glob or regex rule needs a value")
+    if rule.kind == "regex":
+        try:
+            compiled = re.compile(value, 0 if rule.case_sensitive else re.IGNORECASE)
+        except re.error as error:
+            raise ValueError(f"Invalid regex '{value}': {error}") from error
+        return lambda facts: compiled.search(facts.name) is not None
+    fold = (lambda text: text) if rule.case_sensitive else str.lower
+    needle = fold(value)
     if rule.kind == "name":
-        needle = value.lower()
-        return lambda facts: needle in facts.name.lower()
-    if rule.kind == "glob":
-        pattern = value.lower()
-        return lambda facts: fnmatch.fnmatchcase(facts.name.lower(), pattern)
-    try:
-        compiled = re.compile(value, re.IGNORECASE)
-    except re.error as error:
-        raise ValueError(f"Invalid regex '{value}': {error}") from error
-    return lambda facts: compiled.search(facts.name) is not None
+        return lambda facts: needle in fold(facts.name)
+    return lambda facts: fnmatch.fnmatchcase(fold(facts.name), needle)
 
 
 def _date_range_predicate(rule: FilterRule) -> Predicate:

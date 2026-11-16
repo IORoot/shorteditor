@@ -9532,6 +9532,31 @@
                             },
                             {
                               "type": "frame",
+                              "id": "mzY2c",
+                              "name": "Match Case Off",
+                              "width": 32,
+                              "height": 28,
+                              "fill": "$surface",
+                              "cornerRadius": 8,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Vn3FU",
+                                  "name": "Aa",
+                                  "fill": "$text-3",
+                                  "content": "Aa",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "MxCb0",
                               "name": "Remove",
                               "width": 32,
@@ -10019,6 +10044,31 @@
                                   "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HfOnL",
+                              "name": "Match Case On",
+                              "width": 32,
+                              "height": 28,
+                              "fill": "$accent-soft",
+                              "cornerRadius": 8,
+                              "stroke": "$accent",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "L7btn",
+                                  "name": "Aa",
+                                  "fill": "$accent",
+                                  "content": "Aa",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
                                 }
                               ]
                             },
@@ -13475,6 +13525,31 @@
                             },
                             {
                               "type": "frame",
+                              "id": "N40QD",
+                              "name": "Match Case Off",
+                              "width": 32,
+                              "height": 28,
+                              "fill": "$surface",
+                              "cornerRadius": 8,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dagxy",
+                                  "name": "Aa",
+                                  "fill": "$text-3",
+                                  "content": "Aa",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
                               "id": "TxKXh",
                               "name": "Remove",
                               "width": 32,
@@ -13962,6 +14037,31 @@
                                   "fontFamily": "JetBrains Mono",
                                   "fontSize": 13,
                                   "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rWEF4",
+                              "name": "Match Case On",
+                              "width": 32,
+                              "height": 28,
+                              "fill": "$accent-soft",
+                              "cornerRadius": 8,
+                              "stroke": "$accent",
+                              "strokeWidth": 1,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "tSFg1",
+                                  "name": "Aa",
+                                  "fill": "$accent",
+                                  "content": "Aa",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
                                 }
                               ]
                             },

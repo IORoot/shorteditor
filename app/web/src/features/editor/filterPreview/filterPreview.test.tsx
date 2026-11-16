@@ -134,7 +134,7 @@ describe('FilterPreviewCard', () => {
 describe('useFilterPreview', () => {
   it('sends the editor config to the API', async () => {
     const spy = vi.spyOn(api, 'previewFilters').mockResolvedValue(result([clip('a.mp4', true)]));
-    const config = makeConfig({ filters: [{ rules: [{ kind: 'name', exclude: false, value: 'a', dateFrom: '', dateTo: '', days: [], start: '', end: '' }] }] });
+    const config = makeConfig({ filters: [{ rules: [{ kind: 'name', exclude: false, value: 'a', dateFrom: '', dateTo: '', days: [], start: '', end: '', caseSensitive: false }] }] });
     const { result: hook } = renderHook(() => useFilterPreview(config, 0));
     await waitFor(() => expect(hook.current.result?.selectedCount).toBe(1));
     expect(spy).toHaveBeenCalledWith(config);

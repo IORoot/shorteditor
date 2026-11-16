@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import type { CollectorConfig } from '../../../lib/types';
-import { newGroup, removeAt, replaceAt } from '../../../lib/filters';
+import { newGroup, removeAt, replaceAt, usesDates } from '../../../lib/filters';
 import { SectionCard } from '../../../components/ui/SectionCard';
 import { DateSourcesSection } from './DateSourcesSection';
 import { FilterGroupCard } from './FilterGroupCard';
@@ -43,11 +43,13 @@ export function FiltersSection({ config, onChange }: FiltersSectionProps) {
         Add group
       </button>
       <RandomSelectionField value={config.randomSelection} onChange={(randomSelection) => set({ randomSelection })} />
-      <DateSourcesSection
-        sources={config.dateSources}
-        filenamePattern={config.filenamePattern}
-        onChange={(dateSources, filenamePattern) => set({ dateSources, filenamePattern })}
-      />
+      {usesDates(config.filters) ? (
+        <DateSourcesSection
+          sources={config.dateSources}
+          filenamePattern={config.filenamePattern}
+          onChange={(dateSources, filenamePattern) => set({ dateSources, filenamePattern })}
+        />
+      ) : null}
     </SectionCard>
   );
 }

@@ -167,3 +167,9 @@ def test_endpoint_explains_a_missing_folder(client, tmp_path):
     body = config_for(tmp_path / "missing", tmp_path / "out").model_dump(by_alias=True)
     response = client.post("/api/preview/filters", json=body)
     assert response.status_code == 422 and "not found" in response.json()["detail"]
+
+
+def test_case_sensitive_rule_changes_what_is_collected(previewer, source, tmp_path):
+    loose = run(previewer, source, tmp_path, [FilterRule(kind="name", value="raw CLIP")])
+    strict = run(previewer, source, tmp_path, [FilterRule(kind="name", value="raw CLIP", case_sensitive=True)])
+    assert selected(loose) == {"my raw clip.mov"} and selected(strict) == set()

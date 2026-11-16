@@ -38,6 +38,22 @@ def test_glob_rule_matches_the_whole_name_case_insensitively():
     assert accepts(e, "GX011234.MP4") and not accepts(e, "proxy_GX011234.MP4")
 
 
+def test_name_rule_matches_case_when_case_sensitive_is_on():
+    e = engine([rule("name", value="Coach", case_sensitive=True)])
+    assert accepts(e, "my-Coach-clip.mp4") and not accepts(e, "my-coach-clip.mp4")
+
+
+def test_glob_rule_matches_case_when_case_sensitive_is_on():
+    e = engine([rule("glob", value="GX01*.mp4", case_sensitive=True)])
+    assert accepts(e, "GX011234.mp4") and not accepts(e, "GX011234.MP4")
+
+
+def test_regex_rule_is_case_sensitive_only_when_asked():
+    loose = engine([rule("regex", value="^gx")])
+    strict = engine([rule("regex", value="^gx", case_sensitive=True)])
+    assert accepts(loose, "GX1.mp4") and not accepts(strict, "GX1.mp4") and accepts(strict, "gx1.mp4")
+
+
 def test_regex_rule_searches_the_name():
     e = engine([rule("regex", value=r"^GX\d{4}")])
     assert accepts(e, "GX1234_a.mp4") and not accepts(e, "xGX1234.mp4")

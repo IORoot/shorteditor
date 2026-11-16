@@ -47,6 +47,7 @@ class FilterRule(CamelModel):
     days: list[int] = Field(default_factory=list)
     start: str = ""
     end: str = ""
+    case_sensitive: bool = False
 
 
 class FilterGroup(CamelModel):

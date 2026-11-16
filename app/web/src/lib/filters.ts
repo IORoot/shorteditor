@@ -15,6 +15,14 @@ export const DATE_SOURCES: { value: DateSourceKind; label: string }[] = [
   { value: 'mtime', label: 'File modified time' },
 ];
 
+export const TEXT_KINDS: RuleKind[] = ['name', 'glob', 'regex'];
+export const DATE_KINDS: RuleKind[] = ['date_range', 'weekday', 'window'];
+
+/** True when any rule in any group reads the clip's date, which is when the date source matters. */
+export function usesDates(groups: FilterGroup[]): boolean {
+  return groups.some((group) => group.rules.some((rule) => DATE_KINDS.includes(rule.kind)));
+}
+
 export function newRule(kind: RuleKind = 'name', exclude = false): FilterRule {
   return {
     kind,
@@ -25,6 +33,7 @@ export function newRule(kind: RuleKind = 'name', exclude = false): FilterRule {
     days: kind === 'weekday' || kind === 'window' ? [6] : [],
     start: kind === 'window' ? '09:00' : '',
     end: kind === 'window' ? '13:00' : '',
+    caseSensitive: false,
   };
 }
 

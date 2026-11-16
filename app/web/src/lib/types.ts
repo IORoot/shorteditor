@@ -36,6 +36,7 @@ export interface FilterRule {
   days: number[];
   start: string;
   end: string;
+  caseSensitive: boolean;
 }
 
 export interface FilterGroup {

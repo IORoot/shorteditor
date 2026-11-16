@@ -47,7 +47,7 @@ def test_filters_random_selection_and_date_sources_round_trip(stack):
     response = client.put(f"/api/collectors/{record.id}", json=body)
     assert response.status_code == 200
     config = client.get(f"/api/collectors/{record.id}").json()["config"]
-    assert config["filters"][0]["rules"][0] == {"kind": "window", "exclude": False, "value": "", "dateFrom": "", "dateTo": "", "days": [6], "start": "09:00", "end": "13:00"}
+    assert config["filters"][0]["rules"][0] == {"kind": "window", "exclude": False, "value": "", "dateFrom": "", "dateTo": "", "days": [6], "start": "09:00", "end": "13:00", "caseSensitive": False}
     assert config["randomSelection"] == {"enabled": True, "mode": "count", "value": 3, "scope": "folder", "seed": 9}
     assert config["dateSources"] == ["filename", "mtime"] and config["filenamePattern"] == "GX_YYYYMMDD"
 

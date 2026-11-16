@@ -71,6 +71,25 @@ describe('FilterRuleRow', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'window', exclude: true, value: '', start: '09:00' }));
   });
 
+  it('toggles match case on text rules', () => {
+    const onChange = vi.fn();
+    render(<FilterRuleRow rule={newRule('name')} onChange={onChange} onRemove={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Match case' }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ caseSensitive: true }));
+  });
+
+  it('shows match case only for name, glob and regex rules', () => {
+    render(<FilterRuleRow rule={newRule('window')} onChange={() => undefined} onRemove={() => undefined} />);
+    expect(screen.queryByRole('button', { name: 'Match case' })).not.toBeInTheDocument();
+  });
+
+  it('keeps match case when switching between text rule kinds', () => {
+    const onChange = vi.fn();
+    render(<FilterRuleRow rule={{ ...newRule('name'), caseSensitive: true }} onChange={onChange} onRemove={() => undefined} />);
+    fireEvent.change(screen.getByLabelText('Rule type'), { target: { value: 'glob' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'glob', caseSensitive: true }));
+  });
+
   it('removes the rule', () => {
     const onRemove = vi.fn();
     render(<FilterRuleRow rule={newRule()} onChange={() => undefined} onRemove={onRemove} />);
@@ -103,6 +122,23 @@ describe('FilterGroupCard', () => {
 });
 
 describe('FiltersSection', () => {
+  it('hides the date source until a filter reads the clip date', () => {
+    render(<FiltersSection config={makeConfig({ filters: [{ rules: [{ ...newRule('name'), value: 'proxy' }] }] })} onChange={() => undefined} />);
+    expect(screen.queryByText('Date source')).not.toBeInTheDocument();
+  });
+
+  it('shows the date source when a date rule exists', () => {
+    render(<FiltersSection config={makeConfig({ filters: [{ rules: [newRule('weekday')] }] })} onChange={() => undefined} />);
+    expect(screen.getByText('Date source')).toBeInTheDocument();
+  });
+
+  it('keeps the saved date source when it is hidden', () => {
+    const onChange = vi.fn();
+    render(<FiltersSection config={makeConfig({ dateSources: ['filename'], filenamePattern: 'GX_YYYYMMDD' })} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
+    expect(onChange.mock.calls[0][0]).toMatchObject({ dateSources: ['filename'], filenamePattern: 'GX_YYYYMMDD' });
+  });
+
   it('explains that with no filters everything is collected', () => {
     render(<FiltersSection config={makeConfig()} onChange={() => undefined} />);
     expect(screen.getByText(/every video file in the input folder is collected/)).toBeInTheDocument();
