@@ -10,6 +10,10 @@ class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class CollectorCreate(CamelModel):
+    name: str
+
+
 class ScheduleDraft(CamelModel):
     enabled: bool
     kind: Literal["daily", "weekly", "monthly", "cron"]

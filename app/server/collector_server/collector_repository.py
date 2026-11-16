@@ -51,6 +51,15 @@ class CollectorRepository:
         assert record is not None
         return record
 
+    def delete(self, collector_id: int) -> bool:
+        """Removes the collector with its runs and their moves. Callers check that no run is in progress."""
+        if self.get(collector_id) is None:
+            return False
+        self._db.execute("DELETE FROM moves WHERE run_id IN (SELECT id FROM runs WHERE collector_id = ?)", (collector_id,))
+        self._db.execute("DELETE FROM runs WHERE collector_id = ?", (collector_id,))
+        self._db.execute("DELETE FROM collectors WHERE id = ?", (collector_id,))
+        return True
+
     def add_with_config(self, config: CollectorConfig) -> CollectorRecord:
         record = self.add(config.name, config.input_folder, config.transfer)
         updated = self.update_config(record.id, config)

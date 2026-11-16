@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronLeft, X } from 'lucide-react';
+import { Check, ChevronLeft, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { Collector, CollectorConfig } from '../../lib/types';
 import { useFilterPreview } from '../../hooks/useFilterPreview';
@@ -20,9 +20,10 @@ export interface EditCollectorScreenProps {
   collector: Collector;
   onCancel: () => void;
   onSaved: () => void;
+  onDelete: () => void;
 }
 
-export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollectorScreenProps) {
+export function EditCollectorScreen({ collector, onCancel, onSaved, onDelete }: EditCollectorScreenProps) {
   const [config, setConfig] = useState<CollectorConfig>(collector.config);
   const [picker, setPicker] = useState<PickerTarget>(null);
   const [saving, setSaving] = useState(false);
@@ -60,6 +61,7 @@ export function EditCollectorScreen({ collector, onCancel, onSaved }: EditCollec
             <h1 className="text-h1 font-bold tracking-[-0.6px]">Edit Collector</h1>
           </div>
           <div className="flex gap-2.5">
+            <Button variant="danger" icon={<Trash2 size={15} aria-hidden="true" />} onClick={onDelete}>Delete</Button>
             <Button icon={<X size={15} aria-hidden="true" />} onClick={onCancel}>Cancel</Button>
             <Button variant="primary" icon={<Check size={15} aria-hidden="true" />} onClick={save} disabled={saving}>
               {saving ? 'Saving…' : 'Save collector'}

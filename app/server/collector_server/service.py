@@ -6,7 +6,7 @@ from .domain import CollectorRecord
 from .config_rules import validate_config
 from .filter_preview import FilterPreviewer
 from .planner import TransferPlanner
-from .models import Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
+from .models import Collector, CollectorConfig, CollectorCreate, FilterPreviewResult, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
 from .presenters import format_moment, present_run
 from .preview import FolderPreviewer
 from .run_repository import RunRepository
@@ -26,6 +26,20 @@ class CollectorService:
     def get_collector(self, collector_id: int) -> Collector | None:
         record = self._collectors.get(collector_id)
         return self._present(record) if record else None
+
+    def create_collector(self, request: CollectorCreate) -> Collector:
+        name = request.name.strip()
+        if not name:
+            raise ValueError("Give the collector a name")
+        return self._present(self._collectors.add(name, ""))
+
+    def delete_collector(self, collector_id: int) -> bool | None:
+        """True when deleted, None when the collector doesn't exist. Refuses while a run is in progress."""
+        if self._collectors.get(collector_id) is None:
+            return None
+        if any(run.status == "running" for run in self._runs.recent(collector_id)):
+            raise ValueError("A run is in progress. Wait for it to finish before deleting this collector.")
+        return self._collectors.delete(collector_id)
 
     def list_runs(self, collector_id: int) -> list[Run] | None:
         if self._collectors.get(collector_id) is None:

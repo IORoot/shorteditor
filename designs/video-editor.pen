@@ -839,6 +839,41 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pDhoe",
+                  "name": "New Collector Button",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 12,
+                  "stroke": "$line",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "xpNF7",
+                      "name": "plus",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "#000000"
+                    },
+                    {
+                      "type": "text",
+                      "id": "O53A1",
+                      "name": "Label",
+                      "fill": "#000000",
+                      "content": "New collector",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -3369,6 +3404,41 @@
                           ]
                         }
                       ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wBpMx",
+                  "name": "New Collector Button",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 12,
+                  "stroke": "$line",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "AqiCO",
+                      "name": "plus",
+                      "width": 15,
+                      "height": 15,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "#000000"
+                    },
+                    {
+                      "type": "text",
+                      "id": "a8BjNS",
+                      "name": "Label",
+                      "fill": "#000000",
+                      "content": "New collector",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
                     }
                   ]
                 }
@@ -8911,6 +8981,43 @@
                       "alignItems": "center",
                       "children": [
                         {
+                          "type": "frame",
+                          "id": "VYCXk",
+                          "name": "Delete Collector Button",
+                          "height": 36,
+                          "cornerRadius": 10,
+                          "stroke": "$bad",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "W7UtSX",
+                              "name": "trash-2",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "trash-2",
+                              "library": "lucide",
+                              "fill": "$bad"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qmUsx",
+                              "name": "Label",
+                              "fill": "$bad",
+                              "content": "Delete",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
                           "id": "AQQpN",
                           "type": "ref",
                           "ref": "GRJ3I",
@@ -12747,6 +12854,43 @@
                       "gap": 10,
                       "alignItems": "center",
                       "children": [
+                        {
+                          "type": "frame",
+                          "id": "Dnc1h",
+                          "name": "Delete Collector Button",
+                          "height": 36,
+                          "cornerRadius": 10,
+                          "stroke": "$bad",
+                          "strokeWidth": 1,
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "R9P48z",
+                              "name": "trash-2",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "trash-2",
+                              "library": "lucide",
+                              "fill": "$bad"
+                            },
+                            {
+                              "type": "text",
+                              "id": "iwZmU",
+                              "name": "Label",
+                              "fill": "$bad",
+                              "content": "Delete",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
                         {
                           "id": "P6Mdc",
                           "type": "ref",
@@ -18600,6 +18744,554 @@
                       "content": "Move 142 clips"
                     }
                   }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "wgPsf",
+      "x": 4480,
+      "y": -900,
+      "name": "New Collector Dialog - Light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 480,
+      "fill": "$surface",
+      "cornerRadius": 20,
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "rUfMi",
+          "name": "Dialog Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "M1DmDM",
+              "name": "Title",
+              "fill": "$text",
+              "content": "New collector",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "srovM",
+          "name": "Name Field",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "tDVJO",
+              "name": "Label",
+              "fill": "$text-2",
+              "content": "Name",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "rF88z",
+              "name": "Input",
+              "width": "fill_container",
+              "fill": "$fill-2",
+              "cornerRadius": 10,
+              "padding": [
+                10,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Jkosj",
+                  "name": "Placeholder",
+                  "fill": "$text-3",
+                  "content": "e.g. Coach Saturdays",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "c2TEa",
+          "name": "Note",
+          "fill": "$text-2",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Starts with the default settings. Set the input and output folders next.",
+          "lineHeight": 1.4,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "zbK5q",
+          "name": "Dialog Footer",
+          "width": "fill_container",
+          "gap": 10,
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Bk2Hl",
+              "name": "Cancel Button",
+              "height": 36,
+              "fill": "$surface",
+              "cornerRadius": 10,
+              "stroke": "$line",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LUQ2b",
+                  "name": "Label",
+                  "fill": "$text",
+                  "content": "Cancel",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mCVZW",
+              "name": "Create and edit Button",
+              "height": 36,
+              "fill": "#000000",
+              "cornerRadius": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "IDPQh",
+                  "name": "Label",
+                  "fill": "$on-accent",
+                  "content": "Create and edit",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "z2Mx3",
+      "x": 4960,
+      "y": -900,
+      "name": "Delete Collector Dialog - Light",
+      "theme": {
+        "mode": "light"
+      },
+      "clip": true,
+      "width": 480,
+      "fill": "$surface",
+      "cornerRadius": 20,
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "Ua0Mq",
+          "name": "Dialog Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "M8qQZ",
+              "name": "Title",
+              "fill": "$text",
+              "content": "Delete Coach Saturdays?",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "X2Mlx",
+          "name": "Warning",
+          "fill": "$text-2",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "This removes the collector, its schedule and its run history. Files already moved stay where they are. This can't be undone.",
+          "lineHeight": 1.4,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "U2J74s",
+          "name": "Dialog Footer",
+          "width": "fill_container",
+          "gap": 10,
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Bfr0a",
+              "name": "Cancel Button",
+              "height": 36,
+              "fill": "$surface",
+              "cornerRadius": 10,
+              "stroke": "$line",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zfLfm",
+                  "name": "Label",
+                  "fill": "$text",
+                  "content": "Cancel",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W68Jj",
+              "name": "Delete collector Button",
+              "height": 36,
+              "fill": "$bad",
+              "cornerRadius": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "V9lWqh",
+                  "name": "Label",
+                  "fill": "$on-accent",
+                  "content": "Delete collector",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "lVLg3",
+      "x": 5440,
+      "y": -900,
+      "name": "New Collector Dialog - Dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 480,
+      "fill": "$surface",
+      "cornerRadius": 20,
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "ZiLdt",
+          "name": "Dialog Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "cZ2t2",
+              "name": "Title",
+              "fill": "$text",
+              "content": "New collector",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Xwcfy",
+          "name": "Name Field",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "ZfEBl",
+              "name": "Label",
+              "fill": "$text-2",
+              "content": "Name",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "iQXzV",
+              "name": "Input",
+              "width": "fill_container",
+              "fill": "$fill-2",
+              "cornerRadius": 10,
+              "padding": [
+                10,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tpoga",
+                  "name": "Placeholder",
+                  "fill": "$text-3",
+                  "content": "e.g. Coach Saturdays",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "t3m76Y",
+          "name": "Note",
+          "fill": "$text-2",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Starts with the default settings. Set the input and output folders next.",
+          "lineHeight": 1.4,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "z4e8P",
+          "name": "Dialog Footer",
+          "width": "fill_container",
+          "gap": 10,
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "V2oAz",
+              "name": "Cancel Button",
+              "height": 36,
+              "fill": "$surface",
+              "cornerRadius": 10,
+              "stroke": "$line",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "vhEKr",
+                  "name": "Label",
+                  "fill": "$text",
+                  "content": "Cancel",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "e3DZF",
+              "name": "Create and edit Button",
+              "height": 36,
+              "fill": "#000000",
+              "cornerRadius": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YF7Bf",
+                  "name": "Label",
+                  "fill": "$on-accent",
+                  "content": "Create and edit",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "izRtZ",
+      "x": 5920,
+      "y": -900,
+      "name": "Delete Collector Dialog - Dark",
+      "theme": {
+        "mode": "dark"
+      },
+      "clip": true,
+      "width": 480,
+      "fill": "$surface",
+      "cornerRadius": 20,
+      "layout": "vertical",
+      "gap": 18,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "F7gkGs",
+          "name": "Dialog Head",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "children": [
+            {
+              "type": "text",
+              "id": "FfJvV",
+              "name": "Title",
+              "fill": "$text",
+              "content": "Delete Coach Saturdays?",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "i7jcEJ",
+          "name": "Warning",
+          "fill": "$text-2",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "This removes the collector, its schedule and its run history. Files already moved stay where they are. This can't be undone.",
+          "lineHeight": 1.4,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "ybNQ7",
+          "name": "Dialog Footer",
+          "width": "fill_container",
+          "gap": 10,
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "R3cIIn",
+              "name": "Cancel Button",
+              "height": 36,
+              "fill": "$surface",
+              "cornerRadius": 10,
+              "stroke": "$line",
+              "strokeWidth": 1,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "r5c5D6",
+                  "name": "Label",
+                  "fill": "$text",
+                  "content": "Cancel",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UhMHk",
+              "name": "Delete collector Button",
+              "height": 36,
+              "fill": "$bad",
+              "cornerRadius": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Y0vXv",
+                  "name": "Label",
+                  "fill": "$on-accent",
+                  "content": "Delete collector",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
                 }
               ]
             }

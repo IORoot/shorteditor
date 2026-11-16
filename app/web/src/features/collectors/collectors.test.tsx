@@ -40,25 +40,25 @@ describe('CollectorList', () => {
   const noop = () => undefined;
 
   it('shows loading', () => {
-    render(<CollectorList state={{ status: 'loading' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
+    render(<CollectorList onNew={() => undefined} state={{ status: 'loading' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading collectors');
   });
 
   it('shows an error with retry', () => {
     const onRetry = vi.fn();
-    render(<CollectorList state={{ status: 'error', message: 'down' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={onRetry} />);
+    render(<CollectorList onNew={() => undefined} state={{ status: 'error', message: 'down' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={onRetry} />);
     expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t reach the backend');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalled();
   });
 
   it('shows the empty state', () => {
-    render(<CollectorList state={{ status: 'ready', data: [] }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
+    render(<CollectorList onNew={() => undefined} state={{ status: 'ready', data: [] }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByText('No collectors yet.')).toBeInTheDocument();
   });
 
   it('renders each collector', () => {
-    render(<CollectorList state={{ status: 'ready', data: [base] }} selectedId={1} onSelect={noop} onToggle={noop} onRetry={noop} />);
+    render(<CollectorList onNew={() => undefined} state={{ status: 'ready', data: [base] }} selectedId={1} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByRole('button', { name: 'Coach Saturdays' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

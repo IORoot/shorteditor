@@ -8,6 +8,8 @@ import { CollectorList } from './features/collectors/CollectorList';
 import { RunHistory } from './features/runs/RunHistory';
 import { SchedulePanel } from './features/schedule/SchedulePanel';
 import { CollectorActions } from './features/collectors/CollectorActions';
+import { NewCollectorDialog } from './features/collectors/NewCollectorDialog';
+import { DeleteCollectorDialog } from './features/collectors/DeleteCollectorDialog';
 import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
 import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
 
@@ -33,6 +35,12 @@ export default function App() {
   const [confirming, setConfirming] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const list = collectors.state.status === 'ready' ? collectors.state.data : [];
   const selected = useMemo(() => list.find((c) => c.id === selectedId) ?? list[0] ?? null, [list, selectedId]);
@@ -86,6 +94,51 @@ export default function App() {
     runs.reload();
   };
 
+  const createCollector = async (name: string) => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await api.createCollector(name);
+      setNewOpen(false);
+      setSelectedId(created.id);
+      collectors.reload();
+      setEditing(true);
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : 'Could not create the collector');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteCollector = async () => {
+    if (!selected) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.deleteCollector(selected.id);
+      setDeleteOpen(false);
+      setEditing(false);
+      setSelectedId(null);
+      collectors.reload();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Could not delete the collector');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const newDialog = newOpen ? (
+    <NewCollectorDialog
+      busy={creating}
+      error={createError}
+      onCreate={createCollector}
+      onClose={() => {
+        setNewOpen(false);
+        setCreateError(null);
+      }}
+    />
+  ) : null;
+
   const draft = localDraft ?? (selected ? draftFrom(selected) : null);
 
   const save = async () => {
@@ -134,7 +187,21 @@ export default function App() {
             setEditing(false);
             collectors.reload();
           }}
+          onDelete={() => {
+            setDeleteError(null);
+            setDeleteOpen(true);
+          }}
         />
+        {deleteOpen ? (
+          <DeleteCollectorDialog
+            collectorName={selected.name}
+            busy={deleting}
+            error={deleteError}
+            onConfirm={deleteCollector}
+            onClose={() => setDeleteOpen(false)}
+          />
+        ) : null}
+        {newDialog}
       </div>
     );
   }
@@ -149,6 +216,10 @@ export default function App() {
           onSelect={setSelectedId}
           onToggle={toggleCollector}
           onRetry={collectors.reload}
+          onNew={() => {
+            setCreateError(null);
+            setNewOpen(true);
+          }}
         />
       }
       title={
@@ -176,6 +247,7 @@ export default function App() {
           <div className="flex flex-1 flex-col gap-3">
             {actionError ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{actionError}</p> : null}
             <RunHistory state={runs.state} onUndo={undoRun} />
+            {newDialog}
             {dialog ? (
               <PlanDialog
                 mode={dialog.mode}

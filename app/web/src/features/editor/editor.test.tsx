@@ -173,7 +173,7 @@ describe('EditCollectorScreen', () => {
 
   it('shows the current config and a live preview', async () => {
     mockPreview();
-    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
     expect(screen.getByLabelText('Name')).toHaveValue('Coach Saturdays');
     expect(screen.getByLabelText('Output folder')).toHaveValue('/Volumes/Edit/Collected');
     expect(await screen.findByText('2026-11-14_Sat_coach')).toBeInTheDocument();
@@ -183,7 +183,7 @@ describe('EditCollectorScreen', () => {
     mockPreview();
     const save = vi.spyOn(api, 'saveConfig').mockResolvedValue(collector);
     const onSaved = vi.fn();
-    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={onSaved} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={onSaved} />);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Coach Sundays' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save collector' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
@@ -194,7 +194,7 @@ describe('EditCollectorScreen', () => {
     mockPreview();
     vi.spyOn(api, 'saveConfig').mockRejectedValue(new Error('Output folder is required'));
     const onSaved = vi.fn();
-    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={onSaved} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={onSaved} />);
     fireEvent.click(screen.getByRole('button', { name: 'Save collector' }));
     expect(await screen.findByText('Output folder is required')).toBeInTheDocument();
     expect(onSaved).not.toHaveBeenCalled();
@@ -203,7 +203,7 @@ describe('EditCollectorScreen', () => {
   it('cancels from the Cancel button and the breadcrumb', () => {
     mockPreview();
     const onCancel = vi.fn();
-    render(<EditCollectorScreen collector={collector} onCancel={onCancel} onSaved={() => undefined} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={onCancel} onSaved={() => undefined} />);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: /Collectors \/ Coach Saturdays/ }));
     expect(onCancel).toHaveBeenCalledTimes(2);
@@ -212,7 +212,7 @@ describe('EditCollectorScreen', () => {
   it('fills the output folder from the folder picker', async () => {
     mockPreview();
     vi.spyOn(api, 'browse').mockResolvedValue({ path: '/Volumes/Other', parent: '/Volumes', entries: [] });
-    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
     fireEvent.click(screen.getByRole('button', { name: 'Browse for output folder' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Choose this folder' }));
     expect(screen.getByLabelText('Output folder')).toHaveValue('/Volumes/Other');
@@ -221,7 +221,7 @@ describe('EditCollectorScreen', () => {
   it('shows the filters section between source and output and saves the filters', async () => {
     mockPreview();
     const save = vi.spyOn(api, 'saveConfig').mockResolvedValue(collector);
-    render(<EditCollectorScreen collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
     expect(screen.getByRole('region', { name: 'Filters' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
     fireEvent.change(screen.getByLabelText('Rule value'), { target: { value: 'coach' } });

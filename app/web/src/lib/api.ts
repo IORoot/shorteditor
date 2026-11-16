@@ -45,6 +45,18 @@ export class ApiClient {
     return this.send<Run>(`/api/collectors/${collectorId}/run`, 'POST', {});
   }
 
+  async createCollector(name: string): Promise<Collector> {
+    return normalizeCollector(await this.send<Collector>('/api/collectors', 'POST', { name }));
+  }
+
+  /** The backend answers 204 with no body, so this doesn't parse JSON. */
+  async deleteCollector(collectorId: number): Promise<void> {
+    const response = await this.fetchImpl(`/api/collectors/${collectorId}`, { method: 'DELETE' });
+    if (!response.ok) {
+      throw new ApiError(response.status, await this.errorMessage(response, `/api/collectors/${collectorId}`));
+    }
+  }
+
   async undoRun(runId: number): Promise<Run> {
     return this.send<Run>(`/api/runs/${runId}/undo`, 'POST', {});
   }

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, FastAPI, HTTPException
 
 from .browser import FolderBrowser
-from .models import BrowseResult, Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft
+from .models import BrowseResult, Collector, CollectorConfig, CollectorCreate, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft
 from .presenters import present_plan, present_run
 from .run_service import RunService
 from .service import CollectorService
@@ -15,6 +15,22 @@ def build_router(service: CollectorService, browser: FolderBrowser, runs: RunSer
     @router.get("/collectors", response_model=list[Collector])
     def list_collectors() -> list[Collector]:
         return service.list_collectors()
+
+    @router.post("/collectors", response_model=Collector, status_code=201)
+    def create_collector(request: CollectorCreate) -> Collector:
+        try:
+            return service.create_collector(request)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @router.delete("/collectors/{collector_id}", status_code=204)
+    def delete_collector(collector_id: int) -> None:
+        try:
+            deleted = service.delete_collector(collector_id)
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        if deleted is None:
+            raise HTTPException(status_code=404, detail="Collector not found")
 
     @router.get("/collectors/{collector_id}", response_model=Collector)
     def get_collector(collector_id: int) -> Collector:
