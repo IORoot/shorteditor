@@ -10,8 +10,8 @@ from .token_template import ClipContext, FolderTemplate
 class FolderPreviewer:
     def preview(self, request: FolderPreviewRequest, fallback_now: datetime) -> FolderPreview:
         template = FolderTemplate(request.folder_template)
-        if template.uses_window() and request.group_by != "window":
-            raise ValueError("{window:...} tokens need Group by: Window")
+        if template.uses_window():
+            raise ValueError("{window:...} tokens aren't supported yet")
         when = datetime.fromisoformat(request.sample_date) if request.sample_date else fallback_now
         context = ClipContext(
             when=when,

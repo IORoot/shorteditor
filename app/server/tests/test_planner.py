@@ -92,7 +92,6 @@ def test_empty_source_has_a_note(collectors, clock, dirs):
     "overrides,error,message",
     [
         ({"source_type": "ssh", "host": "nas"}, ValueError, "SSH"),
-        ({"group_by": "window"}, ValueError, "Window"),
         ({"output_folder": ""}, ValueError, "Output folder"),
         ({"folder_template": "{window:name}"}, ValueError, "window"),
         ({"folder_template": "{suffix}", "suffix": ""}, ValueError, "empty name"),

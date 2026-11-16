@@ -17,8 +17,8 @@ def validate_config(config: CollectorConfig) -> None:
     if not config.output_folder.strip():
         raise ValueError("Output folder is required")
     template = FolderTemplate(config.folder_template)
-    if template.uses_window() and config.group_by != "window":
-        raise ValueError("{window:...} tokens need Group by: Window")
+    if template.uses_window():
+        raise ValueError("{window:...} tokens aren't supported yet")
     FilterEngine(config.filters)
     RandomSelector(config.random_selection)
     DateRule(config.date_source, config.filename_pattern)

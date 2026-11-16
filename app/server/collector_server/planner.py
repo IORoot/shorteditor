@@ -39,8 +39,6 @@ class TransferPlanner:
     def validate(self, collector: CollectorRecord) -> None:
         if collector.source_type == "ssh":
             raise ValueError("SSH sources can't be scanned yet")
-        if collector.group_by == "window":
-            raise ValueError("Window grouping isn't built yet")
         if not collector.output_folder.strip():
             raise ValueError("Output folder is required")
         if FolderTemplate(collector.folder_template).uses_window():

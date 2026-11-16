@@ -26,7 +26,7 @@ def test_valid_config_passes():
         ({"output_folder": ""}, "Output folder"),
         ({"source_type": "ssh", "host": ""}, "host"),
         ({"folder_template": "{bogus}"}, "Unknown token"),
-        ({"folder_template": "{window:name}", "group_by": "day"}, "Group by: Window"),
+        ({"folder_template": "{window:name}"}, "aren't supported"),
     ],
 )
 def test_invalid_configs_raise(overrides, message):
@@ -36,7 +36,8 @@ def test_invalid_configs_raise(overrides, message):
 
 def test_ssh_with_host_and_window_with_window_grouping_are_valid():
     validate_config(config(source_type="ssh", host="nas"))
-    validate_config(config(folder_template="{window:name}", group_by="window"))
+    with pytest.raises(ValueError, match="aren't supported"):
+        validate_config(config(folder_template="{window:name}"))
 
 
 def test_browser_lists_visible_directories_only_sorted(tmp_path):
@@ -83,6 +84,6 @@ def test_previewer_falls_back_to_the_clock_and_handles_empty_output(clock):
     assert result.full_path == "2026-11-16"
 
 
-def test_previewer_rejects_window_tokens_without_window_grouping(clock):
-    with pytest.raises(ValueError, match="Group by: Window"):
+def test_previewer_rejects_window_tokens(clock):
+    with pytest.raises(ValueError, match="aren't supported"):
         FolderPreviewer().preview(FolderPreviewRequest(folder_template="{window:name}", group_by="day"), clock.now())

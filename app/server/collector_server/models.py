@@ -30,7 +30,7 @@ class StatusNote(CamelModel):
 
 
 SourceType = Literal["local", "ssh"]
-GroupBy = Literal["none", "day", "week", "month", "window"]
+GroupBy = Literal["none", "day", "week", "month"]
 Transfer = Literal["move", "copy", "link"]
 
 

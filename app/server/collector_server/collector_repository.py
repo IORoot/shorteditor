@@ -30,7 +30,7 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         ssh_key_path=row["ssh_key_path"],
         output_folder=row["output_folder"],
         folder_template=row["folder_template"],
-        group_by=row["group_by"],
+        group_by="none" if row["group_by"] == "window" else row["group_by"],
         suffix=row["suffix"],
         filters=[FilterGroup.model_validate(group) for group in json.loads(row["filters"])],
         random_selection=RandomSelection.model_validate(json.loads(row["random_selection"])),
