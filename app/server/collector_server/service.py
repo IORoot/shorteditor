@@ -27,6 +27,10 @@ class CollectorService:
         record = self._collectors.get(collector_id)
         return self._present(record) if record else None
 
+    def set_active(self, collector_id: int, active: bool) -> Collector | None:
+        record = self._collectors.set_active(collector_id, active)
+        return self._present(record) if record else None
+
     def create_collector(self, request: CollectorCreate) -> Collector:
         name = request.name.strip()
         if not name:
@@ -78,6 +82,7 @@ class CollectorService:
         return Collector(
             id=record.id,
             name=record.name,
+            active=record.active,
             source=source,
             transfer=record.transfer,  # type: ignore[arg-type]
             config=config,

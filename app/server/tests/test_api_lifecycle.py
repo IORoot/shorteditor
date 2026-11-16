@@ -46,3 +46,31 @@ def test_deleting_while_a_run_is_in_progress_is_refused(client, collectors, runs
     response = client.delete(f"/api/collectors/{record.id}")
     assert response.status_code == 409 and "in progress" in response.json()["detail"]
     assert collectors.get(record.id) is not None
+
+
+def test_turning_a_collector_off_is_saved_and_reported(client, collectors):
+    record = collectors.add("Off", "/src")
+    assert client.put(f"/api/collectors/{record.id}/active", json={"active": False}).json()["active"] is False
+    assert collectors.get(record.id).active is False
+
+
+def test_turning_a_collector_back_on_allows_runs(client, collectors):
+    record = collectors.add("Toggle", "/src")
+    client.put(f"/api/collectors/{record.id}/active", json={"active": False})
+    assert client.put(f"/api/collectors/{record.id}/active", json={"active": True}).json()["active"] is True
+    assert collectors.get(record.id).active is True
+
+
+def test_turning_an_unknown_collector_on_or_off_is_a_404(client):
+    assert client.put("/api/collectors/999/active", json={"active": True}).status_code == 404
+
+
+def test_a_turned_off_collector_refuses_run_now_in_the_run_service(collectors, runs, clock, tmp_path):
+    from collector_server.run_service import RunService
+    from collector_server.planner import TransferPlanner
+    from collector_server.undo import UndoService
+    record = collectors.add("Off", str(tmp_path))
+    collectors.set_active(record.id, False)
+    service = RunService(collectors, TransferPlanner(clock), scheduler=None, undo=UndoService(None, runs, None))
+    with pytest.raises(ValueError, match="turned off"):
+        service.start_run(record.id)

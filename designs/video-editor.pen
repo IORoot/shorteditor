@@ -11535,6 +11535,417 @@
               "children": [
                 {
                   "type": "frame",
+                  "id": "o60TAl",
+                  "name": "Section Schedule",
+                  "width": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": 20,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JUTpj",
+                      "name": "Schedule Head",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lrpIY",
+                          "name": "Head Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "d5kEwq",
+                              "name": "Title",
+                              "fill": "$text",
+                              "content": "Schedule",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "B1AJP",
+                          "name": "Toggle On",
+                          "width": 36,
+                          "height": 20,
+                          "fill": "#000000",
+                          "cornerRadius": 10,
+                          "padding": 2,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "TlC3I",
+                              "name": "Knob",
+                              "width": 16,
+                              "height": 16,
+                              "fill": "$surface",
+                              "cornerRadius": 8
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "unVGB",
+                      "name": "Kind",
+                      "width": "fill_container",
+                      "fill": "$fill-2",
+                      "cornerRadius": 12,
+                      "gap": 3,
+                      "padding": 3,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xucYQ",
+                          "name": "Kind Daily",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pG9NJ",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Daily",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Kr0yY",
+                          "name": "Kind Weekly",
+                          "width": "fill_container",
+                          "height": 30,
+                          "fill": "$surface",
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "tQu2r",
+                              "name": "Label",
+                              "fill": "$text",
+                              "content": "Weekly",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Z6M0g",
+                          "name": "Kind Monthly",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "W5q5xu",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Monthly",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rs1Xd",
+                          "name": "Kind Cron",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ey0ZG",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Cron",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KkM50",
+                      "name": "Days",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "L7CO0",
+                          "name": "Days label",
+                          "fill": "$text-2",
+                          "content": "Days",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "YNuD5",
+                          "name": "Day Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "m31urj",
+                              "name": "Day M",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "C504o",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "M",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "lymAr",
+                              "name": "Day T",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qa7zU",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "T",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "RE3aM",
+                              "name": "Day W",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "j6Lh3",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "W",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "g6WLRI",
+                              "name": "Day T",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "tY1WQ",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "T",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "r7esx",
+                              "name": "Day F",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "l6GUjd",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "F",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "C5rQX",
+                              "name": "Day S",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Qg3os",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "S",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QQBZ5",
+                              "name": "Day S",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "#000000",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "G3Uig",
+                                  "name": "Label",
+                                  "fill": "$on-accent",
+                                  "content": "S",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AZRow",
+                      "name": "Time",
+                      "width": 140,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "L10Xdr",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Time",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bb5M6",
+                          "name": "Input",
+                          "width": "fill_container",
+                          "fill": "$fill-2",
+                          "cornerRadius": 10,
+                          "padding": [
+                            10,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "KSDjj",
+                              "name": "Value",
+                              "fill": "$text",
+                              "content": "02:00",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "CkgJZ",
+                      "name": "Next run",
+                      "fill": "#000000",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Next run Sun 22 Nov, 02:00",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "NVGgZ",
                   "name": "Filter Preview",
                   "width": "fill_container",
@@ -15355,6 +15766,417 @@
               "layout": "vertical",
               "gap": 20,
               "children": [
+                {
+                  "type": "frame",
+                  "id": "nfcdc",
+                  "name": "Section Schedule",
+                  "width": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": 20,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "C92GbA",
+                      "name": "Schedule Head",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "f7YpZs",
+                          "name": "Head Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "B1yOVC",
+                              "name": "Title",
+                              "fill": "$text",
+                              "content": "Schedule",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "eTodA",
+                          "name": "Toggle On",
+                          "width": 36,
+                          "height": 20,
+                          "fill": "#000000",
+                          "cornerRadius": 10,
+                          "padding": 2,
+                          "justifyContent": "end",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "YC5HU",
+                              "name": "Knob",
+                              "width": 16,
+                              "height": 16,
+                              "fill": "$surface",
+                              "cornerRadius": 8
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TbMrK",
+                      "name": "Kind",
+                      "width": "fill_container",
+                      "fill": "$fill-2",
+                      "cornerRadius": 12,
+                      "gap": 3,
+                      "padding": 3,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TadsC",
+                          "name": "Kind Daily",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WQxd9",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Daily",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "dqWeL",
+                          "name": "Kind Weekly",
+                          "width": "fill_container",
+                          "height": 30,
+                          "fill": "$surface",
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "M3DNl",
+                              "name": "Label",
+                              "fill": "$text",
+                              "content": "Weekly",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S96juu",
+                          "name": "Kind Monthly",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JCV11",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Monthly",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "k4SJL",
+                          "name": "Kind Cron",
+                          "width": "fill_container",
+                          "height": 30,
+                          "cornerRadius": 9,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "KSq4r",
+                              "name": "Label",
+                              "fill": "$text-2",
+                              "content": "Cron",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d10kq0",
+                      "name": "Days",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pRoKn",
+                          "name": "Days label",
+                          "fill": "$text-2",
+                          "content": "Days",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gP7AB",
+                          "name": "Day Row",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "DVVOF",
+                              "name": "Day M",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "d8W5Xn",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "M",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "SxawP",
+                              "name": "Day T",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "r1c52",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "T",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "C0t0ql",
+                              "name": "Day W",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "QjOTY",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "W",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rQzbk",
+                              "name": "Day T",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "U8k4Y",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "T",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "H4AqpL",
+                              "name": "Day F",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "r5yr0",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "F",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "zBYLZ",
+                              "name": "Day S",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "$fill-2",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zABao",
+                                  "name": "Label",
+                                  "fill": "$text-2",
+                                  "content": "S",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "kvuqk",
+                              "name": "Day S",
+                              "width": 28,
+                              "height": 28,
+                              "fill": "#000000",
+                              "cornerRadius": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gUVjx",
+                                  "name": "Label",
+                                  "fill": "$on-accent",
+                                  "content": "S",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "op52y",
+                      "name": "Time",
+                      "width": 140,
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "kld8G",
+                          "name": "Label",
+                          "fill": "$text-2",
+                          "content": "Time",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FESvp",
+                          "name": "Input",
+                          "width": "fill_container",
+                          "fill": "$fill-2",
+                          "cornerRadius": 10,
+                          "padding": [
+                            10,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aumgZ",
+                              "name": "Value",
+                              "fill": "$text",
+                              "content": "02:00",
+                              "fontFamily": "JetBrains Mono",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "BIbN6",
+                      "name": "Next run",
+                      "fill": "#000000",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Next run Sun 22 Nov, 02:00",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
                 {
                   "type": "frame",
                   "id": "qkni0",

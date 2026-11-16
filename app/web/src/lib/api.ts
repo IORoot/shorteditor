@@ -45,6 +45,11 @@ export class ApiClient {
     return this.send<Run>(`/api/collectors/${collectorId}/run`, 'POST', {});
   }
 
+  /** Turns the whole collector on or off. A turned-off collector never runs, by hand or by schedule. */
+  async setActive(collectorId: number, active: boolean): Promise<Collector> {
+    return normalizeCollector(await this.send<Collector>(`/api/collectors/${collectorId}/active`, 'PUT', { active }));
+  }
+
   async createCollector(name: string): Promise<Collector> {
     return normalizeCollector(await this.send<Collector>('/api/collectors', 'POST', { name }));
   }

@@ -71,3 +71,20 @@ describe('collector API calls', () => {
     expect((failure as ApiError).message).toBe('A run is in progress.');
   });
 });
+
+describe('turning a collector on or off', () => {
+  it('shows a turned-off collector as off and offers to turn it on', () => {
+    const onToggle = vi.fn();
+    render(<CollectorList onNew={() => undefined} state={{ status: 'ready', data: [makeCollector({ active: false })] }} selectedId={1} onSelect={() => undefined} onToggle={onToggle} onRetry={() => undefined} />);
+    expect(screen.getByText('Turned off')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Turn on Coach Saturdays' }));
+    expect(onToggle).toHaveBeenCalledWith(1, true);
+  });
+
+  it('sends the on/off state to the backend', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(makeCollector({ active: false })), { status: 200 }));
+    const updated = await new ApiClient(fetchMock).setActive(1, false);
+    expect(updated.active).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith('/api/collectors/1/active', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ active: false }) }));
+  });
+});

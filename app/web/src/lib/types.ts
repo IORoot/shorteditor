@@ -113,6 +113,7 @@ export interface BrowseResult {
 export interface Collector {
   id: number;
   name: string;
+  active: boolean;
   source: string;
   transfer: Transfer;
   config: CollectorConfig;

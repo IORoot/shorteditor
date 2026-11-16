@@ -29,6 +29,8 @@ class RunService:
         record = self._collectors.get(collector_id)
         if record is None:
             return None
+        if not record.active:
+            raise ValueError("This collector is turned off. Turn it on to run it.")
         self._planner.validate(record)
         return self._scheduler.start(record, "manual", background=True)
 

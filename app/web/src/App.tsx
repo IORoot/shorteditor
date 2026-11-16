@@ -13,16 +13,16 @@ import { DeleteCollectorDialog } from './features/collectors/DeleteCollectorDial
 import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
 import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
 
+function draftFrom(collector: Collector): ScheduleDraft {
+  const { enabled, kind, time, weekdays, dayOfMonth, cron } = collector.schedule;
+  return { enabled, kind, time, weekdays, dayOfMonth, cron };
+}
+
 const TABS = [
   { id: 'collection', label: 'Collection', enabled: true },
   { id: 'production', label: 'Production', enabled: false },
   { id: 'output', label: 'Output', enabled: false },
 ];
-
-function draftFrom(collector: Collector): ScheduleDraft {
-  const { enabled, kind, time, weekdays, dayOfMonth, cron } = collector.schedule;
-  return { enabled, kind, time, weekdays, dayOfMonth, cron };
-}
 
 export default function App() {
   const collectors = useLoad(() => api.listCollectors(), []);
@@ -156,14 +156,12 @@ export default function App() {
     }
   };
 
-  const toggleCollector = async (id: number, enabled: boolean) => {
-    const target = list.find((c) => c.id === id);
-    if (!target) return;
+  const toggleCollector = async (id: number, active: boolean) => {
     try {
-      await api.saveSchedule(id, { ...draftFrom(target), enabled });
+      await api.setActive(id, active);
       collectors.reload();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not change the schedule');
+      setActionError(error instanceof Error ? error.message : 'Could not turn the collector on or off');
     }
   };
 
@@ -238,7 +236,7 @@ export default function App() {
             onEdit={() => setEditing(true)}
             onDryRun={() => openDialog('dry')}
             onRun={() => openDialog('run')}
-            runDisabled={anyRunning}
+            runDisabled={anyRunning || !selected.active}
           />
         ) : null
       }

@@ -19,6 +19,7 @@ class CollectorRecord:
     day_of_month: int
     cron: str
     last_slot: datetime | None
+    active: bool = True
     source_type: str = "local"
     ssh_host: str = ""
     ssh_user: str = ""

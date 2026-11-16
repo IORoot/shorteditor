@@ -18,6 +18,7 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         source=row["source"],
         transfer=row["transfer"],
         enabled=bool(row["enabled"]),
+        active=bool(row["active"]),
         kind=row["kind"],
         time=row["time"],
         weekdays=weekdays,
@@ -96,6 +97,10 @@ class CollectorRepository:
     def get(self, collector_id: int) -> CollectorRecord | None:
         rows = self._db.query("SELECT * FROM collectors WHERE id = ?", (collector_id,))
         return _to_record(rows[0]) if rows else None
+
+    def set_active(self, collector_id: int, active: bool) -> CollectorRecord | None:
+        self._db.execute("UPDATE collectors SET active=? WHERE id=?", (int(active), collector_id))
+        return self.get(collector_id)
 
     def save_schedule(self, collector_id: int, draft: ScheduleDraft, cron: str, now: datetime) -> CollectorRecord | None:
         self._db.execute(

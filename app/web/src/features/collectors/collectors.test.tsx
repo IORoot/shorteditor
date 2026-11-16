@@ -31,7 +31,7 @@ describe('CollectorRow', () => {
     render(<CollectorRow collector={base} selected onSelect={onSelect} onToggle={onToggle} />);
     fireEvent.click(screen.getByRole('button', { name: 'Coach Saturdays' }));
     expect(onSelect).toHaveBeenCalledWith(1);
-    fireEvent.click(screen.getByRole('switch', { name: 'Schedule for Coach Saturdays' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Turn on Coach Saturdays' }));
     expect(onToggle).toHaveBeenCalledWith(1, false);
   });
 });

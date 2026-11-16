@@ -22,7 +22,7 @@ export function normalizeConfig(config: CollectorConfig): CollectorConfig {
 }
 
 export function normalizeCollector(collector: Collector): Collector {
-  return { ...collector, config: normalizeConfig(collector.config) };
+  return { ...collector, active: collector.active ?? true, config: normalizeConfig(collector.config) };
 }
 
 export function isOutdatedBackendConfig(config: CollectorConfig): boolean {

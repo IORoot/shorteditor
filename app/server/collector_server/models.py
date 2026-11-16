@@ -10,6 +10,10 @@ class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class ActiveRequest(CamelModel):
+    active: bool
+
+
 class CollectorCreate(CamelModel):
     name: str
 
@@ -89,6 +93,7 @@ class CollectorConfig(CamelModel):
 class Collector(CamelModel):
     id: int
     name: str
+    active: bool = True
     source: str
     transfer: Transfer
     config: CollectorConfig

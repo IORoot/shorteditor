@@ -47,6 +47,8 @@ class Scheduler:
         now = self._clock.now()
         results: list[RunRecord] = []
         for collector in self._collectors.list():
+            if not collector.active:
+                continue
             slot = self.due_slot(collector, now)
             if slot is None:
                 continue

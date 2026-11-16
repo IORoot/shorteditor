@@ -24,6 +24,7 @@ export function makeCollector(overrides: Partial<Collector> = {}): Collector {
   return {
     id: 1,
     name: 'Coach Saturdays',
+    active: true,
     source: 'ssh://coach-nas/volume1/clips',
     transfer: 'move',
     config: makeConfig(),

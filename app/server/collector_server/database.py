@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS moves (
 
 
 _NEW_COLUMNS = {
+    "active": "INTEGER NOT NULL DEFAULT 1",
     "source_type": "TEXT NOT NULL DEFAULT 'local'",
     "ssh_host": "TEXT NOT NULL DEFAULT ''",
     "ssh_user": "TEXT NOT NULL DEFAULT ''",
