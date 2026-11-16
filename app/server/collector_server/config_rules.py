@@ -3,7 +3,6 @@ from __future__ import annotations
 from .date_source import DateRule
 from .filter_engine import FilterEngine
 from .models import CollectorConfig
-from .random_selector import RandomSelector
 from .token_template import FolderTemplate
 
 
@@ -20,5 +19,4 @@ def validate_config(config: CollectorConfig) -> None:
     if template.uses_window():
         raise ValueError("{window:...} tokens aren't supported yet")
     FilterEngine(config.filters)
-    RandomSelector(config.random_selection)
     DateRule(config.date_source, config.filename_pattern)

@@ -43,12 +43,13 @@ def payload(source, **overrides):
 def test_filters_random_selection_and_date_sources_round_trip(stack):
     client, record, source = stack
     filters = [{"rules": [{"kind": "window", "exclude": False, "days": [6], "start": "09:00", "end": "13:00"}, {"kind": "name", "exclude": True, "value": "proxy"}]}]
-    body = payload(source, filters=filters, randomSelection={"enabled": True, "mode": "count", "value": 3, "scope": "folder", "seed": 9}, dateSource="filename", filenamePattern="GX_YYYYMMDD")
+    random_rule = {"kind": "random", "exclude": False, "random": {"enabled": True, "mode": "count", "value": 3, "scope": "folder", "seed": 9}}
+    body = payload(source, filters=[{"rules": filters[0]["rules"] + [random_rule]}], dateSource="filename", filenamePattern="GX_YYYYMMDD")
     response = client.put(f"/api/collectors/{record.id}", json=body)
     assert response.status_code == 200
     config = client.get(f"/api/collectors/{record.id}").json()["config"]
-    assert config["filters"][0]["rules"][0] == {"kind": "window", "exclude": False, "value": "", "dateFrom": "", "dateTo": "", "days": [6], "start": "09:00", "end": "13:00", "caseSensitive": False, "dateSource": "modified", "filenamePattern": ""}
-    assert config["randomSelection"] == {"enabled": True, "mode": "count", "value": 3, "scope": "folder", "seed": 9}
+    assert config["filters"][0]["rules"][0] == {"kind": "window", "exclude": False, "value": "", "dateFrom": "", "dateTo": "", "days": [6], "start": "09:00", "end": "13:00", "caseSensitive": False, "dateSource": "modified", "filenamePattern": "", "random": {"enabled": True, "mode": "percent", "value": 10, "scope": "overall", "seed": 1}}
+    assert config["filters"][0]["rules"][2]["random"] == {"enabled": True, "mode": "count", "value": 3, "scope": "folder", "seed": 9}
     assert config["dateSource"] == "filename" and config["filenamePattern"] == "GX_YYYYMMDD"
 
 
@@ -57,7 +58,7 @@ def test_filters_random_selection_and_date_sources_round_trip(stack):
     [
         ({"filters": [{"rules": [{"kind": "regex", "value": "("}]}]}, "Invalid regex"),
         ({"filters": [{"rules": [{"kind": "weekday", "days": []}]}]}, "weekday"),
-        ({"randomSelection": {"enabled": True, "mode": "percent", "value": 150}}, "more than 100"),
+        ({"filters": [{"rules": [{"kind": "random", "random": {"enabled": True, "mode": "percent", "value": 150}}]}]}, "more than 100"),
         ({"dateSource": "filename", "filenamePattern": ""}, "YYYY, MM and DD"),
     ],
 )
@@ -98,4 +99,4 @@ def test_a_run_only_moves_the_matching_clips(stack):
 def test_older_databases_get_default_filter_settings(collectors):
     record = collectors.add("Old", "/old")
     config = record.config()
-    assert config.filters == [] and config.random_selection.enabled is False and config.date_source == "modified"
+    assert config.filters == [] and config.date_source == "modified"

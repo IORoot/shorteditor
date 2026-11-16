@@ -14,7 +14,6 @@ export function makeConfig(overrides: Partial<CollectorConfig> = {}): CollectorC
     transfer: 'move',
     suffix: 'coach',
     filters: [],
-    randomSelection: { enabled: false, mode: 'percent', value: 30, scope: 'overall', seed: 42 },
     dateSource: 'modified',
     filenamePattern: '',
     ...overrides,

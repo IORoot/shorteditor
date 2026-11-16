@@ -13,8 +13,8 @@ export interface FilterPreviewState {
 
 /** Only the settings that change which files are collected; output naming is left out so typing it doesn't re-scan. */
 function relevant(config: CollectorConfig): string {
-  const { inputFolder, outputFolder, sourceType, filters, randomSelection, dateSource, filenamePattern, groupBy, folderTemplate, suffix } = config;
-  return JSON.stringify({ inputFolder, outputFolder, sourceType, filters, randomSelection, dateSource, filenamePattern, groupBy, folderTemplate, suffix });
+  const { inputFolder, outputFolder, sourceType, filters, dateSource, filenamePattern, groupBy, folderTemplate, suffix } = config;
+  return JSON.stringify({ inputFolder, outputFolder, sourceType, filters, dateSource, filenamePattern, groupBy, folderTemplate, suffix });
 }
 
 /** Keeps the last good result while a new one loads, so rows can fade between states. */

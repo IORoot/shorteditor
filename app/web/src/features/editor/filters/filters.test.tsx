@@ -6,7 +6,6 @@ import type { FilterRule } from '../../../lib/types';
 import { FilterGroupCard } from './FilterGroupCard';
 import { FilterRuleRow } from './FilterRuleRow';
 import { FiltersSection } from './FiltersSection';
-import { RandomSelectionField } from './RandomSelectionField';
 import { RuleInputs } from './RuleInputs';
 
 describe('RuleInputs', () => {
@@ -176,20 +175,12 @@ describe('FiltersSection', () => {
   });
 });
 
-describe('RandomSelectionField', () => {
+describe('random rule inputs', () => {
   const base = { enabled: true, mode: 'percent' as const, value: 30, scope: 'overall' as const, seed: 42 };
-
-  it('hides the controls until enabled and enables with the toggle', () => {
-    const onChange = vi.fn();
-    render(<RandomSelectionField value={{ ...base, enabled: false }} onChange={onChange} />);
-    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('switch', { name: 'Random selection' }));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
-  });
 
   it('edits amount, type, scope and seed', () => {
     const onChange = vi.fn();
-    render(<RandomSelectionField value={base} onChange={onChange} />);
+    render(<RuleInputs rule={{ ...newRule('random'), random: base }} onChange={(rule) => onChange(rule.random)} />);
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12' } });
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ value: 12 }));
     fireEvent.change(screen.getByLabelText('Amount type'), { target: { value: 'count' } });
@@ -202,7 +193,7 @@ describe('RandomSelectionField', () => {
 
   it('turns non-numeric or empty input into a safe number', () => {
     const onChange = vi.fn();
-    render(<RandomSelectionField value={base} onChange={onChange} />);
+    render(<RuleInputs rule={{ ...newRule('random'), random: base }} onChange={(rule) => onChange(rule.random)} />);
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: 'abc' } });
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ value: 0 }));
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '' } });

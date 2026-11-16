@@ -3,7 +3,6 @@ import type { CollectorConfig } from '../../../lib/types';
 import { newGroup, removeAt, replaceAt } from '../../../lib/filters';
 import { SectionCard } from '../../../components/ui/SectionCard';
 import { FilterGroupCard } from './FilterGroupCard';
-import { RandomSelectionField } from './RandomSelectionField';
 
 export interface FiltersSectionProps {
   config: CollectorConfig;
@@ -41,7 +40,6 @@ export function FiltersSection({ config, onChange }: FiltersSectionProps) {
         <Plus size={14} aria-hidden="true" />
         Add group
       </button>
-      <RandomSelectionField value={config.randomSelection} onChange={(randomSelection) => set({ randomSelection })} />
     </SectionCard>
   );
 }

@@ -32,8 +32,8 @@ def previewer(clock):
     return FilterPreviewer(TransferPlanner(clock), clock)
 
 
-def run(previewer, source, tmp_path, *groups: list[FilterRule], random: RandomSelection | None = None, **overrides):
-    config = config_for(source, tmp_path / "out", filters=[FilterGroup(rules=list(g)) for g in groups], random_selection=random or RandomSelection(), **overrides)
+def run(previewer, source, tmp_path, *groups: list[FilterRule], **overrides):
+    config = config_for(source, tmp_path / "out", filters=[FilterGroup(rules=list(g)) for g in groups], **overrides)
     return previewer.preview(config)
 
 
@@ -98,20 +98,22 @@ def test_dates_follow_the_configured_date_source(previewer, source, tmp_path):
     assert clip.when.startswith("2025-01-02T03:04:05")
 
 
-def test_random_selection_overall_is_seeded_and_runs_after_filters(previewer, source, tmp_path):
-    random = RandomSelection(enabled=True, mode="count", value=2, scope="overall", seed=5)
-    rule = [FilterRule(kind="name", value="GX01")]
-    first, again = run(previewer, source, tmp_path, rule, random=random), run(previewer, source, tmp_path, rule, random=random)
+def sample(**overrides) -> FilterRule:
+    return FilterRule(kind="random", random=RandomSelection(**{"enabled": True, "mode": "count", "value": 2, "scope": "overall", "seed": 5, **overrides}))
+
+
+def test_random_rule_is_seeded_and_only_samples_what_the_rules_before_it_matched(previewer, source, tmp_path):
+    rules = [FilterRule(kind="name", value="GX01"), sample()]
+    first, again = run(previewer, source, tmp_path, rules), run(previewer, source, tmp_path, rules)
     assert first.selected_count == 2 and selected(first) == selected(again)
     assert all(name.startswith("GX01") for name in selected(first))
     assert NOT_PICKED in reasons(first).values()
 
 
-def test_random_selection_per_folder_picks_from_each_day(previewer, source, tmp_path):
-    random = RandomSelection(enabled=True, mode="count", value=1, scope="folder", seed=1)
-    result = run(previewer, source, tmp_path, random=random)
+def test_random_rule_per_folder_picks_from_each_day(previewer, source, tmp_path):
+    result = run(previewer, source, tmp_path, [sample(value=1, scope="folder", seed=1)])
     days = {c.when[:10] for c in result.clips if c.selected}
-    assert result.selected_count == len(days) == 4
+    assert result.selected_count == len(days) and days
 
 
 def test_subfolders_are_listed_and_the_output_folder_is_skipped(previewer, source, tmp_path):

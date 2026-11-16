@@ -38,8 +38,16 @@ GroupBy = Literal["none", "day", "week", "month"]
 Transfer = Literal["move", "copy", "link"]
 
 
-RuleKind = Literal["name", "glob", "regex", "date_range", "weekday", "window"]
+RuleKind = Literal["name", "glob", "regex", "date_range", "weekday", "window", "random"]
 DateSourceKind = Literal["modified", "created", "filename"]
+
+
+class RandomSelection(CamelModel):
+    enabled: bool = False
+    mode: Literal["count", "percent"] = "percent"
+    value: int = 10
+    scope: Literal["overall", "folder"] = "overall"
+    seed: int = 1
 
 
 class FilterRule(CamelModel):
@@ -54,18 +62,11 @@ class FilterRule(CamelModel):
     case_sensitive: bool = False
     date_source: DateSourceKind = "modified"
     filename_pattern: str = ""
+    random: RandomSelection = Field(default_factory=lambda: RandomSelection(enabled=True))
 
 
 class FilterGroup(CamelModel):
     rules: list[FilterRule] = Field(default_factory=list)
-
-
-class RandomSelection(CamelModel):
-    enabled: bool = False
-    mode: Literal["count", "percent"] = "percent"
-    value: int = 10
-    scope: Literal["overall", "folder"] = "overall"
-    seed: int = 1
 
 
 class CollectorConfig(CamelModel):
@@ -81,7 +82,6 @@ class CollectorConfig(CamelModel):
     transfer: Transfer = "move"
     suffix: str = ""
     filters: list[FilterGroup] = Field(default_factory=list)
-    random_selection: RandomSelection = Field(default_factory=RandomSelection)
     date_source: DateSourceKind = "modified"
     filename_pattern: str = ""
 

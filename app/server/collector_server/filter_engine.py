@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import fnmatch
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from typing import TypeVar
 
 from .date_source import ClipTimes, DateRule
 from .models import FilterGroup, FilterRule
+from .random_selector import RandomSelector
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -107,19 +111,65 @@ def build_predicate(rule: FilterRule) -> Predicate:
     return _window_predicate(rule)
 
 
+@dataclass(frozen=True)
+class Selection:
+    accepted: set[int]  # indexes of clips the filters collect
+    candidates: set[int]  # indexes of clips that passed a group's rules before any random pick
+
+
 class FilterEngine:
+    """Groups are ORed. Inside a group, rules are ANDed; a random rule samples what the other rules matched."""
+
     def __init__(self, groups: list[FilterGroup]) -> None:
-        self._groups: list[list[tuple[Predicate, bool]]] = []
+        self._groups: list[tuple[list[tuple[Predicate, bool]], list[tuple[RandomSelector, str]]]] = []
         for group in groups:
-            rules = [(build_predicate(rule), rule.exclude) for rule in group.rules]
-            if rules:
-                self._groups.append(rules)
+            predicates: list[tuple[Predicate, bool]] = []
+            randoms: list[tuple[RandomSelector, str]] = []
+            for rule in group.rules:
+                if rule.kind == "random":
+                    randoms.append((RandomSelector(rule.random), rule.random.scope))
+                else:
+                    predicates.append((build_predicate(rule), rule.exclude))
+            if predicates or randoms:
+                self._groups.append((predicates, randoms))
 
     @property
     def active(self) -> bool:
         return bool(self._groups)
 
     def accepts(self, facts: ClipFacts) -> bool:
+        """Per-clip view that ignores random rules. select() is the real decision."""
         if not self._groups:
             return True
-        return any(all(predicate(facts) != exclude for predicate, exclude in rules) for rules in self._groups)
+        return any(all(predicate(facts) != exclude for predicate, exclude in predicates) for predicates, _ in self._groups)
+
+    def select(self, items: Sequence[T], facts: Callable[[T], ClipFacts], folder: Callable[[T], str]) -> Selection:
+        """Applies every group to the items. Random rules pick from the group's matches, per folder when their scope says so."""
+        if not self._groups:
+            everything = set(range(len(items)))
+            return Selection(accepted=everything, candidates=everything)
+        facts_of = [facts(item) for item in items]
+        accepted: set[int] = set()
+        candidates_all: set[int] = set()
+        for group_index, (predicates, randoms) in enumerate(self._groups):
+            matched = [i for i in range(len(items)) if all(predicate(facts_of[i]) != exclude for predicate, exclude in predicates)]
+            candidates_all.update(matched)
+            chosen = matched
+            for rule_index, (selector, scope) in enumerate(randoms):
+                salt = f"{group_index}:{rule_index}"
+                if scope == "folder":
+                    chosen = self._per_folder(chosen, selector, salt, folder, items)
+                else:
+                    chosen = selector.pick(chosen, salt)
+            accepted.update(chosen)
+        return Selection(accepted=accepted, candidates=candidates_all)
+
+    @staticmethod
+    def _per_folder(indexes: list[int], selector: RandomSelector, salt: str, folder: Callable[[T], str], items: Sequence[T]) -> list[int]:
+        by_folder: dict[str, list[int]] = {}
+        for index in indexes:
+            by_folder.setdefault(folder(items[index]), []).append(index)
+        picked: list[int] = []
+        for key in sorted(by_folder):
+            picked += selector.pick(by_folder[key], f"{salt}:{key}")
+        return sorted(picked)

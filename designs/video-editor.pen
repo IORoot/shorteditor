@@ -10242,6 +10242,181 @@
                         },
                         {
                           "type": "frame",
+                          "id": "n8cRna",
+                          "name": "Rule Random",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "uq3g7",
+                              "name": "Select Random",
+                              "width": 150,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "ACTn2",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "Random",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "ZWLAK",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "t8cff",
+                              "name": "Amount",
+                              "width": 56,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "rHKJ4",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "10",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DzN8W",
+                              "name": "Select Amount type",
+                              "width": 120,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "H90qM2",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "% of clips",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "M09B2M",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "m1qbPc",
+                              "name": "Select Scope",
+                              "width": 120,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "S11QPx",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "overall",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "RZMP3",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "UAgaM",
+                              "name": "Seed",
+                              "width": 90,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "j7QYFh",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "seed 42",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
                           "id": "z202Jt",
                           "name": "Add rule",
                           "gap": 6,
@@ -10666,233 +10841,6 @@
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "GaM9Y",
-                      "name": "Random Selection",
-                      "width": "fill_container",
-                      "stroke": "$line",
-                      "strokeWidth": {
-                        "top": 1
-                      },
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": [
-                        18,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "Y0ZJN",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "avghm",
-                              "layout": "vertical",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "YfMCo",
-                                  "name": "Random selection",
-                                  "fill": "$text",
-                                  "content": "Random selection",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 14,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "ZHhCC",
-                                  "name": "Runs last, after all filters. The same seed picks the same clips every time.",
-                                  "fill": "$text-2",
-                                  "content": "Runs last, after all filters. The same seed picks the same clips every time.",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 12,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "zOWVz",
-                              "type": "ref",
-                              "ref": "a5KI2",
-                              "name": "Toggle"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "RFDSH",
-                          "name": "Random Row",
-                          "width": "fill_container",
-                          "gap": 10,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "L5SYsE",
-                              "name": "Pick",
-                              "fill": "$text-2",
-                              "content": "Pick",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "AAvX4",
-                              "name": "Input 30",
-                              "width": 80,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "dbKmW",
-                                  "name": "30",
-                                  "fill": "$text",
-                                  "content": "30",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "OZvqG",
-                              "name": "Select % of clips",
-                              "width": 140,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "gap": 8,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "justifyContent": "space_between",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "JjQKf",
-                                  "name": "% of clips",
-                                  "fill": "$text",
-                                  "content": "% of clips",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "w7v0sP",
-                                  "name": "chevron-down",
-                                  "width": 14,
-                                  "height": 14,
-                                  "icon": "chevron-down",
-                                  "library": "lucide",
-                                  "fill": "$text-2"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "Arfos",
-                              "name": "from",
-                              "fill": "$text-2",
-                              "content": "from",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "W2yAuE",
-                              "name": "Select each folder",
-                              "width": 160,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "gap": 8,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "justifyContent": "space_between",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "o7V1nd",
-                                  "name": "each folder",
-                                  "fill": "$text",
-                                  "content": "each folder",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "amlEk",
-                                  "name": "chevron-down",
-                                  "width": 14,
-                                  "height": 14,
-                                  "icon": "chevron-down",
-                                  "library": "lucide",
-                                  "fill": "$text-2"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "DSWzz",
-                              "name": "seed",
-                              "fill": "$text-2",
-                              "content": "seed",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Wp2hj",
-                              "name": "Input 42",
-                              "width": 80,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "NTSB9",
-                                  "name": "42",
-                                  "fill": "$text",
-                                  "content": "42",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
                         }
                       ]
                     }
@@ -14116,6 +14064,181 @@
                         },
                         {
                           "type": "frame",
+                          "id": "gCK6R",
+                          "name": "Rule Random",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "eXCvx",
+                              "name": "Select Random",
+                              "width": 150,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "xsC5V",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "Random",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "j2qdPN",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "VCGlS",
+                              "name": "Amount",
+                              "width": 56,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "whCF6",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "10",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "qkIiR",
+                              "name": "Select Amount type",
+                              "width": 120,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "TteWj",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "% of clips",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "RNZM0",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "T4dw5Q",
+                              "name": "Select Scope",
+                              "width": 120,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "gap": 6,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "iZtd5",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "overall",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "BPjGZ",
+                                  "name": "chevron-down",
+                                  "width": 14,
+                                  "height": 14,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-2"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "CE5Bb",
+                              "name": "Seed",
+                              "width": 90,
+                              "fill": "$surface",
+                              "cornerRadius": 10,
+                              "stroke": "$line",
+                              "strokeWidth": 1,
+                              "padding": [
+                                6,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "lFldZ",
+                                  "name": "Value",
+                                  "fill": "$text",
+                                  "content": "seed 42",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
                           "id": "Lyhlo",
                           "name": "Add rule",
                           "gap": 6,
@@ -14540,233 +14663,6 @@
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "vrLRL",
-                      "name": "Random Selection",
-                      "width": "fill_container",
-                      "stroke": "$line",
-                      "strokeWidth": {
-                        "top": 1
-                      },
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": [
-                        18,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "zdzcY",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "R4JDh",
-                              "layout": "vertical",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "ehnZM",
-                                  "name": "Random selection",
-                                  "fill": "$text",
-                                  "content": "Random selection",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 14,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "rPLVy",
-                                  "name": "Runs last, after all filters. The same seed picks the same clips every time.",
-                                  "fill": "$text-2",
-                                  "content": "Runs last, after all filters. The same seed picks the same clips every time.",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 12,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "id": "wec13",
-                              "type": "ref",
-                              "ref": "a5KI2",
-                              "name": "Toggle"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "o6j6H",
-                          "name": "Random Row",
-                          "width": "fill_container",
-                          "gap": 10,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "NfJPo",
-                              "name": "Pick",
-                              "fill": "$text-2",
-                              "content": "Pick",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "D2GJM",
-                              "name": "Input 30",
-                              "width": 80,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "iqcGE",
-                                  "name": "30",
-                                  "fill": "$text",
-                                  "content": "30",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "kEaIY",
-                              "name": "Select % of clips",
-                              "width": 140,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "gap": 8,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "justifyContent": "space_between",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "zvrzM",
-                                  "name": "% of clips",
-                                  "fill": "$text",
-                                  "content": "% of clips",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "hmZms",
-                                  "name": "chevron-down",
-                                  "width": 14,
-                                  "height": 14,
-                                  "icon": "chevron-down",
-                                  "library": "lucide",
-                                  "fill": "$text-2"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "W2FuWG",
-                              "name": "from",
-                              "fill": "$text-2",
-                              "content": "from",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "zZmJz",
-                              "name": "Select each folder",
-                              "width": 160,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "gap": 8,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "justifyContent": "space_between",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "p2wRfm",
-                                  "name": "each folder",
-                                  "fill": "$text",
-                                  "content": "each folder",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "H4whH",
-                                  "name": "chevron-down",
-                                  "width": 14,
-                                  "height": 14,
-                                  "icon": "chevron-down",
-                                  "library": "lucide",
-                                  "fill": "$text-2"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "vQ252",
-                              "name": "seed",
-                              "fill": "$text-2",
-                              "content": "seed",
-                              "fontFamily": "Inter",
-                              "fontSize": 13,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "ucLPK",
-                              "name": "Input 42",
-                              "width": 80,
-                              "fill": "$fill-2",
-                              "cornerRadius": 10,
-                              "padding": [
-                                9,
-                                12
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "u47F39",
-                                  "name": "42",
-                                  "fill": "$text",
-                                  "content": "42",
-                                  "fontFamily": "JetBrains Mono",
-                                  "fontSize": 13,
-                                  "fontWeight": "500"
-                                }
-                              ]
-                            }
-                          ]
                         }
                       ]
                     }

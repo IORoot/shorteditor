@@ -7,6 +7,7 @@ export const RULE_KINDS: { value: RuleKind; label: string }[] = [
   { value: 'date_range', label: 'Date range' },
   { value: 'weekday', label: 'Weekday' },
   { value: 'window', label: 'Weekday + time' },
+  { value: 'random', label: 'Random sample' },
 ];
 
 export const DATE_SOURCES: { value: DateSourceKind; label: string }[] = [
@@ -31,6 +32,7 @@ export function newRule(kind: RuleKind = 'name', exclude = false): FilterRule {
     caseSensitive: false,
     dateSource: 'modified',
     filenamePattern: '',
+    random: { ...defaultRandom },
   };
 }
 
@@ -38,7 +40,8 @@ export function newGroup(): FilterGroup {
   return { rules: [newRule()] };
 }
 
-export const defaultRandom: RandomSelection = { enabled: false, mode: 'percent', value: 30, scope: 'overall', seed: 42 };
+/** Matches the backend default for a random rule: 10% of the clips the rules before it matched. */
+export const defaultRandom: RandomSelection = { enabled: true, mode: 'percent', value: 10, scope: 'overall', seed: 42 };
 
 export function replaceAt<T>(items: T[], index: number, item: T): T[] {
   return items.map((existing, i) => (i === index ? item : existing));

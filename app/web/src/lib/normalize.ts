@@ -8,6 +8,7 @@ function normalizeRule(rule: FilterRule): FilterRule {
     caseSensitive: rule.caseSensitive ?? false,
     dateSource: rule.dateSource ?? 'modified',
     filenamePattern: rule.filenamePattern ?? '',
+    random: rule.random ?? { ...defaultRandom },
   };
 }
 
@@ -15,7 +16,6 @@ export function normalizeConfig(config: CollectorConfig): CollectorConfig {
   return {
     ...config,
     filters: (config.filters ?? []).map((group) => ({ ...group, rules: group.rules.map(normalizeRule) })),
-    randomSelection: config.randomSelection ?? { ...defaultRandom },
     dateSource: config.dateSource ?? 'modified',
     filenamePattern: config.filenamePattern ?? '',
   };

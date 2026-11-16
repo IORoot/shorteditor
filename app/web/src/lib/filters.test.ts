@@ -16,7 +16,7 @@ describe('newRule', () => {
   });
 
   it('offers every rule kind with a label', () => {
-    expect(RULE_KINDS.map((k) => k.value)).toEqual(['name', 'glob', 'regex', 'date_range', 'weekday', 'window']);
+    expect(RULE_KINDS.map((k) => k.value)).toEqual(['name', 'glob', 'regex', 'date_range', 'weekday', 'window', 'random']);
   });
 });
 
@@ -35,7 +35,7 @@ describe('group and list helpers', () => {
     expect(items).toEqual(['a', 'b', 'c']);
   });
 
-  it('has a disabled random selection by default', () => {
-    expect(defaultRandom.enabled).toBe(false);
+  it('samples 10% by default, overall and enabled', () => {
+    expect(defaultRandom).toMatchObject({ enabled: true, mode: 'percent', value: 10, scope: 'overall' });
   });
 });

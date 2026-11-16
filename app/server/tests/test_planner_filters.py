@@ -62,39 +62,37 @@ def test_no_match_gets_its_own_note(collectors, clock, dirs):
     assert plan.total_files == 0 and "No clips matched the filters." in plan.notes
 
 
-def test_random_selection_overall_is_seeded_and_lists_the_rest(collectors, clock, dirs):
+def sample(**overrides):
+    return FilterRule(kind="random", random=RandomSelection(**{"enabled": True, "mode": "count", "value": 3, "scope": "overall", "seed": 5, **overrides}))
+
+
+def test_random_rule_is_seeded_and_lists_the_rest(collectors, clock, dirs):
     source, _ = dirs
     for i in range(10):
         make_clip(source / f"c{i}.mp4", SAT)
-    random_selection = RandomSelection(enabled=True, mode="count", value=3, scope="overall", seed=5)
-    first = plan_for(collectors, clock, dirs, random_selection=random_selection)
-    second = plan_for(collectors, clock, dirs, random_selection=random_selection)
+    first = plan_for(collectors, clock, dirs, filters=[group(sample())])
+    second = plan_for(collectors, clock, dirs, filters=[group(sample())])
     assert len(names(first)) == 3 and names(first) == names(second)
     assert len(first.not_selected) == 7 and not first.unmatched
-    other = plan_for(collectors, clock, dirs, random_selection=random_selection.model_copy(update={"seed": 6}))
+    other = plan_for(collectors, clock, dirs, filters=[group(sample(seed=6))])
     assert names(other) != names(first)
 
 
-def test_random_selection_per_folder_picks_in_every_folder(collectors, clock, dirs):
+def test_random_rule_per_folder_picks_in_every_folder(collectors, clock, dirs):
     source, _ = dirs
     for i in range(6):
         make_clip(source / f"sat{i}.mp4", SAT)
         make_clip(source / f"mon{i}.mp4", MON)
-    random_selection = RandomSelection(enabled=True, mode="count", value=2, scope="folder", seed=1)
-    plan = plan_for(collectors, clock, dirs, random_selection=random_selection)
+    plan = plan_for(collectors, clock, dirs, filters=[group(sample(value=2, scope="folder", seed=1))])
     assert [g.count for g in plan.groups] == [2, 2] and len(plan.not_selected) == 8
 
 
-def test_random_selection_runs_after_the_filters(collectors, clock, dirs):
+def test_random_rule_samples_only_what_the_rules_before_it_matched(collectors, clock, dirs):
     source, _ = dirs
     for i in range(5):
         make_clip(source / f"keep{i}.mp4", SAT)
         make_clip(source / f"skip{i}.mp4", SAT)
-    plan = plan_for(
-        collectors, clock, dirs,
-        filters=[group(FilterRule(kind="name", value="keep"))],
-        random_selection=RandomSelection(enabled=True, mode="count", value=2, seed=3),
-    )
+    plan = plan_for(collectors, clock, dirs, filters=[group(FilterRule(kind="name", value="keep"), sample(value=2, seed=3))])
     assert len(names(plan)) == 2 and all(n.startswith("keep") for n in names(plan))
     assert len(plan.unmatched) == 5 and len(plan.not_selected) == 3
 

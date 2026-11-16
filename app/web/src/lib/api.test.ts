@@ -87,8 +87,8 @@ describe('ApiClient', () => {
   });
 
   it('fills in missing filter settings when an older backend lists collectors', async () => {
-    const { filters, randomSelection, dateSource, filenamePattern, ...oldConfig } = makeConfig();
-    void filters; void randomSelection; void dateSource; void filenamePattern;
+    const { filters, dateSource, filenamePattern, ...oldConfig } = makeConfig();
+    void filters; void dateSource; void filenamePattern;
     const old = { ...makeCollector(), config: oldConfig };
     const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse([old])));
     const [collector] = await client.listCollectors();

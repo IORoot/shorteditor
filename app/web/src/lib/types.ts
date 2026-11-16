@@ -4,7 +4,7 @@ export type RunStatus = 'running' | 'done' | 'skipped' | 'failed';
 export type RunTrigger = 'scheduled' | 'manual' | 'caught_up';
 export type SourceType = 'local' | 'ssh';
 export type GroupBy = 'none' | 'day' | 'week' | 'month';
-export type RuleKind = 'name' | 'glob' | 'regex' | 'date_range' | 'weekday' | 'window';
+export type RuleKind = 'name' | 'glob' | 'regex' | 'date_range' | 'weekday' | 'window' | 'random';
 export type DateSourceKind = 'modified' | 'created' | 'filename';
 export type Tone = 'ok' | 'warn' | 'bad' | 'info';
 
@@ -39,6 +39,7 @@ export interface FilterRule {
   caseSensitive: boolean;
   dateSource: DateSourceKind;
   filenamePattern: string;
+  random: RandomSelection;
 }
 
 export interface FilterGroup {
@@ -66,7 +67,6 @@ export interface CollectorConfig {
   transfer: Transfer;
   suffix: string;
   filters: FilterGroup[];
-  randomSelection: RandomSelection;
   dateSource: DateSourceKind;
   filenamePattern: string;
 }

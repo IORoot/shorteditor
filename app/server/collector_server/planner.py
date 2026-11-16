@@ -10,7 +10,6 @@ from .date_source import ClipTimes, DateRule, read_times
 from .domain import CollectorRecord
 from .filter_engine import ClipFacts, FilterEngine
 from .folder_lister import walk_files
-from .random_selector import RandomSelector
 from .token_template import ClipContext, FolderTemplate
 from .transfer_plan import PlannedFile, PlannedGroup, TransferPlan
 
@@ -44,7 +43,6 @@ class TransferPlanner:
         if FolderTemplate(collector.folder_template).uses_window():
             raise ValueError("{window:...} tokens aren't supported yet")
         FilterEngine(collector.filters)
-        RandomSelector(collector.random_selection)
         DateRule(collector.date_source, collector.filename_pattern)
 
     def plan(self, collector: CollectorRecord) -> TransferPlan:
@@ -65,21 +63,17 @@ class TransferPlanner:
         return plan
 
     def select(self, collector: CollectorRecord, clips: list[Clip], now: datetime) -> Selection:
-        """Filters, then random selection: the one place that decides which clips are collected."""
-        engine, selector = FilterEngine(collector.filters), RandomSelector(collector.random_selection)
-        matched = [c for c in clips if engine.accepts(ClipFacts(os.path.basename(c.path), c.times))]
-        unmatched = self._without(clips, matched)
-        left_out: list[Clip] = []
-        if selector.overall:
-            kept = selector.pick(matched, "overall")
-            left_out, matched = self._without(matched, kept), kept
-        buckets = self._bucket(matched, collector, now)
-        if selector.per_folder:
-            for relative, items in buckets.items():
-                kept = selector.pick(items, relative)
-                left_out += self._without(items, kept)
-                buckets[relative] = kept
-        return Selection(buckets, unmatched, left_out)
+        """Filters and random rules: the one place that decides which clips are collected."""
+        engine, template = FilterEngine(collector.filters), FolderTemplate(collector.folder_template)
+
+        def folder_of(clip: Clip) -> str:
+            return template.render(ClipContext(when=self._group_date(collector.group_by, clip.when, now), suffix=collector.suffix))
+
+        result = engine.select(clips, lambda clip: ClipFacts(os.path.basename(clip.path), clip.times), folder_of)
+        matched = [clips[i] for i in sorted(result.accepted)]
+        unmatched = [clip for i, clip in enumerate(clips) if i not in result.candidates]
+        left_out = [clip for i, clip in enumerate(clips) if i in result.candidates and i not in result.accepted]
+        return Selection(self._bucket(matched, collector, now), unmatched, left_out)
 
     def read_clips(self, collector: CollectorRecord, now: datetime) -> tuple[list[Clip], Counter]:
         folder_date = DateRule(collector.date_source, collector.filename_pattern)
@@ -122,11 +116,6 @@ class TransferPlanner:
             if group.renamed:
                 plan.notes.append(f"{relative} already exists, so new clips go to {folder}.")
         return plan
-
-    @staticmethod
-    def _without(clips: list[Clip], kept: list[Clip]) -> list[Clip]:
-        keep = {clip.path for clip in kept}
-        return [clip for clip in clips if clip.path not in keep]
 
     @staticmethod
     def _names(clips: list[Clip], source: str) -> list[str]:

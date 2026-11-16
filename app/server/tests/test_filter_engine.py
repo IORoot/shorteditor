@@ -4,7 +4,7 @@ import pytest
 
 from collector_server.date_source import ClipTimes
 from collector_server.filter_engine import ClipFacts, FilterEngine
-from collector_server.models import FilterGroup, FilterRule
+from collector_server.models import FilterGroup, FilterRule, RandomSelection
 from tests.conftest import LONDON
 
 SAT_0930 = datetime(2026, 11, 14, 9, 30, tzinfo=LONDON)
@@ -143,3 +143,36 @@ def test_unreadable_date_is_never_matched_so_an_exclude_rule_keeps_the_clip():
     assert not FilterEngine([FilterGroup(rules=[dated])]).accepts(facts)
     excluded = FilterRule(kind="weekday", days=[6], exclude=True, date_source="filename", filename_pattern="GX_YYYYMMDD")
     assert FilterEngine([FilterGroup(rules=[excluded])]).accepts(facts)
+
+
+def sample_rule(**overrides) -> FilterRule:
+    return FilterRule(kind="random", random=RandomSelection(**{"enabled": True, "mode": "count", "value": 1, "scope": "overall", "seed": 3, **overrides}))
+
+
+def select(groups, names, folders=None):
+    items = list(names)
+    facts = lambda name: ClipFacts(name, ClipTimes(modified=SAT_0930, created=SAT_0930))
+    folder = lambda name: (folders or {}).get(name, "all")
+    return FilterEngine([FilterGroup(rules=list(g)) for g in groups]).select(items, facts, folder)
+
+
+def test_random_rule_only_samples_its_own_groups_matches():
+    result = select([[rule("name", value="keep"), sample_rule(value=2)]], ["keep1", "keep2", "keep3", "skip1"])
+    assert len(result.accepted) == 2 and result.candidates == {0, 1, 2}
+
+
+def test_exclude_rules_apply_before_the_random_pick():
+    result = select([[rule("name", value="keep"), rule("name", value="keep2", exclude=True), sample_rule(value=10)]], ["keep1", "keep2", "keep3"])
+    assert result.accepted == {0, 2}
+
+
+def test_groups_are_ored_and_each_group_samples_separately():
+    groups = [[rule("name", value="a"), sample_rule(value=1)], [rule("name", value="b"), sample_rule(value=1)]]
+    result = select(groups, ["a1", "a2", "b1", "b2", "c1"])
+    assert len(result.accepted) == 2 and result.candidates == {0, 1, 2, 3}
+
+
+def test_folder_scope_picks_within_each_folder():
+    folders = {"a1": "day1", "a2": "day1", "b1": "day2", "b2": "day2"}
+    result = select([[sample_rule(value=1, scope="folder")]], ["a1", "a2", "b1", "b2"], folders)
+    assert len(result.accepted & {0, 1}) == 1 and len(result.accepted & {2, 3}) == 1
