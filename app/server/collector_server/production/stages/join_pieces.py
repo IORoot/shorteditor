@@ -22,8 +22,8 @@ _FIT = {
 
 
 class JoinSettings(CamelModel):
-    width: int = Field(1080, ge=16, multiple_of=2)
-    height: int = Field(1920, ge=16, multiple_of=2)
+    width: int = Field(1080, ge=16, le=7680, multiple_of=2)
+    height: int = Field(1920, ge=16, le=7680, multiple_of=2)
     fps: int = Field(30, ge=1, le=120)
     fit: Literal["crop", "blur"] = "crop"
 

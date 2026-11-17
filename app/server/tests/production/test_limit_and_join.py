@@ -193,3 +193,13 @@ def test_join_does_not_leave_the_final_file_depending_on_segments(tmp_path):
 def test_limit_has_a_sensible_minimum():
     with pytest.raises(ValueError):
         LIMIT.settings_model(max_seconds=0.5)
+
+
+@pytest.mark.parametrize("fields", [{"width": 100000}, {"height": 8194}, {"width": 2**31}])
+def test_join_rejects_unreasonable_canvas_sizes(fields):
+    with pytest.raises(ValueError):
+        JOIN.settings_model(**fields)
+
+
+def test_join_accepts_a_4k_canvas():
+    assert JOIN.settings_model(width=2160, height=3840).height == 3840

@@ -230,3 +230,13 @@ def test_equal_clips_keep_path_order_in_both_directions(tmp_path):
 def test_order_reports_a_clip_that_vanished(tmp_path):
     with pytest.raises(StageError, match="no longer there"):
         order(tmp_path, clips(("/gone/a.mp4", 1)))
+
+
+@pytest.mark.parametrize("extensions", [["mp4"] * 21, ["../x"], ["mp4\n"], [""], ["*"], ["a" * 20]])
+def test_scan_rejects_odd_extension_lists(extensions):
+    with pytest.raises(ValueError):
+        SCAN.settings_model(extensions=extensions)
+
+
+def test_scan_accepts_ordinary_extensions():
+    assert SCAN.settings_model(extensions=["mp4", ".MOV", "m4v", "mkv"]).extensions[1] == ".MOV"

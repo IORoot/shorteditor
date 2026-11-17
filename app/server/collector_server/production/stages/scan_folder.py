@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+from typing import Annotated
 
-from pydantic import Field
+from pydantic import Field, StringConstraints
 
 from collector_server.shared.camel_model import CamelModel
 
@@ -13,7 +14,7 @@ from ..stage_api import StageContext, StageError
 
 class ScanSettings(CamelModel):
     include_subfolders: bool = True
-    extensions: list[str] = ["mp4", "mov"]
+    extensions: list[Annotated[str, StringConstraints(pattern=r"^\.?[A-Za-z0-9]{1,10}$")]] = Field(["mp4", "mov"], max_length=20)
     min_length: float = Field(1.0, ge=0, allow_inf_nan=False)
 
 

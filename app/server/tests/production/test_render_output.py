@@ -80,3 +80,14 @@ def test_file_name_must_be_a_plain_mp4_name(name):
 def test_size_limit_must_be_positive():
     with pytest.raises(ValueError):
         STAGE.settings_model(max_size_mb=0)
+
+
+@pytest.mark.parametrize("fields", [{"max_size_mb": 1e300}, {"max_size_mb": 100001}, {"file_name": "-x.mp4"}, {"file_name": "x.mp4\n.mp4"}, {"file_name": "a" * 300 + ".mp4"}, {"file_name": "pipe:1.mp4"}])
+def test_render_settings_have_sane_limits(fields):
+    with pytest.raises(ValueError):
+        STAGE.settings_model(**fields)
+
+
+def test_render_accepts_ordinary_names_and_limits():
+    settings = STAGE.settings_model(file_name="Coach Saturdays - 7 Nov_final.mp4", max_size_mb=100000)
+    assert settings.file_name.endswith(".mp4")

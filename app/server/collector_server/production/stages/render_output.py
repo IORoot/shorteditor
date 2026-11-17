@@ -16,8 +16,8 @@ _SAFETY = 0.95  # leave room for the container and for the encoder missing its t
 class RenderSettings(CamelModel):
     fps: int = Field(30, ge=1, le=120)
     audio_kbps: int = Field(128, ge=32, le=512)
-    max_size_mb: float | None = Field(50.0, gt=0, allow_inf_nan=False)
-    file_name: str = Field("output.mp4", pattern=r"^[^/\\\x00]+\.mp4$")
+    max_size_mb: float | None = Field(50.0, gt=0, le=100_000, allow_inf_nan=False)
+    file_name: str = Field("output.mp4", pattern=r"^[A-Za-z0-9_][A-Za-z0-9 ._-]{0,100}\.mp4$")
 
 
 def target_video_bitrate(max_size_mb: float, duration: float, audio_kbps: int) -> int:
