@@ -11,9 +11,10 @@ export interface AppHeaderProps {
   tabs: HeaderTab[];
   activeTab: string;
   status: ReactNode;
+  onSelect?: (id: string) => void;
 }
 
-export function AppHeader({ tabs, activeTab, status }: AppHeaderProps) {
+export function AppHeader({ tabs, activeTab, status, onSelect }: AppHeaderProps) {
   return (
     <header className="sticky top-4 z-10 flex h-[52px] items-center justify-between rounded-full bg-surface pl-5 pr-2.5 shadow-[0_6px_28px_#0000001a]">
       <div className="flex w-64 items-center gap-2.5">
@@ -28,6 +29,7 @@ export function AppHeader({ tabs, activeTab, status }: AppHeaderProps) {
             key={tab.id}
             type="button"
             disabled={!tab.enabled}
+            onClick={() => onSelect?.(tab.id)}
             aria-current={tab.id === activeTab ? 'page' : undefined}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-small ${
               tab.id === activeTab ? 'bg-fill-2 font-semibold' : 'font-medium text-text-3 disabled:cursor-not-allowed'

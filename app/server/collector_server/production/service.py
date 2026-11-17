@@ -8,7 +8,7 @@ from collections.abc import Callable
 from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHandoff
 
 from .output_paths import OutputFolderError, check_root
-from .models import Batch, BatchCard, LogKind, Pass, StageInfo
+from .models import Batch, BatchCard, Defaults, LogKind, Pass, StageInfo, WorkerInfo
 from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
 from .stage_api import StageError, StageStep
@@ -36,10 +36,22 @@ _MAX_TEXT = 1000
 
 class ProductionService:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry,
-                 now: Callable[[], str], default_output_root: str, worker_ids: list[str]) -> None:
+                 now: Callable[[], str], default_output_root: str, worker_ids: list[str], worker_labels: dict[str, str] | None = None) -> None:
         self._batches, self._passes, self._logs, self._registry, self._now = batches, passes, logs, registry, now
-        self._default_root, self._workers = default_output_root, worker_ids
+        self._default_root, self._workers, self._labels = default_output_root, worker_ids, worker_labels or {}
         self._lock = threading.RLock()  # two clicks at once must not make two passes
+
+    def defaults(self) -> Defaults:
+        return Defaults(output_root=self._default_root, workers=[WorkerInfo(id=w, label=self._labels.get(w, w)) for w in self._workers])
+
+    def output_path(self, pass_id: int) -> str:
+        """The finished video of a pass, but only a real file inside that batch's output folder."""
+        found = self._need_pass(pass_id)
+        batch = self._need_batch(found.batch_id)
+        real = os.path.realpath(found.output.path) if found.output else None
+        if real and os.path.isfile(real) and real.startswith(os.path.realpath(batch.output_root) + os.sep):
+            return real  # the checked path is the one that gets served
+        raise NotFoundError("There is no video for this pass")
 
     def stages(self) -> list[StageInfo]:
         return [

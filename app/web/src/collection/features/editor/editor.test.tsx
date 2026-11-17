@@ -4,7 +4,6 @@ import { api } from '../../lib/api';
 import { makeCollector, makeConfig } from '../../test/fixtures';
 import { EditCollectorScreen } from './EditCollectorScreen';
 import { FolderField } from './FolderField';
-import { FolderPicker } from './FolderPicker';
 import { OutputSection } from './OutputSection';
 import { PreviewPanel } from './PreviewPanel';
 import { SourceSection } from './SourceSection';
@@ -114,56 +113,6 @@ describe('PreviewPanel', () => {
   });
 });
 
-describe('FolderPicker', () => {
-  const listing = {
-    path: '/Volumes/Edit',
-    parent: '/Volumes',
-    entries: [{ name: 'Collected', path: '/Volumes/Edit/Collected' }],
-  };
-
-  it('lists folders, navigates into one and chooses the current folder', async () => {
-    const browse = vi
-      .spyOn(api, 'browse')
-      .mockResolvedValueOnce(listing)
-      .mockResolvedValueOnce({ path: '/Volumes/Edit/Collected', parent: '/Volumes/Edit', entries: [] });
-    const onChoose = vi.fn();
-    render(<FolderPicker startPath="/Volumes/Edit" onChoose={onChoose} onClose={() => undefined} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Collected' }));
-    expect(await screen.findByText('No subfolders.')).toBeInTheDocument();
-    expect(browse).toHaveBeenLastCalledWith('/Volumes/Edit/Collected');
-    fireEvent.click(screen.getByRole('button', { name: 'Choose this folder' }));
-    expect(onChoose).toHaveBeenCalledWith('/Volumes/Edit/Collected');
-  });
-
-  it('can go up to the parent', async () => {
-    const browse = vi.spyOn(api, 'browse').mockResolvedValue(listing);
-    render(<FolderPicker startPath="/Volumes/Edit" onChoose={() => undefined} onClose={() => undefined} />);
-    fireEvent.click(await screen.findByRole('button', { name: '..' }));
-    await waitFor(() => expect(browse).toHaveBeenLastCalledWith('/Volumes'));
-  });
-
-  it('shows an error and keeps Choose disabled', async () => {
-    vi.spyOn(api, 'browse').mockRejectedValue(new Error('Folder not found'));
-    const onClose = vi.fn();
-    render(<FolderPicker startPath="/nope" onChoose={() => undefined} onClose={onClose} />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Folder not found');
-    expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('lets you climb out of a folder that does not exist yet', async () => {
-    const browse = vi
-      .spyOn(api, 'browse')
-      .mockRejectedValueOnce(new Error('Folder not found: /Volumes/Edit/Collected'))
-      .mockResolvedValueOnce({ path: '/Volumes/Edit', parent: '/Volumes', entries: [] });
-    render(<FolderPicker startPath="/Volumes/Edit/Collected" onChoose={() => undefined} onClose={() => undefined} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Go to parent folder' }));
-    expect(await screen.findByText('No subfolders.')).toBeInTheDocument();
-    expect(browse).toHaveBeenLastCalledWith('/Volumes/Edit');
-  });
-});
-
 describe('EditCollectorScreen', () => {
   const collector = makeCollector();
 
@@ -177,6 +126,15 @@ describe('EditCollectorScreen', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('Coach Saturdays');
     expect(screen.getByLabelText('Output folder')).toHaveValue('/Volumes/Edit/Collected');
     expect(await screen.findByText('2026-11-14_Sat_coach')).toBeInTheDocument();
+  });
+
+  it('opens the shared folder picker for the output folder, listing through the collection api', async () => {
+    mockPreview();
+    const browse = vi.spyOn(api, 'browse').mockResolvedValue({ path: '/Volumes/Edit/Collected', parent: '/Volumes/Edit', entries: [] });
+    render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Browse for output folder' }));
+    expect(await screen.findByRole('dialog', { name: 'Choose a folder' })).toBeInTheDocument();
+    expect(browse).toHaveBeenCalledWith('/Volumes/Edit/Collected');
   });
 
   it('saves the edited config and reports success', async () => {

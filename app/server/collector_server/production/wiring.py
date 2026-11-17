@@ -41,6 +41,7 @@ def build_production(db: Database, default_output_root: str) -> Production:
     batches, passes, logs = BatchRepository(db), PassRepository(db), LogRepository(db)
     registry = build_registry()
     workers = {"local": LocalWorker("local")}
+    labels = {"local": "This computer"}
     queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, registry, _now), workers, _now)
-    service = ProductionService(batches, passes, logs, registry, _now, default_output_root, list(workers))
+    service = ProductionService(batches, passes, logs, registry, _now, default_output_root, list(workers), labels)
     return Production(build_router(service), queue)

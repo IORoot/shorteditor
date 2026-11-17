@@ -98,17 +98,6 @@ export interface FolderPreview {
   fullPath: string;
 }
 
-export interface BrowseEntry {
-  name: string;
-  path: string;
-}
-
-export interface BrowseResult {
-  path: string;
-  parent: string | null;
-  entries: BrowseEntry[];
-}
-
 export interface Collector {
   id: number;
   name: string;

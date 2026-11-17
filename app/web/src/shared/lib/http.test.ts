@@ -19,3 +19,18 @@ describe('HttpClient', () => {
     expect(error.message).toBe('in progress');
   });
 });
+
+describe('HttpClient error messages', () => {
+  const failing = (status: number, body: unknown): TestClient => new TestClient(async () => new Response(JSON.stringify(body), { status }));
+
+  it('turns a request-shape error (detail is a list) into one readable sentence', async () => {
+    const error = await failing(422, { detail: [{ loc: ['body', 'name'], msg: 'Field required' }] }).del('/x').catch((e) => e);
+    expect(error.message).toBe('The request was not accepted: Field required');
+  });
+
+  it('falls back to the generic message for a list without messages, and for a non-JSON body', async () => {
+    expect((await failing(422, { detail: [] }).del('/x').catch((e) => e)).message).toBe('Request to /x failed with 422');
+    const html = new TestClient(async () => new Response('<h1>oops</h1>', { status: 500 }));
+    expect((await html.del('/x').catch((e) => e)).message).toBe('Request to /x failed with 500');
+  });
+});
