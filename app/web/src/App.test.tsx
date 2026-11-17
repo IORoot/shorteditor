@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { makeCollector } from './test/fixtures';
+import { makeCollector } from './collection/test/fixtures';
 
 const collector = makeCollector();
 

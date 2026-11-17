@@ -5,7 +5,7 @@ import struct
 from datetime import datetime, timezone
 from pathlib import Path
 
-from collector_server.models import CollectorConfig
+from collector_server.collection.models import CollectorConfig
 
 
 def make_clip(path: Path, when: datetime, content: bytes = b"clip") -> Path:
