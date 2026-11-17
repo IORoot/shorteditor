@@ -21,6 +21,13 @@
 - Worker ids are strings; the built-in one is `"local"`. Batch `run_on` is `"any"` or a worker id.
 - Never kill the user's uvicorn on port 8000; tell the user to restart it after server changes.
 
+## Build Workflow (chosen by the user)
+
+- **Builder:** one native agent on Sonnet 5.5 builds each task test-first (`superpowers:test-driven-development`): write the test, watch it fail for the right reason, write minimal code, watch it pass, run the whole suite, then commit. Work happens on the branch `production-core`.
+- **Per-task review:** before each commit a subagent runs `ponytail:ponytail-review` on the task's diff. It is told the plan's rules (small single-purpose files, a test for every behaviour). Only "must fix" findings block the commit; "should fix" and "nice to have" go on a list shown to the user at the end.
+- **QA gates:** after tasks 3, 6, 8, 10 and 11 a separate subagent does QA testing, a performance check and a security check (argv lists not shells, file-name and path handling, API inputs), and reports findings. The builder fixes confirmed problems test-first.
+- **Final:** a whole-branch review on the most capable model before merging to master. Nothing is pushed.
+
 ## Review Focus
 
 - A clip with no audio stream is joined with other clips (silence is generated; no crash).
