@@ -19,7 +19,15 @@
 - API JSON is camelCase (use `CamelModel`).
 - Pass statuses are exactly: `queued`, `running`, `review`, `blocked`, `failed`, `approved`.
 - Worker ids are strings; the built-in one is `"local"`. Batch `run_on` is `"any"` or a worker id.
+- Paths given to `FfmpegRunner.run` must be absolute (a relative name starting with `-` would be read as an option); the service must reject a non-absolute input folder or output root. Probe methods already add the `file:` prefix.
 - Never kill the user's uvicorn on port 8000; tell the user to restart it after server changes.
+
+## Build Workflow (chosen by the user)
+
+- **Builder:** one native agent on Sonnet 5.5 builds each task test-first (`superpowers:test-driven-development`): write the test, watch it fail for the right reason, write minimal code, watch it pass, run the whole suite, then commit. Work happens on the branch `production-core`.
+- **Per-task review:** before each commit a subagent runs `ponytail:ponytail-review` on the task's diff. It is told the plan's rules (small single-purpose files, a test for every behaviour). Only "must fix" findings block the commit; "should fix" and "nice to have" go on a list shown to the user at the end.
+- **QA gates:** after tasks 3, 6, 8, 10 and 11 a separate subagent does QA testing, a performance check and a security check (argv lists not shells, file-name and path handling, API inputs), and reports findings. The builder fixes confirmed problems test-first.
+- **Final:** a whole-branch review on the most capable model before merging to master. Nothing is pushed.
 
 ## Review Focus
 
@@ -145,7 +153,7 @@ Tests mirror these under `app/server/tests/production/`. Modify `shared/handoff.
 
 - [ ] **Step 1: Write failing tests:** limit (no FFmpeg needed): `test_within_limit_is_unchanged`, `test_over_limit_blocks_with_choices` (the `BlockedError.choices == ["drop_shortest","keep_first"]`, reason mentions the seconds), `test_drop_shortest_keeps_order_and_fits`, `test_keep_first_trims_last_piece_to_fit`. Join (`@requires_ffmpeg`): `test_join_makes_one_video_of_summed_length` (two 2 s clips → duration ≈ 4 s, size > 0, canvas 1080×1920 via ffprobe), `test_join_clip_without_audio_has_audio_track` (one clip silent, one with audio → output has audio and duration ≈ sum), `test_join_mixed_shapes` (320×180 plus 180×320), `test_join_trimmed_piece_uses_start_and_end` (a 4 s clip, `start=1,end=3` → ≈ 2 s), `test_join_blur_fit_runs`.
 - [ ] **Step 2: Run** the file. Expected: FAIL.
-- [ ] **Step 3: Implement** both stages. The filter graph is the one algorithm the signature does not decide: build per-piece chains `[0:v]trim=start:end,setpts=PTS-STARTPTS,<fit>,fps=<fps>,setsar=1[v0]` and `[0:a]atrim=…,asetpts=…,aresample=48000[a0]` (or `anullsrc` trimmed to the piece length), then `concat=n=<k>:v=1:a=1`. Use one `-i` per piece (the same clip may repeat).
+- [ ] **Step 3: Implement** both stages. Built as decided during the work: Join cuts each piece to its own PCM-audio `.mkv` segment (fit to the canvas, sound padded to the piece length), then joins them with the concat demuxer, copying video and encoding the sound to AAC once. One big filter graph was rejected (hundreds of open files), and AAC-per-segment was rejected (audio gains ~27 ms per join and drifts).
 - [ ] **Step 4: Run** the file. Expected: PASS.
 - [ ] **Step 5: Commit** `"Add the Limit length and Join in order stages"`.
 

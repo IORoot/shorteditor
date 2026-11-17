@@ -1,0 +1,92 @@
+import pytest
+
+from collector_server.production.models import Batch
+from collector_server.production.output_paths import folder_name, output_paths
+
+
+def batch(name, id=7):
+    return Batch(id=id, name=name, input_folder="/in", steps=[], output_root="/out", created_at="x")
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [("Coach Saturdays", "Coach-Saturdays-7"), ("../../evil", "evil-7"), ("", "batch-7"), ("..", "batch-7"), ("日本語", "batch-7"), ("x" * 90, "x" * 40 + "-7")],
+)
+def test_folder_name_is_safe_and_ends_with_the_id(name, expected):
+    assert folder_name(batch(name)) == expected
+
+
+def test_output_and_work_folders():
+    out, work = output_paths(batch("Coach Saturdays"), pass_id=12, number=3)
+    assert out == "/out/Coach-Saturdays-7/pass-3"
+    assert work == "/out/.work/12"
+
+
+from collector_server.production.output_paths import MARKER, OutputFolderError, check_root, claim_root, remove_inside
+
+
+def test_a_new_folder_is_claimed_and_marked(tmp_path):
+    claim_root(str(tmp_path / "out"))
+    assert (tmp_path / "out" / MARKER).exists()
+    claim_root(str(tmp_path / "out"))  # claiming again is fine
+
+
+def test_an_empty_existing_folder_is_usable(tmp_path):
+    (tmp_path / "empty").mkdir()
+    claim_root(str(tmp_path / "empty"))
+
+
+def _foreign(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "precious.txt").write_text("x")
+    return str(tmp_path / "docs")
+
+
+def _file(tmp_path):
+    (tmp_path / "f").write_text("x")
+    return str(tmp_path / "f")
+
+
+@pytest.mark.parametrize(
+    "make",
+    [_foreign, _file, lambda tmp: str(tmp / "no" / "deeper"), lambda tmp: "out", lambda tmp: "/"],
+    ids=["foreign_files", "a_file", "missing_parent", "relative", "top_of_disk"],
+)
+def test_unsafe_folders_are_refused(tmp_path, make):
+    with pytest.raises(OutputFolderError):
+        check_root(make(tmp_path))
+
+
+def test_a_folder_we_made_stays_usable_even_when_full(tmp_path):
+    claim_root(str(tmp_path / "out"))
+    (tmp_path / "out" / "x-1").mkdir()
+    check_root(str(tmp_path / "out"))
+
+
+def test_remove_inside_deletes_only_inside_a_marked_root(tmp_path):
+    root = tmp_path / "out"
+    claim_root(str(root))
+    mine = root / "x-1" / "pass-1"
+    mine.mkdir(parents=True)
+    (mine / "a.mp4").write_text("x")
+    remove_inside(str(root), str(mine))
+    assert not mine.exists()
+
+
+def test_remove_inside_refuses_unmarked_roots_outsiders_and_links(tmp_path):
+    unmarked = tmp_path / "plain"
+    (unmarked / "x-1").mkdir(parents=True)
+    remove_inside(str(unmarked), str(unmarked / "x-1"))
+    assert (unmarked / "x-1").exists()
+
+    root, outside = tmp_path / "out", tmp_path / "victim"
+    claim_root(str(root))
+    outside.mkdir()
+    (outside / "keep.txt").write_text("x")
+    remove_inside(str(root), str(outside))
+    assert (outside / "keep.txt").exists()
+    (root / "link").symlink_to(outside)
+    remove_inside(str(root), str(root / "link"))
+    assert (outside / "keep.txt").exists()
+    remove_inside(str(root), str(root / ".." / "victim"))
+    assert (outside / "keep.txt").exists()

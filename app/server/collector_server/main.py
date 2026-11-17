@@ -23,12 +23,15 @@ from .collection.seed import seed_demo
 from .collection.service import CollectorService
 from .collection.source_checker import LocalSourceChecker
 from .collection.undo import UndoService
+from .production.wiring import build_production
 
 TICK_SECONDS = 30
+PRODUCTION_TICK_SECONDS = 2
 
 
 def create_default_app() -> FastAPI:
-    db = Database(os.environ.get("SHORT_EDITOR_DB", "short_editor.db"))
+    db_path = os.environ.get("SHORT_EDITOR_DB", "short_editor.db")
+    db = Database(db_path)
     clock = SystemClock()
     collectors = CollectorRepository(db)
     runs = RunRepository(db)
@@ -42,20 +45,30 @@ def create_default_app() -> FastAPI:
     service = CollectorService(collectors, runs, clock)
     run_service = RunService(collectors, planner, scheduler, UndoService(moves, runs, files))
     seed_demo(collectors, service.save_schedule)
+    output_root = os.environ.get("SHORT_EDITOR_OUTPUT") or os.path.join(os.path.dirname(os.path.abspath(db_path)), "production_output")
+    production = build_production(db, output_root)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        production.queue.recover()  # nothing can still be running now; one server process only
         async def loop() -> None:
             while True:
                 await asyncio.to_thread(scheduler.tick)
                 await asyncio.sleep(TICK_SECONDS)
 
-        task = asyncio.create_task(loop())
+        async def production_loop() -> None:
+            while True:
+                await asyncio.to_thread(production.tick)
+                await asyncio.sleep(PRODUCTION_TICK_SECONDS)
+
+        tasks = [asyncio.create_task(loop()), asyncio.create_task(production_loop())]
         yield
-        task.cancel()
+        for task in tasks:
+            task.cancel()
 
     app = FastAPI(title="Short Editor", lifespan=lifespan)
     app.include_router(build_router(service, FolderBrowser(), run_service))
+    app.include_router(production.router)
     return app
 
 

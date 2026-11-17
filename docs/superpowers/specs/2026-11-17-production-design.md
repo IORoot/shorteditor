@@ -68,3 +68,14 @@ First-release library: Scan folder, Order clips, Detect action (AI), Review by h
 
 - Table and column names, file layout inside `production/`, and test fixtures.
 - Worker scripts and exact FFmpeg flags, provided the output matches the settings.
+
+## Notes carried into the next plans
+
+From the server-core reviews and QA gates (plan 1), for the web board and later plans:
+
+- Error bodies come in two shapes: service errors are `{"detail": "text"}` (404, 409, 422); request-shape errors from FastAPI are `{"detail": [{...}]}` (422). The web client must read both.
+- `GET /api/production/batches` returns one card per batch with `batchId`, `passId`, `runOn`, `startedAt`, status, stage title/position/count and `queuePosition` (0 is next). Approve, resolve and run-again act on the newest pass only.
+- Still missing for the board: cancel or delete a batch, a worker list for "Run on", the default output folder for the new-batch form, and playback of the review video (plan 4).
+- The output folder is marked with `.short-editor-output` and the app only deletes inside a marked folder. A new output folder must be new, empty, or already marked, and must not overlap the input folder.
+- Production supports one server process. Start-up marks passes left Running as Failed.
+- Ideas for later: keep the end of a long FFmpeg log (ring buffer), clear stale `.work` folders, a file-count aware progress line during Scan, a configured allowlist of input and output roots if the app is ever shared.
