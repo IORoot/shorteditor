@@ -267,3 +267,83 @@ def test_cards_carry_what_the_board_needs_to_act(parts):
     batch = create(service, inbox, run_on="local")
     [card] = service.cards()
     assert card.pass_id == passes.for_batch(batch.id)[0].id and card.run_on == "local" and card.batch_id == batch.id
+
+
+def test_defaults_report_the_output_root_and_workers(parts):
+    service, _, _, _, tmp = parts
+    defaults = service.defaults()
+    assert defaults.output_root == str(tmp / "out")
+    assert [(w.id, w.label) for w in defaults.workers] == [("local", "local"), ("studio", "studio")]
+
+
+def finished(service, passes, inbox, tmp, name="output.mp4", data=b"0123456789"):
+    batch = create(service, inbox, output_root=str(tmp / "results"))
+    made = passes.for_batch(batch.id)[0]
+    folder = tmp / "results" / "b-1" / "pass-1"
+    folder.mkdir(parents=True)
+    (folder / name).write_bytes(data)
+    passes.update(made.id, status="review", output=VideoData(path=str(folder / name), duration=1, size_bytes=len(data)))
+    return made
+
+
+def test_output_path_of_a_finished_pass(parts):
+    service, passes, _, inbox, tmp = parts
+    made = finished(service, passes, inbox, tmp)
+    assert service.output_path(made.id) == str(tmp / "results" / "b-1" / "pass-1" / "output.mp4")
+
+
+def test_output_path_refuses_a_pass_without_output(parts):
+    service, passes, _, inbox, _ = parts
+    made = passes.for_batch(create(service, inbox).id)[0]
+    with pytest.raises(NotFoundError, match="no video"):
+        service.output_path(made.id)
+
+
+def test_output_path_refuses_a_missing_file(parts):
+    service, passes, _, inbox, tmp = parts
+    made = finished(service, passes, inbox, tmp)
+    os.remove(tmp / "results" / "b-1" / "pass-1" / "output.mp4")
+    with pytest.raises(NotFoundError, match="no video"):
+        service.output_path(made.id)
+
+
+def test_output_path_refuses_a_file_outside_the_output_root(parts):
+    service, passes, _, inbox, tmp = parts
+    made = passes.for_batch(create(service, inbox).id)[0]
+    secret = tmp / "secret.mp4"
+    secret.write_bytes(b"x")
+    passes.update(made.id, status="review", output=VideoData(path=str(secret), duration=1, size_bytes=1))
+    with pytest.raises(NotFoundError, match="no video"):
+        service.output_path(made.id)
+
+
+def test_output_path_refuses_a_link_inside_the_root_that_points_outside(parts):
+    service, passes, _, inbox, tmp = parts
+    made = finished(service, passes, inbox, tmp)
+    secret = tmp / "secret.mp4"
+    secret.write_bytes(b"x")
+    link = tmp / "results" / "b-1" / "pass-1" / "link.mp4"
+    os.symlink(secret, link)
+    passes.update(made.id, output=VideoData(path=str(link), duration=1, size_bytes=1))
+    with pytest.raises(NotFoundError, match="no video"):
+        service.output_path(made.id)
+
+
+def test_output_path_refuses_a_sibling_folder_with_the_same_prefix(parts):
+    service, passes, _, inbox, tmp = parts
+    made = finished(service, passes, inbox, tmp)
+    sibling = tmp / "results2"
+    sibling.mkdir()
+    (sibling / "x.mp4").write_bytes(b"x")
+    passes.update(made.id, output=VideoData(path=str(sibling / "x.mp4"), duration=1, size_bytes=1))
+    with pytest.raises(NotFoundError, match="no video"):
+        service.output_path(made.id)
+
+
+def test_output_path_returns_the_checked_real_path(parts):
+    service, passes, _, inbox, tmp = parts
+    made = finished(service, passes, inbox, tmp)
+    real = tmp / "results" / "b-1" / "pass-1" / "output.mp4"
+    detour = tmp / "results" / "b-1" / "pass-1" / ".." / "pass-1" / "output.mp4"
+    passes.update(made.id, output=VideoData(path=str(detour), duration=1, size_bytes=1))
+    assert service.output_path(made.id) == os.path.realpath(real)

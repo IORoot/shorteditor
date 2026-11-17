@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path
+from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
+from .models import Batch, Defaults, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
 from .service import InvalidInputError, NotFoundError, ProductionService, StateError
 
 
@@ -25,6 +26,14 @@ def build_router(service: ProductionService) -> APIRouter:
             raise HTTPException(status_code=409, detail=str(error)) from error
         except InvalidInputError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @router.get("/defaults", response_model=Defaults)
+    def defaults() -> Defaults:
+        return service.defaults()
+
+    @router.get("/passes/{pass_id}/output")
+    def output(pass_id: Id) -> FileResponse:
+        return FileResponse(guarded(lambda: service.output_path(pass_id)), media_type="video/mp4")
 
     @router.get("/stages", response_model=list[StageInfo])
     def stages() -> list[StageInfo]:

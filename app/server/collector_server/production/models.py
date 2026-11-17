@@ -97,3 +97,13 @@ class BatchDetail(CamelModel):
 
 class LogLines(CamelModel):
     lines: list[str]
+
+
+class WorkerInfo(CamelModel):
+    id: str
+    label: str
+
+
+class Defaults(CamelModel):
+    output_root: str
+    workers: list[WorkerInfo]

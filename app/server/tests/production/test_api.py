@@ -137,3 +137,26 @@ def test_a_bug_in_the_service_is_not_reported_as_bad_input(db, tmp_path):
 def test_too_many_steps_in_the_request_is_422(api):
     response = api.create(steps=JOIN + [{"key": "limit_length"}] * 40)
     assert response.status_code == 422
+
+
+def test_defaults_route(api):
+    body = api.client.get("/api/production/defaults").json()
+    assert body["outputRoot"].endswith("out") and body["workers"] == [{"id": "local", "label": "local"}]
+
+
+def test_output_route_streams_the_file_with_range(api, tmp_path):
+    api.create(outputRoot=str(tmp_path / "results"))
+    folder = tmp_path / "results" / "b-1" / "pass-1"
+    folder.mkdir(parents=True)
+    (folder / "output.mp4").write_bytes(b"0123456789")
+    api.repo_passes.update(1, status="review", output=VideoData(path=str(folder / "output.mp4"), duration=1, size_bytes=10))
+    whole = api.client.get("/api/production/passes/1/output")
+    assert whole.status_code == 200 and whole.content == b"0123456789" and whole.headers["content-type"] == "video/mp4"
+    part = api.client.get("/api/production/passes/1/output", headers={"Range": "bytes=0-3"})
+    assert part.status_code == 206 and part.content == b"0123"
+
+
+def test_output_route_404_without_video(api):
+    api.create()
+    assert api.client.get("/api/production/passes/1/output").status_code == 404
+    assert api.client.get("/api/production/passes/99/output").status_code == 404
