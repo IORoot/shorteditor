@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, Defaults, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
+from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
 from .service import InvalidInputError, NotFoundError, ProductionService, StateError
 
 
@@ -50,6 +50,14 @@ def build_router(service: ProductionService) -> APIRouter:
     @router.post("/batches", response_model=Batch, status_code=201)
     def create(request: BatchCreate) -> Batch:
         return guarded(lambda: service.create_batch(request.name, request.input_folder, request.steps, request.run_on, request.output_root))
+
+    @router.post("/folders/preview", response_model=FolderPreview)
+    def preview_folders(request: FolderPreviewRequest) -> FolderPreview:
+        return guarded(lambda: service.preview_folders(request.parent_folder, request.pattern, request.output_root))
+
+    @router.post("/batches/bulk", response_model=BulkResult, status_code=201)
+    def create_bulk(request: BulkCreate) -> BulkResult:
+        return guarded(lambda: service.create_batches(request))
 
     @router.get("/batches/{batch_id}", response_model=BatchDetail)
     def detail(batch_id: Id) -> BatchDetail:

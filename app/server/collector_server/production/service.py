@@ -7,8 +7,11 @@ from collections.abc import Callable
 
 from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHandoff
 
+from .errors import InvalidInputError
 from .output_paths import OutputFolderError, check_root
-from .models import Batch, BatchCard, Defaults, LogKind, Pass, StageInfo, WorkerInfo
+from .folder_scan import Candidate, scan_parent
+from .models import Batch, BatchCard, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PreviewItem, StageInfo, WorkerInfo
+from .pattern import check_template, compile_pattern, render_name
 from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
 from .stage_api import StageError, StageStep
@@ -25,13 +28,10 @@ class StateError(Exception):
     """The action does not fit the pass's current status."""
 
 
-class InvalidInputError(ValueError):
-    """The request cannot be accepted, in words the user can act on."""
-
-
 _MAX_STEPS = 30
 _MAX_SETTINGS_JSON = 4000
 _MAX_TEXT = 1000
+MAX_BULK = 200
 
 
 class ProductionService:
@@ -81,29 +81,102 @@ class ProductionService:
         name = name.strip()
         if not name or len(name) > 120 or any(ord(c) < 32 for c in name):
             raise InvalidInputError("The batch needs a name of up to 120 characters")
-        root = output_root or self._default_root
-        if max(len(input_folder), len(root), len(run_on)) > _MAX_TEXT:
-            raise InvalidInputError("A path or worker name is too long")
+        root = self._check_settings(steps, run_on, output_root, input_folder)
         if not os.path.isabs(input_folder):
             raise InvalidInputError("The input folder must be an absolute path")
         if not os.path.isdir(input_folder):
             raise InvalidInputError(f"The folder {input_folder} does not exist")
+        self._check_apart(input_folder, root)
+        with self._lock:
+            batch = self._batches.create(name, input_folder, steps, run_on, root, self._now())
+            try:
+                self._passes.create(batch.id, self._now())
+            except Exception:
+                self._batches.delete(batch.id)  # never leave a batch that has no pass
+                raise
+        return batch
+
+    def _check_settings(self, steps: list[StageStep], run_on: str, output_root: str | None, *paths: str) -> str:
+        """The checks every new batch needs, before anything is created. Returns the output folder to use."""
+        root = output_root or self._default_root
+        if max(len(root), len(run_on), *(len(p) for p in paths)) > _MAX_TEXT:
+            raise InvalidInputError("A path or worker name is too long")
         try:
             check_root(root)
         except OutputFolderError as error:
             raise InvalidInputError(str(error)) from error
+        if run_on != "any" and run_on not in self._workers:
+            raise InvalidInputError(f"There is no worker called {run_on}")
+        self._require_valid(steps)
+        return root
+
+    @staticmethod
+    def _check_apart(input_folder: str, root: str) -> None:
         source, target = os.path.realpath(input_folder), os.path.realpath(root)
         if source == os.sep:
             raise InvalidInputError("The input folder cannot be the top of the disk")
         if source == target or target.startswith(source + os.sep) or source.startswith(target + os.sep):
             raise InvalidInputError("The output folder and the input folder must not overlap")
-        if run_on != "any" and run_on not in self._workers:
-            raise InvalidInputError(f"There is no worker called {run_on}")
-        self._require_valid(steps)
-        with self._lock:
-            batch = self._batches.create(name, input_folder, steps, run_on, root, self._now())
-            self._passes.create(batch.id, self._now())
-        return batch
+
+    def preview_folders(self, parent: str, pattern: str, output_root: str | None = None) -> FolderPreview:
+        self._check_parent(parent)
+        compiled = compile_pattern(pattern)
+        if output_root:
+            self._check_apart(parent, output_root)
+        scan = scan_parent(parent, compiled)
+        taken = self._taken_folders()
+        return FolderPreview(matches=[self._item(c, taken) for c in scan.matches], not_matching=scan.not_matching, truncated=scan.truncated)
+
+    @staticmethod
+    def _check_parent(parent: str) -> None:
+        if not os.path.isabs(parent):
+            raise InvalidInputError("The parent folder must be an absolute path")
+
+    def create_batches(self, request: BulkCreate) -> BulkResult:
+        self._check_parent(request.parent_folder)
+        compiled = compile_pattern(request.pattern)
+        check_template(request.name_template, compiled)
+        root = self._check_settings(request.steps, request.run_on, request.output_root, request.parent_folder)
+        self._check_apart(request.parent_folder, root)
+        scan = scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
+        with self._lock:  # the decision is made inside it, so two requests never create the same folder twice
+            taken = self._taken_folders()
+            create: list[Candidate] = []
+            skipped: list[PreviewItem] = []
+            for candidate in scan.matches:
+                item = self._item(candidate, taken)
+                if item.status == "will_create" or (item.status == "already_batched" and candidate.name in request.include):
+                    create.append(candidate)
+                else:
+                    skipped.append(item)
+            if not create:
+                raise InvalidInputError("Nothing to create: every matching folder is already batched, has no videos or could not be read")
+            if len(create) > MAX_BULK:
+                raise InvalidInputError(f"That would create {len(create)} batches. The most at once is {MAX_BULK}; make the pattern narrower")
+            created: list[Batch] = []
+            try:
+                for candidate in create:
+                    name = render_name(request.name_template, candidate.match, candidate.name)
+                    created.append(self.create_batch(name, candidate.path, request.steps, request.run_on, request.output_root))
+            except Exception as error:
+                raise InvalidInputError(
+                    f"Created {len(created)} of {len(create)} batches, then stopped: {error}. "
+                    "Run it again: folders that already have a batch are skipped"
+                ) from error
+        return BulkResult(created=created, skipped=skipped)
+
+    def _taken_folders(self) -> set[str]:
+        return {os.path.realpath(batch.input_folder) for batch in self._batches.list()}
+
+    @staticmethod
+    def _item(candidate: Candidate, taken: set[str]) -> PreviewItem:
+        if candidate.incomplete:
+            status = "unreadable"
+        elif candidate.clip_count == 0:
+            status = "no_videos"
+        else:
+            status = "already_batched" if os.path.realpath(candidate.path) in taken else "will_create"
+        return PreviewItem(name=candidate.name, path=candidate.path, clip_count=candidate.clip_count, status=status)
 
     def run_again(self, batch_id: int, steps: list[StageStep] | None) -> Pass:
         with self._lock:

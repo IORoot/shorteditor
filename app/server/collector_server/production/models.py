@@ -107,3 +107,40 @@ class WorkerInfo(CamelModel):
 class Defaults(CamelModel):
     output_root: str
     workers: list[WorkerInfo]
+
+
+PreviewStatus = Literal["will_create", "already_batched", "no_videos", "unreadable"]
+
+
+class FolderPreviewRequest(CamelModel):
+    parent_folder: str
+    pattern: str
+    output_root: str | None = None  # when given, a folder that would overlap the parent is refused up front
+
+
+class PreviewItem(CamelModel):
+    name: str
+    path: str
+    clip_count: int
+    status: PreviewStatus
+
+
+class FolderPreview(CamelModel):
+    matches: list[PreviewItem]
+    not_matching: int
+    truncated: bool = False
+
+
+class BulkCreate(CamelModel):
+    parent_folder: str
+    pattern: str
+    name_template: str = "{name}"
+    steps: list[StageStep]
+    run_on: str = "any"
+    output_root: str | None = None
+    include: list[str] = []  # folder names to batch again although they already have a batch
+
+
+class BulkResult(CamelModel):
+    created: list[Batch]
+    skipped: list[PreviewItem]

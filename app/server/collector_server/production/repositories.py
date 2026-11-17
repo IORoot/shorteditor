@@ -31,6 +31,9 @@ class BatchRepository:
         rows = self._db.query("SELECT * FROM production_batches WHERE id = ?", (batch_id,))
         return self._batch(rows[0]) if rows else None
 
+    def delete(self, batch_id: int) -> None:
+        self._db.execute("DELETE FROM production_batches WHERE id = ?", (batch_id,))
+
     def update_steps(self, batch_id: int, steps: list[StageStep]) -> None:
         self._db.execute("UPDATE production_batches SET steps = ? WHERE id = ?", (json.dumps([step.model_dump() for step in steps]), batch_id))
 
