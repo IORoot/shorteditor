@@ -19,6 +19,7 @@
 - API JSON is camelCase (use `CamelModel`).
 - Pass statuses are exactly: `queued`, `running`, `review`, `blocked`, `failed`, `approved`.
 - Worker ids are strings; the built-in one is `"local"`. Batch `run_on` is `"any"` or a worker id.
+- Paths given to `FfmpegRunner.run` must be absolute (a relative name starting with `-` would be read as an option); the service must reject a non-absolute input folder or output root. Probe methods already add the `file:` prefix.
 - Never kill the user's uvicorn on port 8000; tell the user to restart it after server changes.
 
 ## Build Workflow (chosen by the user)
