@@ -44,8 +44,13 @@ def check_root(root: str) -> None:
             raise OutputFolderError(f"{root} is not a folder")
         if os.listdir(real) and not os.path.exists(os.path.join(real, MARKER)):
             raise OutputFolderError(f"{root} already holds other files. Pick a new or empty folder, or one this app made")
-    elif not os.path.isdir(os.path.dirname(real)):
-        raise OutputFolderError(f"The folder {os.path.dirname(root)} does not exist")
+    else:
+        # New folders are fine at any depth: the nearest folder that exists must be a real folder.
+        above = os.path.dirname(real)
+        while not os.path.lexists(above) and above != os.path.dirname(above):
+            above = os.path.dirname(above)
+        if not os.path.isdir(above):
+            raise OutputFolderError(f"{above} is not a folder, so {root} cannot be created inside it")
 
 
 def claim_root(root: str) -> None:

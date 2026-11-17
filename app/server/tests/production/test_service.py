@@ -256,10 +256,12 @@ def test_long_text_fields_are_refused(parts, field):
 
 def test_output_folder_rules(parts):
     service, _, _, inbox, tmp = parts
-    for bad in ("/", str(inbox), str(inbox / "results"), str(tmp), str(tmp / "missing" / "deeper")):
+    for bad in ("/", str(inbox), str(inbox / "results"), str(tmp)):
         with pytest.raises(ValueError):
             create(service, inbox, output_root=bad)
     assert create(service, inbox, output_root=str(tmp / "fresh")).output_root == str(tmp / "fresh")
+    deep = str(tmp / "missing" / "deeper")
+    assert create(service, inbox, output_root=deep).output_root == deep
 
 
 def test_cards_carry_what_the_board_needs_to_act(parts):

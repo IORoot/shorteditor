@@ -42,6 +42,10 @@ def _foreign(tmp_path):
     return str(tmp_path / "docs")
 
 
+def _inside_file(tmp_path):
+    return _file(tmp_path) + "/deeper"
+
+
 def _file(tmp_path):
     (tmp_path / "f").write_text("x")
     return str(tmp_path / "f")
@@ -49,12 +53,18 @@ def _file(tmp_path):
 
 @pytest.mark.parametrize(
     "make",
-    [_foreign, _file, lambda tmp: str(tmp / "no" / "deeper"), lambda tmp: "out", lambda tmp: "/"],
-    ids=["foreign_files", "a_file", "missing_parent", "relative", "top_of_disk"],
+    [_foreign, _file, _inside_file, lambda tmp: "out", lambda tmp: "/"],
+    ids=["foreign_files", "a_file", "inside_a_file", "relative", "top_of_disk"],
 )
 def test_unsafe_folders_are_refused(tmp_path, make):
     with pytest.raises(OutputFolderError):
         check_root(make(tmp_path))
+
+
+def test_new_folders_can_be_nested_to_any_depth(tmp_path):
+    deep = tmp_path / "no" / "such" / "deeper"
+    claim_root(str(deep))
+    assert (deep / MARKER).exists()
 
 
 def test_a_folder_we_made_stays_usable_even_when_full(tmp_path):
