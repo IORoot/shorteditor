@@ -4,7 +4,7 @@ import { makeCard } from '../../test/fixtures';
 import { BoardPage } from './BoardPage';
 import type { ProductionApi } from '../../lib/api';
 
-const apiOf = (cards: ReturnType<typeof vi.fn>) => ({ cards }) as unknown as ProductionApi;
+const apiOf = (cards: ReturnType<typeof vi.fn>) => ({ cards, defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }), createBatch: vi.fn() }) as unknown as ProductionApi;
 
 describe('BoardPage', () => {
   it('shows the title, the counts and the batch names once loaded', async () => {
@@ -42,10 +42,11 @@ describe('BoardPage', () => {
     }
   });
 
-  it('has a New batch button that calls back', async () => {
-    const onNew = vi.fn();
-    render(<BoardPage api={apiOf(vi.fn().mockResolvedValue([]))} onNew={onNew} />);
+  it('opens the new batch dialog from the New batch button and closes it again', async () => {
+    render(<BoardPage api={apiOf(vi.fn().mockResolvedValue([]))} />);
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    expect(onNew).toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'New batch' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull();
   });
 });

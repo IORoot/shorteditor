@@ -50,4 +50,12 @@ describe('FolderPicker', () => {
     expect(await screen.findByText('No subfolders.')).toBeInTheDocument();
     expect(browse).toHaveBeenLastCalledWith('/Volumes/Edit');
   });
+
+  it('closes on Escape', async () => {
+    const onClose = vi.fn();
+    render(<FolderPicker startPath="/Volumes/Edit" browse={vi.fn().mockResolvedValue(listing)} onChoose={() => undefined} onClose={onClose} />);
+    await screen.findByRole('button', { name: '..' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

@@ -16,6 +16,8 @@ function setup(first: BatchCard[], ...rest: BatchCard[][]) {
     approve: vi.fn().mockResolvedValue({}),
     runAgain: vi.fn().mockResolvedValue({}),
     resolve: vi.fn().mockResolvedValue({}),
+    defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }),
+    createBatch: vi.fn().mockResolvedValue({}),
     outputUrl: (id: number) => `/api/production/passes/${id}/output`,
   };
   render(<BoardPage api={api as unknown as ProductionApi} />);

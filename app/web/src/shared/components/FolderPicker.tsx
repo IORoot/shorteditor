@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, CornerLeftUp, Folder, X } from 'lucide-react';
 import { useLoad } from '../hooks/useLoad';
 import type { BrowseResult } from '../lib/types';
@@ -18,6 +18,15 @@ function parentOf(path: string): string {
 export function FolderPicker({ startPath, browse, onChoose, onClose }: FolderPickerProps) {
   const [path, setPath] = useState<string | undefined>(startPath || undefined);
   const listing = useLoad(() => browse(path), [path]);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   const current = listing.state.status === 'ready' ? listing.state.data : null;
 
   return (
