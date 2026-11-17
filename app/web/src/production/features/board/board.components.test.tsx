@@ -55,6 +55,16 @@ describe('BatchCard', () => {
     expect(title.className).toMatch(/truncate/);
   });
 
+  it('says stage in the singular for a one-stage pipeline', () => {
+    render(<BatchCard card={makeCard({ pipeline: ['Render'], stageCount: 1 })} selected={false} onOpen={() => undefined} />);
+    expect(screen.getByText(/· 1 stage$/)).toBeInTheDocument();
+  });
+
+  it('keeps the stage strip out of block elements, which a button may not contain', () => {
+    render(<StageStrip segments={['done']} />);
+    expect(screen.getByTestId('stage-strip').tagName).toBe('SPAN');
+  });
+
   it('shows the whole error as a tooltip when the line is cut short', () => {
     render(<BatchCard card={makeCard({ status: 'failed', error: 'No clips found in /very/long/path' })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByTitle('No clips found in /very/long/path')).toBeInTheDocument();
@@ -65,7 +75,7 @@ describe('BatchCard', () => {
     const card = makeCard({ name: 'A' });
     render(<BatchCard card={card} selected onOpen={onOpen} />);
     const button = screen.getByRole('button', { name: /^A,/ });
-    expect(button).toHaveAttribute('aria-pressed', 'true');
+    expect(button).toHaveAttribute('aria-current', 'true');
     fireEvent.click(button);
     expect(onOpen).toHaveBeenCalledWith(card);
   });
@@ -107,8 +117,8 @@ describe('Board', () => {
   it('marks only the selected batch and opens a clicked one', () => {
     const onOpen = vi.fn();
     render(<Board cards={cards} selectedBatchId={cards[0].batchId} onOpen={onOpen} />);
-    expect(screen.getByRole('button', { name: /Ready one/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /Blocked one/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /Ready one/ })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /Blocked one/ })).not.toHaveAttribute('aria-current');
     fireEvent.click(screen.getByRole('button', { name: /Failed one/ }));
     expect(onOpen).toHaveBeenCalledWith(cards[2]);
   });

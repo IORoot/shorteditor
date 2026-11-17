@@ -7,6 +7,8 @@ import { BoardPage } from './BoardPage';
 
 const output = { path: '/out/a/pass-1/output.mp4', duration: 58, sizeBytes: 5_000_000 };
 
+let defaultsOverride: (() => Promise<unknown>) | null = null;
+
 function setup(first: BatchCard[], ...rest: BatchCard[][]) {
   const cards = vi.fn().mockResolvedValueOnce(first);
   rest.forEach((list) => cards.mockResolvedValueOnce(list));
@@ -16,7 +18,7 @@ function setup(first: BatchCard[], ...rest: BatchCard[][]) {
     approve: vi.fn().mockResolvedValue({}),
     runAgain: vi.fn().mockResolvedValue({}),
     resolve: vi.fn().mockResolvedValue({}),
-    defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }),
+    defaults: vi.fn(() => (defaultsOverride ? defaultsOverride() : Promise.resolve({ outputRoot: '/out', workers: [] }))),
     createBatch: vi.fn().mockResolvedValue({}),
     outputUrl: (id: number) => `/api/production/passes/${id}/output`,
   };
@@ -24,14 +26,17 @@ function setup(first: BatchCard[], ...rest: BatchCard[][]) {
   return api;
 }
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  defaultsOverride = null;
+});
 
 describe('BoardPage review drawer', () => {
   it('opens the drawer for the clicked batch and marks its card', async () => {
     setup([makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
     expect(screen.getByRole('dialog', { name: 'Review' })).toHaveTextContent('Coach Saturdays');
-    expect(screen.getByRole('button', { name: 'Coach Saturdays, Ready' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Coach Saturdays, Ready' })).toHaveAttribute('aria-current', 'true');
   });
 
   it('approves the newest pass, reloads the board and shows the new state', async () => {
@@ -143,5 +148,24 @@ describe('BoardPage review drawer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('A newer pass exists');
     await act(async () => { await vi.advanceTimersByTimeAsync(10100); });
     expect(screen.queryByText(/A newer pass exists/)).toBeNull();
+  });
+
+  it('leaves a half-filled New batch form alone when a refresh arrives', async () => {
+    vi.useFakeTimers();
+    setup([makeCard({ name: 'H', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 8 })]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    fireEvent.click(screen.getByRole('button', { name: 'New batch' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Half typed' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+    expect(screen.getByLabelText('Name')).toHaveValue('Half typed');
+  });
+
+  it('asks the server for the defaults again if the first try failed', async () => {
+    let calls = 0;
+    defaultsOverride = () => (++calls === 1 ? Promise.reject(new Error('restarting')) : Promise.resolve({ outputRoot: '/out', workers: [{ id: 'local', label: 'This computer' }] }));
+    const api = setup([makeCard({ name: 'I', status: 'queued' })]);
+    fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
+    await act(async () => undefined);
+    expect(api.defaults).toHaveBeenCalledTimes(2);
   });
 });

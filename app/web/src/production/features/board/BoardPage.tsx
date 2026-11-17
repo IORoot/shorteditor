@@ -68,6 +68,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
 
   const openNew = () => {
     create.clear();
+    if (defaults.state.status === 'error') defaults.reload(); // the server may have been restarting the first time
     returnFocusTo.current = null; // focus goes to the form, not back to a card
     setOpenId(null);
     setNewOpen(true);
