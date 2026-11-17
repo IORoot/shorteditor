@@ -15,7 +15,7 @@ CHOICES = ["drop_shortest", "keep_first"]
 
 
 class LimitSettings(CamelModel):
-    max_seconds: float = Field(60.0, ge=1, allow_inf_nan=False)
+    max_seconds: float = Field(900.0, ge=1, allow_inf_nan=False)
     choice: Literal["drop_shortest", "keep_first"] | None = None
 
 
