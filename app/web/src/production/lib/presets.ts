@@ -1,6 +1,7 @@
-import type { BatchCreate, BulkCreate, FolderPreview, StageStep } from './types';
+import type { BatchCreate, BulkCreate, FolderPreview, StageStep, WatchCreate, WatchView } from './types';
 
 export type OrderBy = 'capture_time' | 'created' | 'name' | 'duration' | 'random';
+const ORDER_BY: OrderBy[] = ['capture_time', 'created', 'name', 'duration', 'random'];
 export type Fit = 'crop' | 'blur';
 
 /** The settings every batch shares. Numbers stay text while the user types, so a field can be cleared. */
@@ -39,10 +40,21 @@ export interface ManyForm extends SettingsForm {
   pattern: string;
   nameTemplate: string;
   include: string[];
+  /** Keep watching the parent folder. The fields below are used only when this is on. */
+  watching: boolean;
+  watchName: string;
+  /** When watching: batch the folders already there now (else they are skipped and only new ones get batches). */
+  watchExisting: boolean;
+  intervalMinutes: string;
+  settleMinutes: string;
+  maxPerCheck: string;
 }
 
 export function defaultManyForm(): ManyForm {
-  return { parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [], ...defaultSettings() };
+  return {
+    parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [], ...defaultSettings(),
+    watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
+  };
 }
 
 const PLAIN_NUMBER = /^\d+(\.\d+)?$/;
@@ -76,7 +88,90 @@ export function isValid(form: NewBatchForm): boolean {
 }
 
 export function manyIsValid(form: ManyForm): boolean {
-  return form.parentFolder.trim() !== '' && form.pattern.trim() !== '' && settingsValid(form);
+  return form.parentFolder.trim() !== '' && form.pattern.trim() !== '' && settingsValid(form) && (!form.watching || watchValid(form));
+}
+
+const WHOLE_NUMBER = /^\d+$/;
+
+/** A whole number inside the limits the server enforces, or the plain hint saying which numbers are allowed. */
+export function wholeHint(text: string, min: number, max: number): string | null {
+  const value = WHOLE_NUMBER.test(text.trim()) ? Number(text.trim()) : NaN;
+  return value >= min && value <= max ? null : `Use a whole number from ${min} to ${max}`;
+}
+
+const MAX_NAME = 120;
+const lastSegment = (path: string): string => path.split(/[\\/]/).filter((part) => part !== '').pop() ?? '';
+
+/** The watch's name: the typed one, or the parent folder's name. */
+export function watchNameOf(form: ManyForm): string {
+  return form.watchName.trim() || lastSegment(form.parentFolder.trim());
+}
+
+const watchValid = (form: ManyForm): boolean =>
+  wholeHint(form.intervalMinutes, 1, 1440) === null &&
+  wholeHint(form.settleMinutes, 0, 1440) === null &&
+  wholeHint(form.maxPerCheck, 1, 100) === null &&
+  watchNameOf(form).length > 0 && watchNameOf(form).length <= MAX_NAME;
+
+/** How many batches Create will make right now: the one-off ones, or only the existing folders a watch batches at its start. */
+export function batchesNow(form: ManyForm, preview: FolderPreview): number {
+  if (!form.watching) return createCount(preview, form.include);
+  return form.watchExisting ? preview.matches.filter((m) => m.status === 'will_create').length : 0;
+}
+
+const stepSettings = (steps: StageStep[], key: string): Record<string, unknown> => steps.find((s) => s.key === key)?.settings ?? {};
+
+/** The settings a saved pipeline was made with, so an edited watch opens with what it has. Unknown values fall back to the defaults. */
+export function settingsFromSteps(steps: StageStep[]): Partial<SettingsForm> {
+  const defaults = defaultSettings();
+  const order = stepSettings(steps, 'order_clips').orderBy;
+  const seconds = stepSettings(steps, 'limit_length').maxSeconds;
+  const size = stepSettings(steps, 'render_output').maxSizeMb;
+  return {
+    orderBy: ORDER_BY.includes(order as OrderBy) ? (order as OrderBy) : defaults.orderBy,
+    fit: stepSettings(steps, 'join_pieces').fit === 'blur' ? 'blur' : 'crop',
+    maxSeconds: typeof seconds === 'number' ? String(seconds) : defaults.maxSeconds,
+    maxSizeMb: typeof size === 'number' ? String(size) : defaults.maxSizeMb,
+  };
+}
+
+/** The form for editing a saved watch. The existing-folders switch is not part of a watch, so it stays off. */
+export function formFromWatch(watch: WatchView): ManyForm {
+  const preset = PATTERN_PRESETS.find((p) => p.id !== 'custom' && p.pattern === watch.pattern);
+  return {
+    ...defaultManyForm(),
+    ...settingsFromSteps(watch.steps),
+    outputRoot: watch.outputRoot ?? '',
+    runOn: watch.runOn,
+    parentFolder: watch.parentFolder,
+    presetId: preset?.id ?? 'custom',
+    pattern: watch.pattern,
+    nameTemplate: watch.nameTemplate,
+    watching: true,
+    watchName: watch.name,
+    intervalMinutes: String(watch.intervalMinutes),
+    settleMinutes: String(watch.settleMinutes),
+    maxPerCheck: String(watch.maxPerCheck),
+  };
+}
+
+/** The watch request. `includeExisting` batches the folders already there at the start; `enabled` keeps a paused watch paused on edit. */
+export function toWatchRequest(form: ManyForm, includeExisting: boolean, enabled = true): WatchCreate {
+  const request: WatchCreate = {
+    name: watchNameOf(form),
+    parentFolder: form.parentFolder.trim(),
+    pattern: form.pattern,
+    nameTemplate: form.nameTemplate,
+    steps: buildSteps(form),
+    runOn: form.runOn,
+    intervalMinutes: Number(form.intervalMinutes.trim()),
+    settleMinutes: Number(form.settleMinutes.trim()),
+    maxPerCheck: Number(form.maxPerCheck.trim()),
+    includeExisting,
+    enabled,
+  };
+  if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
+  return request;
 }
 
 /** The Join clips pipeline: scan, order, limit the length, join, render. */

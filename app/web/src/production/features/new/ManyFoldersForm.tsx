@@ -5,8 +5,9 @@ import { PATTERN_PRESETS, type ManyForm } from '../../lib/presets';
 import type { Defaults } from '../../lib/types';
 import { BatchSettingsFields } from './BatchSettingsFields';
 import { FolderField } from './FolderField';
-import { FolderPreviewList } from './FolderPreviewList';
+import { FolderPreviewList, type WatchReading } from './FolderPreviewList';
 import { Select } from './Select';
+import { WatchOptions, type WatchOptionsMode } from './WatchOptions';
 
 export interface ManyFoldersFormProps {
   form: ManyForm;
@@ -14,10 +15,16 @@ export interface ManyFoldersFormProps {
   defaults: Defaults;
   browse: (path?: string) => Promise<BrowseResult>;
   preview: PreviewState;
+  /** undefined: a one-off batch run. Otherwise the watch options are shown in this mode. */
+  watch?: WatchOptionsMode;
 }
 
-export function ManyFoldersForm({ form, onChange, defaults, browse, preview }: ManyFoldersFormProps) {
+export function ManyFoldersForm({ form, onChange, defaults, browse, preview, watch }: ManyFoldersFormProps) {
   const toggle = (name: string) => onChange({ include: form.include.includes(name) ? form.include.filter((n) => n !== name) : [...form.include, name] });
+  // A watch that does not batch the folders already there reads them as "already there"; the edit form never does.
+  const watching = watch !== undefined && (watch !== 'optional' || form.watching);
+  const reading: WatchReading | undefined = watching ? (watch === 'edit' || !form.watchExisting ? 'skip' : 'create') : undefined;
+  const willCreate = preview.status === 'ready' ? preview.data.matches.filter((m) => m.status === 'will_create').length : 0;
   return (
     <>
       <FolderField label="Parent folder" value={form.parentFolder} onChange={(parentFolder) => onChange({ parentFolder })} browse={browse} />
@@ -46,10 +53,11 @@ export function ManyFoldersForm({ form, onChange, defaults, browse, preview }: M
         {preview.status === 'ready' ? (
           <>
             {preview.refreshing ? <p className="text-caption text-text-3">Updating…</p> : null}
-            <FolderPreviewList preview={preview.data} include={form.include} onToggle={toggle} />
+            <FolderPreviewList preview={preview.data} include={form.include} onToggle={toggle} watching={reading} />
           </>
         ) : null}
       </section>
+      {watch !== undefined ? <WatchOptions value={form} onChange={onChange} mode={watch} folderCount={willCreate} /> : null}
       <p className="text-caption font-semibold tracking-wide text-text-3">Settings for every batch</p>
       <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} browse={browse} />
     </>

@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { watchLabel, watchTone } from './watches';
-import type { WatchView } from './types';
+import { checkMessage, watchLabel, watchTone } from './watches';
+import type { CheckResult, WatchView } from './types';
+
+const batch = { id: 1, name: 'x', inputFolder: '/x', steps: [], runOn: 'any', outputRoot: '/o', createdAt: 'x' };
+const result = (over: Partial<CheckResult>): CheckResult => ({ created: [], waiting: [], error: null, ...over });
+
+describe('checkMessage', () => {
+  it('says what a check did, in the order the user cares about', () => {
+    expect(checkMessage(result({ created: [batch, { ...batch, id: 2 }] }))).toBe('Created 2 batches');
+    expect(checkMessage(result({ created: [batch] }))).toBe('Created 1 batch');
+    expect(checkMessage(result({ waiting: ['2026-11-14_a'] }))).toBe('Waiting for 2026-11-14_a to settle');
+    expect(checkMessage(result({}))).toBe('Nothing new');
+    expect(checkMessage(result({ error: 'The folder /Volumes/Edit does not exist' }))).toBe('The folder /Volumes/Edit does not exist');
+  });
+});
 
 const view = (status: WatchView['status']): WatchView => ({
   id: 1, name: 'Coach', parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', steps: [], runOn: 'any', outputRoot: null,

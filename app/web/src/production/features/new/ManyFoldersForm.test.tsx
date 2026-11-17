@@ -101,4 +101,17 @@ describe('ManyFoldersForm', () => {
     expect(screen.getByLabelText('Run on')).toBeInTheDocument();
     expect(screen.getByLabelText('Output folder')).toHaveAttribute('placeholder', '/out');
   });
+
+  it('shows no watch options for a one-off batch run', () => {
+    show();
+    expect(screen.queryByRole('switch', { name: 'Keep watching this folder' })).toBeNull();
+  });
+
+  it('with watching on and the existing folders not batched, the preview says they are already there and offers no boxes', () => {
+    const onChange = vi.fn();
+    render(<ManyFoldersForm form={{ ...defaultManyForm(), parentFolder: '/c', watching: true }} onChange={onChange} defaults={defaults} browse={browse} preview={ready} watch="optional" />);
+    expect(screen.getByText('Already there')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: '2026-11-07_a' })).toBeNull();
+    expect(screen.getByRole('switch', { name: 'Keep watching this folder' })).toBeChecked();
+  });
 });

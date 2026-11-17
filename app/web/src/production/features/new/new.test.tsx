@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PATTERN_PRESETS } from '../../lib/presets';
 import { FolderField } from './FolderField';
@@ -25,10 +25,11 @@ const preview = {
 function open(over: Partial<React.ComponentProps<typeof NewBatchDialog>> = {}) {
   const onCreate = vi.fn();
   const onCreateMany = vi.fn();
+  const onSaveWatch = vi.fn();
   const onClose = vi.fn();
   const previewFolders = vi.fn().mockResolvedValue(preview);
-  render(<NewBatchDialog defaults={defaults} busy={false} error={null} onCreate={onCreate} onCreateMany={onCreateMany} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
-  return { onCreate, onCreateMany, onClose, previewFolders };
+  render(<NewBatchDialog defaults={defaults} busy={false} error={null} onCreate={onCreate} onCreateMany={onCreateMany} onSaveWatch={onSaveWatch} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
+  return { onCreate, onCreateMany, onSaveWatch, onClose, previewFolders };
 }
 
 const fill = (name: string, folder: string) => {
@@ -244,5 +245,60 @@ describe('NewBatchDialog, folders inside a folder', () => {
     fireEvent.change(screen.getByLabelText('Output folder'), { target: { value: '/out/reels' } });
     await settled();
     expect(previewFolders).toHaveBeenLastCalledWith('/c', PATTERN_PRESETS[0].pattern, '/out/reels');
+  });
+});
+
+describe('NewBatchDialog, keeping watch', () => {
+  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+  const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
+  const settled = async () => { await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); }); };
+
+  it('with Keep watching on, Start watching saves a watch and creates no one-off batches', async () => {
+    const { onSaveWatch, onCreateMany } = open();
+    many();
+    parent('/c');
+    await settled();
+    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
+    fireEvent.change(screen.getByLabelText('Watch name'), { target: { value: 'Coach' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
+    expect(onSaveWatch).toHaveBeenCalledTimes(1);
+    expect(onSaveWatch.mock.calls[0]).toEqual([expect.objectContaining({ parentFolder: '/c', watching: true, watchName: 'Coach', watchExisting: false }), null]);
+    expect(onCreateMany).not.toHaveBeenCalled();
+  });
+
+  it('with the existing folders switched on, the button says it creates them and starts watching', async () => {
+    open();
+    many();
+    parent('/c');
+    await settled();
+    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Also create batches for the 2 folders already there' }));
+    expect(screen.getByRole('button', { name: 'Create 2 batches and start watching' })).toBeEnabled();
+  });
+
+  it('adding a watch from the Watches panel is watch-only, with no mode switch and a title that says so', async () => {
+    const { onSaveWatch } = open({ watchTarget: { kind: 'add' } });
+    expect(screen.getByRole('heading', { name: 'New watch' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'One folder' })).toBeNull();
+    parent('/c');
+    await settled();
+    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
+    expect(onSaveWatch).toHaveBeenCalledWith(expect.objectContaining({ parentFolder: '/c', watching: true }), null);
+  });
+
+  it('editing a watch is prefilled, saves to that watch, and offers no existing-folders switch', async () => {
+    const watch = {
+      id: 3, name: 'Coach', parentFolder: '/c/coach', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', runOn: 'any', outputRoot: null,
+      steps: [], intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: 'x', lastCheckedAt: null, lastError: null, waiting: [], createdTotal: 0,
+      status: 'watching' as const, statusLine: '',
+    };
+    const { onSaveWatch } = open({ watchTarget: { kind: 'edit', watch } });
+    expect(screen.getByRole('heading', { name: 'Edit watch' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Parent folder')).toHaveValue('/c/coach');
+    expect(screen.getByLabelText('Watch name')).toHaveValue('Coach');
+    expect(screen.queryByRole('switch', { name: /Also create batches/ })).toBeNull();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save watch' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Save watch' }));
+    expect(onSaveWatch).toHaveBeenCalledWith(expect.objectContaining({ parentFolder: '/c/coach', watching: true }), 3);
   });
 });

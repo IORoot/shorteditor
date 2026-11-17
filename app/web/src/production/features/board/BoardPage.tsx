@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Eye, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { useLoad } from '../../../shared/hooks/useLoad';
@@ -8,14 +8,15 @@ import { useAction } from '../../hooks/useAction';
 import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
 import { subtitle } from '../../lib/board';
-import { toBulkRequest, toRequest } from '../../lib/presets';
+import { toBulkRequest, toRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
 import type { Defaults } from '../../lib/types';
-import { NewBatchDialog } from '../new/NewBatchDialog';
+import { NewBatchDialog, type WatchTarget } from '../new/NewBatchDialog';
 import { ReviewDrawer } from '../review/ReviewDrawer';
+import { WatchesPanel } from '../watches/WatchesPanel';
 import { Board } from './Board';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'createBatch' | 'createBatches' | 'previewFolders'>;
+  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch'>;
   browse?: (path?: string) => Promise<BrowseResult>;
 }
 
@@ -28,6 +29,8 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
   const create = useAction();
   const defaults = useLoad(() => api.defaults(), []);
   const [newOpen, setNewOpen] = useState(false);
+  const [watchesOpen, setWatchesOpen] = useState(false);
+  const [watchTarget, setWatchTarget] = useState<WatchTarget | null>(null);
   const newButton = useRef<HTMLButtonElement>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const cards = board.state.status === 'ready' ? board.state.data : [];
@@ -71,11 +74,33 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
     if (defaults.state.status === 'error') defaults.reload(); // the server may have been restarting the first time
     returnFocusTo.current = null; // focus goes to the form, not back to a card
     setOpenId(null);
+    setWatchesOpen(false);
     setNewOpen(true);
   };
   const closeNew = () => {
     create.clear();
     setNewOpen(false);
+  };
+  const openWatches = () => {
+    create.clear();
+    setNewOpen(false);
+    setWatchesOpen(true);
+  };
+  // the watch form goes back to the panel it was opened from
+  const closeWatchTarget = () => {
+    create.clear();
+    setWatchTarget(null);
+    setWatchesOpen(true);
+  };
+  const saveWatch = async (form: ManyForm, watchId: number | null) => {
+    const enabled = watchTarget?.kind === 'edit' ? watchTarget.watch.enabled : true;
+    const saved = await create.run(() => (watchId === null
+      ? api.createWatch(toWatchRequest(form, form.watchExisting))
+      : api.updateWatch(watchId, toWatchRequest(form, false, enabled))));
+    if (!saved) return;
+    board.reload(); // a new watch may have made batches straight away
+    if (watchTarget) closeWatchTarget();
+    else closeNew();
   };
   const act = async (fn: () => Promise<unknown>) => {
     if (await action.run(fn)) board.reload();
@@ -88,14 +113,17 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
           <h1 className="text-h1 font-bold tracking-[-0.6px]">Production</h1>
           <p className="text-small text-text-2">{board.state.status === 'ready' ? subtitle(cards) : ' '}</p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={15} aria-hidden="true" />}
-          onClick={openNew}
-          ref={newButton}
-        >
-          New batch
-        </Button>
+        <div className="flex shrink-0 items-center gap-2.5">
+          <Button icon={<Eye size={15} aria-hidden="true" />} onClick={openWatches}>Watches</Button>
+          <Button
+            variant="primary"
+            icon={<Plus size={15} aria-hidden="true" />}
+            onClick={openNew}
+            ref={newButton}
+          >
+            New batch
+          </Button>
+        </div>
       </div>
       {board.staleError ? (
         <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-small text-warn">
@@ -111,14 +139,32 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
       ) : null}
       {board.state.status === 'ready' && cards.length === 0 ? <p className="text-body text-text-3">No batches yet. Create one to start.</p> : null}
       {cards.length > 0 ? <Board cards={cards} selectedBatchId={opened?.batchId ?? null} onOpen={(card) => open(card.batchId)} /> : null}
-      {newOpen ? (
+      {watchesOpen && !watchTarget ? (
+        <WatchesPanel
+          api={api}
+          onAdd={() => {
+            create.clear();
+            setWatchesOpen(false);
+            setWatchTarget({ kind: 'add' });
+          }}
+          onEdit={(watch) => {
+            create.clear();
+            setWatchesOpen(false);
+            setWatchTarget({ kind: 'edit', watch });
+          }}
+          onChanged={board.reload}
+          onClose={() => setWatchesOpen(false)}
+        />
+      ) : null}
+      {newOpen || watchTarget ? (
         <NewBatchDialog
           defaults={defaults.state.status === 'ready' ? defaults.state.data : NO_DEFAULTS}
           busy={create.busy}
           error={create.error}
           browse={browse}
           previewFolders={(parent, pattern, root) => api.previewFolders(parent, pattern, root)}
-          onClose={closeNew}
+          watchTarget={watchTarget ?? undefined}
+          onClose={watchTarget ? closeWatchTarget : closeNew}
           onCreateMany={async (form) => {
             if (await create.run(() => api.createBatches(toBulkRequest(form)))) {
               closeNew();
@@ -131,6 +177,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
               board.reload();
             }
           }}
+          onSaveWatch={saveWatch}
         />
       ) : null}
       {opened ? (

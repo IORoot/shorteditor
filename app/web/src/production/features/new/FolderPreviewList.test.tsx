@@ -67,3 +67,23 @@ describe('FolderPreviewList', () => {
     expect(screen.getByTitle('N'.repeat(200))).toBeInTheDocument();
   });
 });
+
+describe('FolderPreviewList when watching', () => {
+  const folders = preview([item('2026-11-14_a', 'will_create', 4), item('2026-10-17_c', 'already_batched', 9), item('2026-11-15_d', 'no_videos', 0)], { notMatching: 1 });
+
+  it('when the watch creates the existing folders, they are marked as created by the first check and old ones have no box', () => {
+    render(<FolderPreviewList preview={folders} include={[]} onToggle={() => undefined} watching="create" />);
+    expect(screen.getByText('1 will be created · 1 already batched · 1 has no videos · 1 does not match')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: '2026-10-17_c' })).toBeNull();
+    expect(screen.queryByText('Folders already batched are skipped. Tick one to include it again.')).toBeNull();
+  });
+
+  it('when the existing folders are only skipped, nothing new is batched now and they are shown as already there', () => {
+    render(<FolderPreviewList preview={folders} include={[]} onToggle={() => undefined} watching="skip" />);
+    expect(screen.getByText('1 already there, not batched now · 1 already batched · 1 has no videos · 1 does not match')).toBeInTheDocument();
+    const row = screen.getByText('2026-11-14_a').closest('li') as HTMLElement;
+    expect(within(row).getByText('Already there')).toBeInTheDocument();
+    expect(within(row).queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+});
