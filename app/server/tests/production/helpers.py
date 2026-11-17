@@ -54,3 +54,39 @@ def make_clip(path, seconds=2.0, width=320, height=180, audio=True, creation_tim
     args.append(str(path))
     subprocess.run(args, check=True)
     return str(path)
+
+
+def make_ctx(tmp_path, input_folder=None, log=None, worker=None):
+    """A StageContext wired to a real local FFmpeg runner."""
+    from collector_server.production.ffmpeg import FfmpegRunner
+    from collector_server.production.stage_api import StageContext
+    from collector_server.production.worker import LocalWorker
+
+    lines = log if log is not None else []
+    work = tmp_path / "work"
+    work.mkdir(exist_ok=True)
+    out = tmp_path / "out"
+    out.mkdir(exist_ok=True)
+    return StageContext(
+        input_folder=str(input_folder or tmp_path / "in"),
+        work_dir=str(work),
+        output_dir=str(out),
+        ffmpeg=FfmpegRunner(worker or LocalWorker(), lines.append),
+        log=lines.append,
+    )
+
+
+class FakeWorker:
+    id = "fake"
+
+    def __init__(self, lines=(), code=0, error=None):
+        self.lines, self.code, self.error = list(lines), code, error
+        self.argv = None
+
+    def run(self, argv, on_line):
+        self.argv = argv
+        if self.error:
+            raise self.error
+        for line in self.lines:
+            on_line(line)
+        return self.code

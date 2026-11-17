@@ -5,22 +5,7 @@ import pytest
 
 from collector_server.production.ffmpeg import FfmpegError, FfmpegRunner
 from collector_server.production.worker import LocalWorker
-
-
-class FakeWorker:
-    id = "fake"
-
-    def __init__(self, lines=(), code=0, error=None):
-        self.lines, self.code, self.error = list(lines), code, error
-        self.argv = None
-
-    def run(self, argv, on_line):
-        self.argv = argv
-        if self.error:
-            raise self.error
-        for line in self.lines:
-            on_line(line)
-        return self.code
+from tests.production.helpers import FakeWorker
 
 
 def test_local_worker_merges_streams_and_returns_exit_code():
