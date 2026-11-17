@@ -33,7 +33,7 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
   const existingLabel = `Also create batches for the ${folderCount} ${folderCount === 1 ? 'folder' : 'folders'} already there`;
   const perCheck = value.maxPerCheck.trim() || '20';
   return (
-    <section aria-label="Watching" className="flex flex-col gap-4 rounded-[14px] bg-fill-2 p-3.5">
+    <section aria-label="Watching" className="flex flex-col gap-4 rounded-[14px] bg-surface p-3.5 ring-1 ring-line">
       {mode === 'optional' ? (
         <div className="flex items-center justify-between gap-4">
           <span className="text-body font-semibold">Keep watching this folder</span>
@@ -46,7 +46,7 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
         value={value.watchName}
         onChange={(event) => onChange({ watchName: event.target.value })}
       />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           label="Check every (minutes)"
           inputMode="numeric"
@@ -55,18 +55,19 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
           onChange={(event) => onChange({ intervalMinutes: event.target.value })}
         />
         <FormField
-          label="Wait until nothing has changed for (minutes)"
-          inputMode="numeric"
-          error={wholeHint(value.settleMinutes, SETTLE.min, SETTLE.max) ?? undefined}
-          value={value.settleMinutes}
-          onChange={(event) => onChange({ settleMinutes: event.target.value })}
-        />
-        <FormField
           label="At most per check (batches)"
           inputMode="numeric"
           error={wholeHint(value.maxPerCheck, PER_CHECK.min, PER_CHECK.max) ?? undefined}
           value={value.maxPerCheck}
           onChange={(event) => onChange({ maxPerCheck: event.target.value })}
+        />
+        <FormField
+          className="col-span-2"
+          label="Wait until nothing has changed for (minutes)"
+          inputMode="numeric"
+          error={wholeHint(value.settleMinutes, SETTLE.min, SETTLE.max) ?? undefined}
+          value={value.settleMinutes}
+          onChange={(event) => onChange({ settleMinutes: event.target.value })}
         />
       </div>
       {mode !== 'edit' ? (
@@ -78,7 +79,7 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
           <p className="text-caption text-text-3">
             {value.watchExisting
               ? `On: they are batched now, up to ${perCheck} per check; the rest follow on later checks.`
-              : 'Off: the folders already there are skipped and only new ones get batches.'}
+              : 'Off: folders already there are skipped. Any still being copied get a batch once they settle.'}
           </p>
         </div>
       ) : null}

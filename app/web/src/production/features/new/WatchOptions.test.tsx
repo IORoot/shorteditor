@@ -44,7 +44,7 @@ describe('WatchOptions', () => {
     const onChange = show({ watching: true }, 'optional', 3);
     const existing = screen.getByRole('switch', { name: 'Also create batches for the 3 folders already there' });
     expect(existing).not.toBeChecked();
-    expect(screen.getByText('Off: the folders already there are skipped and only new ones get batches.')).toBeInTheDocument();
+    expect(screen.getByText('Off: folders already there are skipped. Any still being copied get a batch once they settle.')).toBeInTheDocument();
     fireEvent.click(existing);
     expect(onChange).toHaveBeenLastCalledWith({ watchExisting: true });
   });

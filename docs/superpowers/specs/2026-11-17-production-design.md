@@ -58,11 +58,12 @@ First-release library: Scan folder, Order clips, Detect action (AI), Review by h
 
 1. **Server core** — pieces, plugin API and registry, pipeline validation, FFmpeg runner, stages Scan/Order/Limit length/Join/Render, batches/passes/logs storage, pass runner, queue, API, handoff. Result: a Join pipeline works end to end through the API. (`docs/superpowers/plans/2026-11-17-production-1-server-core.md`)
 2. **Web board** — B2 board, new batch dialog, review slide-in, approve and run again, the Settings cog.
-3. **Workers and settings** — SSH workers with path mapping, per-job script copy and cleanup, Settings screen, queue pause.
-4. **Batch detail** — D2: clip grid, 540p proxies and posters served with range requests, pipeline and FFmpeg logs, pass history.
-5. **AI Detect** — OpenRouter key in settings, 360p proxy upload, editable prompt, JSON segments, result reuse, token use.
-6. **Manual trims and clip editor** — per-clip trims stored with the batch, Review by hand stage.
-7. **Stage editor** — Layout E and per-stage settings screens, Add stage dialog, user stages folder, FFmpeg command stage.
+3. **Batches from folders and watches** — the New batch dialog creates many batches from the folders inside a parent folder (regular expression, live preview); a watch checks a parent folder and batches each new matching folder once it has settled; the board shows Queued, Running, Needs attention and Ready to review; the Watches panel. (`docs/superpowers/plans/2026-11-17-production-3-folders-and-watches.md`, design `docs/superpowers/specs/2026-11-17-batches-from-folders-design.md`)
+4. **Workers and settings** — SSH workers with path mapping, per-job script copy and cleanup, Settings screen, queue pause.
+5. **Batch detail** — D2: clip grid, 540p proxies and posters served with range requests, pipeline and FFmpeg logs, pass history.
+6. **AI Detect** — OpenRouter key in settings, 360p proxy upload, editable prompt, JSON segments, result reuse, token use.
+7. **Manual trims and clip editor** — per-clip trims stored with the batch, Review by hand stage.
+8. **Stage editor** — Layout E and per-stage settings screens, Add stage dialog, user stages folder, FFmpeg command stage.
 
 ## Left to the builder
 
