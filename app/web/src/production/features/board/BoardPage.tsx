@@ -8,14 +8,14 @@ import { useAction } from '../../hooks/useAction';
 import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
 import { subtitle } from '../../lib/board';
-import { toRequest } from '../../lib/presets';
+import { toBulkRequest, toRequest } from '../../lib/presets';
 import type { Defaults } from '../../lib/types';
 import { NewBatchDialog } from '../new/NewBatchDialog';
 import { ReviewDrawer } from '../review/ReviewDrawer';
 import { Board } from './Board';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'createBatch'>;
+  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'createBatch' | 'createBatches' | 'previewFolders'>;
   browse?: (path?: string) => Promise<BrowseResult>;
 }
 
@@ -117,7 +117,14 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
           busy={create.busy}
           error={create.error}
           browse={browse}
+          previewFolders={(parent, pattern, root) => api.previewFolders(parent, pattern, root)}
           onClose={closeNew}
+          onCreateMany={async (form) => {
+            if (await create.run(() => api.createBatches(toBulkRequest(form)))) {
+              closeNew();
+              board.reload();
+            }
+          }}
           onCreate={async (form) => {
             if (await create.run(() => api.createBatch(toRequest(form)))) {
               closeNew();

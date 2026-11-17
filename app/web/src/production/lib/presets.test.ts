@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSteps, defaultForm, isValid, secondsHint, sizeHint, toRequest, type NewBatchForm } from './presets';
+import { PATTERN_PRESETS, buildSteps, createCount, defaultForm, defaultManyForm, isValid, manyIsValid, secondsHint, sizeHint, toBulkRequest, toRequest, type ManyForm, type NewBatchForm } from './presets';
 
 const form = (over: Partial<NewBatchForm> = {}): NewBatchForm => ({ ...defaultForm(), name: 'Coach Saturdays', inputFolder: '/clips/coach', ...over });
 
@@ -73,5 +73,60 @@ describe('toRequest', () => {
   it('leaves the output folder out when it is empty so the server default applies, and sends it when set', () => {
     expect('outputRoot' in toRequest(form({ outputRoot: '  ' }))).toBe(false);
     expect(toRequest(form({ outputRoot: '/Volumes/Edit/Reels' })).outputRoot).toBe('/Volumes/Edit/Reels');
+  });
+});
+
+
+const many = (over: Partial<ManyForm> = {}): ManyForm => ({ ...defaultManyForm(), parentFolder: '/Volumes/Edit/Collected', ...over });
+
+describe('pattern presets', () => {
+  it('offers a date-first pattern, any folder, and a custom one', () => {
+    expect(PATTERN_PRESETS.map((p) => p.id)).toEqual(['date', 'any', 'custom']);
+    const date = new RegExp(PATTERN_PRESETS[0].pattern);
+    expect(date.test('2026-11-07_Sat_coach')).toBe(true);
+    expect(date.test('notes')).toBe(false);
+    expect(new RegExp(PATTERN_PRESETS[1].pattern).test('anything at all')).toBe(true);
+    expect(PATTERN_PRESETS[2].pattern).toBe('');
+  });
+});
+
+describe('defaultManyForm', () => {
+  it('starts on the date preset with the usual settings', () => {
+    expect(defaultManyForm()).toEqual({
+      parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [],
+      outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '60', maxSizeMb: '50', fit: 'crop',
+    });
+  });
+});
+
+describe('manyIsValid', () => {
+  it('needs a parent folder, a pattern and valid limits', () => {
+    expect(manyIsValid(many())).toBe(true);
+    expect(manyIsValid(many({ parentFolder: ' ' }))).toBe(false);
+    expect(manyIsValid(many({ pattern: '' }))).toBe(false);
+    expect(manyIsValid(many({ maxSeconds: '0.5' }))).toBe(false);
+    expect(manyIsValid(many({ maxSizeMb: '100001' }))).toBe(false);
+  });
+});
+
+describe('toBulkRequest', () => {
+  it('sends the pattern, template, shared steps and the folders to include again', () => {
+    const request = toBulkRequest(many({ nameTemplate: '{1} coach', include: ['2026-11-07_a'], runOn: 'studio', maxSeconds: '45' }));
+    expect(request).toEqual({
+      parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{1} coach', runOn: 'studio',
+      include: ['2026-11-07_a'], steps: buildSteps(many({ maxSeconds: '45' })),
+    });
+    expect('outputRoot' in request).toBe(false);
+    expect(toBulkRequest(many({ outputRoot: ' /out ' })).outputRoot).toBe('/out');
+  });
+});
+
+describe('createCount', () => {
+  const preview = (statuses: string[]) => ({ matches: statuses.map((status, i) => ({ name: `f${i}`, path: `/p/f${i}`, clipCount: 1, status })) as never, notMatching: 0, truncated: false });
+  it('counts what will be created plus the already-batched folders ticked to include', () => {
+    const p = preview(['will_create', 'will_create', 'already_batched', 'already_batched', 'no_videos', 'unreadable']);
+    expect(createCount(p, [])).toBe(2);
+    expect(createCount(p, ['f2'])).toBe(3);
+    expect(createCount(p, ['f2', 'f3', 'f4', 'f5', 'nope'])).toBe(4);
   });
 });

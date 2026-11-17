@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PATTERN_PRESETS } from '../../lib/presets';
 import { FolderField } from './FolderField';
 import { NewBatchDialog } from './NewBatchDialog';
 
@@ -10,11 +11,24 @@ const browse = vi.fn(async (path?: string) =>
     : { path: '/clips', parent: '/', entries: [{ name: 'coach', path: '/clips/coach' }] },
 );
 
+const preview = {
+  matches: [
+    { name: '2026-11-14_a', path: '/c/2026-11-14_a', clipCount: 4, status: 'will_create' as const },
+    { name: '2026-11-07_b', path: '/c/2026-11-07_b', clipCount: 2, status: 'will_create' as const },
+    { name: '2026-10-17_old', path: '/c/2026-10-17_old', clipCount: 9, status: 'already_batched' as const },
+    { name: '2026-11-15_empty', path: '/c/2026-11-15_empty', clipCount: 0, status: 'no_videos' as const },
+  ],
+  notMatching: 1,
+  truncated: false,
+};
+
 function open(over: Partial<React.ComponentProps<typeof NewBatchDialog>> = {}) {
   const onCreate = vi.fn();
+  const onCreateMany = vi.fn();
   const onClose = vi.fn();
-  render(<NewBatchDialog defaults={defaults} busy={false} error={null} onCreate={onCreate} onClose={onClose} browse={browse} {...over} />);
-  return { onCreate, onClose };
+  const previewFolders = vi.fn().mockResolvedValue(preview);
+  render(<NewBatchDialog defaults={defaults} busy={false} error={null} onCreate={onCreate} onCreateMany={onCreateMany} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
+  return { onCreate, onCreateMany, onClose, previewFolders };
 }
 
 const fill = (name: string, folder: string) => {
@@ -124,5 +138,111 @@ describe('NewBatchDialog', () => {
     const picker = await screen.findByRole('dialog', { name: 'Choose a folder' });
     fireEvent.click(within(picker).getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Input folder')).toHaveValue('/clips/mine');
+  });
+});
+
+describe('NewBatchDialog, folders inside a folder', () => {
+  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+  const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
+  const settled = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(500); }); };
+
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  it('switches between the two forms, with the right title, and keeps what was typed in each', () => {
+    open();
+    expect(screen.getByRole('radio', { name: 'One folder' })).toHaveAttribute('aria-checked', 'true');
+    fill('Coach', '/clips/coach');
+    many();
+    expect(screen.getByRole('heading', { name: 'New batches' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Parent folder')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Input folder')).toBeNull();
+    parent('/Volumes/Edit/Collected');
+    fireEvent.click(screen.getByRole('radio', { name: 'One folder' }));
+    expect(screen.getByLabelText('Name')).toHaveValue('Coach');
+    many();
+    expect(screen.getByLabelText('Parent folder')).toHaveValue('/Volumes/Edit/Collected');
+  });
+
+  it('does not ask the server for a preview while the one-folder form is showing', async () => {
+    const { previewFolders } = open();
+    await settled();
+    expect(previewFolders).not.toHaveBeenCalled();
+  });
+
+  it('previews the folders and offers to create one batch for each new one', async () => {
+    const { previewFolders } = open();
+    many();
+    parent('/c');
+    await settled();
+    expect(previewFolders).toHaveBeenCalledWith('/c', PATTERN_PRESETS[0].pattern, undefined);
+    expect(await screen.findByText('2026-11-14_a')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create 2 batches' })).toBeEnabled();
+  });
+
+  it('counts a ticked already-batched folder, and says "1 batch" for one', async () => {
+    open();
+    many();
+    parent('/c');
+    await settled();
+    fireEvent.click(await screen.findByRole('checkbox', { name: '2026-10-17_old' }));
+    expect(screen.getByRole('button', { name: 'Create 3 batches' })).toBeEnabled();
+  });
+
+  it('sends the whole form, with the folders to include again, once', async () => {
+    const { onCreateMany } = open();
+    many();
+    parent('/c');
+    fireEvent.change(screen.getByLabelText('Name each batch'), { target: { value: '{name} reel' } });
+    await settled();
+    fireEvent.click(await screen.findByRole('checkbox', { name: '2026-10-17_old' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create 3 batches' }));
+    expect(onCreateMany).toHaveBeenCalledTimes(1);
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', include: ['2026-10-17_old'], maxSeconds: '60' });
+  });
+
+  it('keeps Create disabled with nothing to create, a refused pattern, bad limits, or while busy', async () => {
+    const none = { matches: [preview.matches[3]], notMatching: 0, truncated: false };
+    const { previewFolders } = open({ previewFolders: vi.fn().mockResolvedValue(none) });
+    expect(previewFolders).toBeDefined();
+    many();
+    parent('/c');
+    await settled();
+    expect(await screen.findByText('No videos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create 0 batches|Create batches/ })).toBeDisabled();
+  });
+
+  it('shows the server message for a refused pattern and keeps Create disabled', async () => {
+    open({ previewFolders: vi.fn().mockRejectedValue(new Error('The pattern could take far too long to match')) });
+    many();
+    parent('/c');
+    await settled();
+    expect(await screen.findByRole('alert')).toHaveTextContent('far too long');
+    expect(screen.getByRole('button', { name: /Create/ })).toBeDisabled();
+  });
+
+  it('disables Create for a limit the server would refuse', async () => {
+    open();
+    many();
+    parent('/c');
+    await settled();
+    await screen.findByText('2026-11-14_a');
+    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '0.5' } });
+    expect(screen.getByRole('button', { name: 'Create 2 batches' })).toBeDisabled();
+  });
+
+  it('shows Creating… and stays disabled while busy', async () => {
+    open({ busy: true });
+    many();
+    expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled();
+  });
+
+  it('passes the output folder to the preview so a clash is shown before Create', async () => {
+    const { previewFolders } = open();
+    many();
+    parent('/c');
+    fireEvent.change(screen.getByLabelText('Output folder'), { target: { value: '/out/reels' } });
+    await settled();
+    expect(previewFolders).toHaveBeenLastCalledWith('/c', PATTERN_PRESETS[0].pattern, '/out/reels');
   });
 });
