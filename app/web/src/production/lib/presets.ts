@@ -20,7 +20,7 @@ export interface NewBatchForm extends SettingsForm {
 }
 
 export function defaultSettings(): SettingsForm {
-  return { outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '60', maxSizeMb: '50', fit: 'crop' };
+  return { outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '900', maxSizeMb: '150', fit: 'crop' };
 }
 
 export function defaultForm(): NewBatchForm {
@@ -33,7 +33,7 @@ export const PATTERN_PRESETS = [
   { id: 'custom', label: 'Custom pattern', pattern: '' },
 ];
 
-/** The "folders inside a folder" form. `include` lists already-batched folders the user ticked to batch again. */
+/** The "subfolders" form. `include` lists already-batched folders the user ticked to batch again. */
 export interface ManyForm extends SettingsForm {
   parentFolder: string;
   presetId: string;

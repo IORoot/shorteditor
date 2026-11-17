@@ -81,7 +81,7 @@ describe('Production, end to end', () => {
         { key: 'order_clips', settings: { orderBy: 'capture_time' }, enabled: true },
         { key: 'limit_length', settings: { maxSeconds: 45 }, enabled: true },
         { key: 'join_pieces', settings: { fit: 'crop' }, enabled: true },
-        { key: 'render_output', settings: { maxSizeMb: 50 }, enabled: true },
+        { key: 'render_output', settings: { maxSizeMb: 150 }, enabled: true },
       ],
     });
     await waitFor(() => expect(backend.boardLoads()).toBeGreaterThan(before));

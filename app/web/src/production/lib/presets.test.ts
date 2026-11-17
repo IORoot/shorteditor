@@ -7,7 +7,7 @@ const form = (over: Partial<NewBatchForm> = {}): NewBatchForm => ({ ...defaultFo
 describe('defaultForm', () => {
   it('starts with the usual social-media settings and no output folder of its own', () => {
     expect(defaultForm()).toEqual({
-      name: '', inputFolder: '', outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '60', maxSizeMb: '50', fit: 'crop',
+      name: '', inputFolder: '', outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '900', maxSizeMb: '150', fit: 'crop',
     });
   });
 });
@@ -95,7 +95,7 @@ describe('defaultManyForm', () => {
   it('starts on the date preset with the usual settings', () => {
     expect(defaultManyForm()).toEqual({
       parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [],
-      outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '60', maxSizeMb: '50', fit: 'crop',
+      outputRoot: '', runOn: 'any', orderBy: 'capture_time', maxSeconds: '900', maxSizeMb: '150', fit: 'crop',
       watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
     });
   });
@@ -153,7 +153,7 @@ describe('watch fields', () => {
 
   it('falls back to the custom preset and the usual settings for a watch with unknown steps', () => {
     const form = formFromWatch({ id: 1, name: 'x', parentFolder: '/c', pattern: 'cam-\\d+', nameTemplate: '{name}', runOn: 'any', outputRoot: null, steps: [], intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: 'x', lastCheckedAt: null, lastError: null, waiting: [], createdTotal: 0, status: 'watching', statusLine: '' } as WatchView);
-    expect(form).toMatchObject({ presetId: 'custom', pattern: 'cam-\\d+', orderBy: 'capture_time', maxSeconds: '60', maxSizeMb: '50', fit: 'crop', outputRoot: '' });
+    expect(form).toMatchObject({ presetId: 'custom', pattern: 'cam-\\d+', orderBy: 'capture_time', maxSeconds: '900', maxSizeMb: '150', fit: 'crop', outputRoot: '' });
     expect(settingsFromSteps([{ key: 'order_clips', settings: { orderBy: 'bogus' }, enabled: true }]).orderBy).toBe('capture_time');
   });
 });

@@ -97,7 +97,7 @@ describe('ManyFoldersForm', () => {
   it('shows the shared settings for every batch', () => {
     show();
     expect(screen.getByText('Settings for every batch')).toBeInTheDocument();
-    expect(screen.getByLabelText('Max length (seconds)')).toHaveValue('60');
+    expect(screen.getByLabelText('Max length (seconds)')).toHaveValue('900');
     expect(screen.getByLabelText('Run on')).toBeInTheDocument();
     expect(screen.getByLabelText('Output folder')).toHaveAttribute('placeholder', '/out');
   });

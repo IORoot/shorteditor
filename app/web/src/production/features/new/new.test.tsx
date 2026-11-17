@@ -60,7 +60,7 @@ describe('NewBatchDialog', () => {
     expect(create).toBeEnabled();
     fireEvent.click(create);
     expect(onCreate).toHaveBeenCalledTimes(1);
-    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Coach Saturdays', inputFolder: '/clips/coach', maxSeconds: '60', maxSizeMb: '50', fit: 'crop', runOn: 'any' });
+    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Coach Saturdays', inputFolder: '/clips/coach', maxSeconds: '900', maxSizeMb: '150', fit: 'crop', runOn: 'any' });
   });
 
   it('disables Create for a limit that is not a positive number', () => {
@@ -142,8 +142,8 @@ describe('NewBatchDialog', () => {
   });
 });
 
-describe('NewBatchDialog, folders inside a folder', () => {
-  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+describe('NewBatchDialog, subfolders', () => {
+  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
   const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
   const settled = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(500); }); };
 
@@ -199,7 +199,7 @@ describe('NewBatchDialog, folders inside a folder', () => {
     fireEvent.click(await screen.findByRole('checkbox', { name: '2026-10-17_old' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create 3 batches' }));
     expect(onCreateMany).toHaveBeenCalledTimes(1);
-    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', include: ['2026-10-17_old'], maxSeconds: '60' });
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', include: ['2026-10-17_old'], maxSeconds: '900' });
   });
 
   it('keeps Create disabled with nothing to create, a refused pattern, bad limits, or while busy', async () => {
@@ -249,7 +249,7 @@ describe('NewBatchDialog, folders inside a folder', () => {
 });
 
 describe('NewBatchDialog, keeping watch', () => {
-  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
   const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
   const settled = async () => { await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); }); };
 

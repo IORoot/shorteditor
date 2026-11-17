@@ -83,7 +83,7 @@ export function NewBatchDialog({ defaults, busy, error, onCreate, onCreateMany, 
                 label="What to create"
                 value={mode}
                 onChange={setMode}
-                options={[{ value: 'one', label: 'One folder' }, { value: 'many', label: 'Folders inside a folder' }]}
+                options={[{ value: 'one', label: 'One folder' }, { value: 'many', label: 'Subfolders' }]}
               />
             </div>
           )}

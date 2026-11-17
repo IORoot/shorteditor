@@ -11,9 +11,9 @@ const noContent = () => Promise.resolve(new Response(null, { status: 204 }));
 const DEFAULT_STEPS = [
   { key: 'scan_folder', settings: {}, enabled: true },
   { key: 'order_clips', settings: { orderBy: 'capture_time' }, enabled: true },
-  { key: 'limit_length', settings: { maxSeconds: 60 }, enabled: true },
+  { key: 'limit_length', settings: { maxSeconds: 900 }, enabled: true },
   { key: 'join_pieces', settings: { fit: 'crop' }, enabled: true },
-  { key: 'render_output', settings: { maxSizeMb: 50 }, enabled: true },
+  { key: 'render_output', settings: { maxSizeMb: 150 }, enabled: true },
 ];
 const DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}_.+$';
 const COLUMNS = ['Queued', 'Running', 'Needs attention', 'Ready to review'];
@@ -115,7 +115,7 @@ describe('Production folders and watches, end to end', () => {
     backend.state.preview = settledPreview();
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     expect(await screen.findByText('2026-11-14_a')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create 2 batches' }));
@@ -151,7 +151,7 @@ describe('Production folders and watches, end to end', () => {
     backend.state.preview = settledPreview();
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     await screen.findByText('2026-11-14_a');
     fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
@@ -170,7 +170,7 @@ describe('Production folders and watches, end to end', () => {
     backend.state.preview = settledPreview();
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     await screen.findByText('2026-11-14_a');
     fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
@@ -235,7 +235,7 @@ describe('Production folders and watches, end to end', () => {
     backend.state.previewError = 'The pattern could take far too long to match';
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Folders inside a folder' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     fireEvent.click(await screen.findByRole('switch', { name: 'Keep watching this folder' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('far too long');
