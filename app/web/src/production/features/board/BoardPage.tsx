@@ -196,7 +196,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
           onApprove={() => act(() => api.approve(opened.passId))}
           pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
           onRunAgain={(pipelineId) => act(() => api.runAgain(opened.batchId, pipelineId))}
-          onResolve={(choice) => act(() => api.resolve(opened.passId, choice))}
+          onResolve={(choice, picks) => act(() => (picks ? api.resolve(opened.passId, choice, picks) : api.resolve(opened.passId, choice)))}
           onClose={() => open(null)}
         />
       ) : null}

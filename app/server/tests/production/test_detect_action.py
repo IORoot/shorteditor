@@ -5,8 +5,8 @@ from collector_server.production.stage_api import StageContext, StageError
 from collector_server.production.stages import detect_action as stage
 
 
-def ctx_for(tmp_path, cache=None):
-    return StageContext(str(tmp_path), str(tmp_path), str(tmp_path), None, lambda line: None, cache_root=cache)
+def ctx_for(tmp_path, cache=None, key=None):
+    return StageContext(str(tmp_path), str(tmp_path), str(tmp_path), None, lambda line: None, cache_root=cache, ai_key=key)
 
 
 def test_only_real_actions_inside_the_clip_are_kept():
@@ -23,33 +23,34 @@ def test_padding_merging_and_short_drops_stay_inside_the_clip():
     assert stage.tidy_parts([(12, 13), (4, 4)], 10, 0, 0, 0, 0) == []
 
 
-def test_a_missing_key_fails_plainly(monkeypatch, tmp_path):
-    monkeypatch.delenv(stage.KEY_VARIABLE, raising=False)
+def test_a_missing_key_fails_plainly(tmp_path):
     data = PiecesData(items=[Piece(clip="/clips/a.mp4", clip_duration=20)])
-    with pytest.raises(StageError, match="OPENROUTER_API_KEY"):
+    with pytest.raises(StageError, match="OpenRouter key in Settings"):
         stage.DetectAction().run(data, stage.DetectSettings(), ctx_for(tmp_path))
 
 
 def test_action_parts_are_placed_inside_their_piece(monkeypatch, tmp_path):
-    monkeypatch.setenv(stage.KEY_VARIABLE, "test-key")
     monkeypatch.setattr(stage, "extract_frames", lambda ctx, piece, folder, fps: ["f1.jpg", "f2.jpg"])
     monkeypatch.setattr(stage, "ask_model", lambda model, prompt, frames, length, key: '{"actions": [{"start": 2, "end": 5}]}')
     clip = tmp_path / "a.mp4"
     clip.write_bytes(b"x")
     data = PiecesData(items=[Piece(clip=str(clip), clip_duration=60, start=10, end=30)])
-    result = stage.DetectAction().run(data, stage.DetectSettings(padding_before=0, padding_after=0), ctx_for(tmp_path, cache=str(tmp_path / "cache")))
+    result = stage.DetectAction().run(data, stage.DetectSettings(padding_before=0, padding_after=0), ctx_for(tmp_path, cache=str(tmp_path / "cache"), key="test-key"))
     assert [(p.clip, p.start, p.end) for p in result.items] == [(str(clip), 12.0, 15.0)]
 
 
 def test_saved_results_are_reused_without_asking_the_model(monkeypatch, tmp_path):
-    monkeypatch.setenv(stage.KEY_VARIABLE, "test-key")
     monkeypatch.setattr(stage, "extract_frames", lambda ctx, piece, folder, fps: ["f1.jpg"])
     clip = tmp_path / "a.mp4"
     clip.write_bytes(b"x")
     data = PiecesData(items=[Piece(clip=str(clip), clip_duration=60)])
-    ctx = ctx_for(tmp_path, cache=str(tmp_path / "cache"))
+    ctx = ctx_for(tmp_path, cache=str(tmp_path / "cache"), key="test-key")
     monkeypatch.setattr(stage, "ask_model", lambda *args: '{"actions": [{"start": 2, "end": 5}]}')
     first = stage.DetectAction().run(data, stage.DetectSettings(), ctx)
     monkeypatch.setattr(stage, "ask_model", lambda *args: pytest.fail("the model should not be asked again"))
     again = stage.DetectAction().run(data, stage.DetectSettings(), ctx)
     assert [(p.start, p.end) for p in again.items] == [(p.start, p.end) for p in first.items]
+    asked = []
+    monkeypatch.setattr(stage, "ask_model", lambda *args: asked.append(args) or '{"actions": [{"start": 1, "end": 3}]}')
+    stage.DetectAction().run(data, stage.DetectSettings(prompt="Find the goals."), ctx)
+    assert len(asked) == 1  # a changed prompt is a different result, so the model is asked again

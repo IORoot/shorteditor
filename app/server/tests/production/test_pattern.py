@@ -27,10 +27,10 @@ def test_invalid_syntax_is_refused_with_the_reason():
         compile_pattern("([a-z")
 
 
-@pytest.mark.parametrize("text", ["(a+)+", "(.*)*", "(a|aa)+", r"(\d+)*x", "(?:a*)+b", "(x+x+)+y", "((a+))+"])
-def test_runaway_shapes_are_refused(text):
-    with pytest.raises(InvalidInputError, match="far too long"):
-        compile_pattern(text)
+def test_runaway_shapes_are_refused():
+    for text in ["(a+)+", "(.*)*", "(a|aa)+", r"(\d+)*x", "(?:a*)+b", "(x+x+)+y", "((a+))+"]:
+        with pytest.raises(InvalidInputError, match="far too long"):
+            compile_pattern(text)
 
 
 @pytest.mark.full

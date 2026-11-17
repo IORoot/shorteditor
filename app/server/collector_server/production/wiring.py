@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -68,13 +69,13 @@ def build_usage(db: Database) -> ProductionUsage:
     return ProductionUsage(BatchRepository(db), PassRepository(db), WatchRepository(db))
 
 
-def build_production(db: Database, default_output_root: str, library: StageLibrary, pipelines: PipelineSource) -> Production:
+def build_production(db: Database, default_output_root: str, library: StageLibrary, pipelines: PipelineSource, ai_key: Callable[[], str | None] = lambda: None) -> Production:
     """Everything production needs, connected. Starts with one worker: this computer."""
     ensure_schema(db)
     batches, passes, logs = BatchRepository(db), PassRepository(db), LogRepository(db)
     workers = {"local": LocalWorker("local")}
     labels = {"local": "This computer"}
-    queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, library.registry, pipelines, _now), workers, _now)
+    queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, library.registry, pipelines, _now, ai_key), workers, _now)
     service = ProductionService(batches, passes, logs, library, pipelines, _now, default_output_root, list(workers), labels)
     watches = WatchRepository(db)
     watch_service = WatchService(watches, service, time.time)

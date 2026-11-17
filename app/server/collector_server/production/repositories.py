@@ -11,9 +11,9 @@ from .stage_api import StageStep
 
 _PASS_FIELDS = {
     "status", "stage_index", "stage_key", "blocked_reason", "blocked_choices",
-    "overrides", "error", "output", "started_at", "finished_at", "steps_used",
+    "overrides", "error", "output", "started_at", "finished_at", "steps_used", "blocked_items",
 }
-_JSON_FIELDS = {"blocked_choices", "overrides", "output", "steps_used"}
+_JSON_FIELDS = {"blocked_choices", "blocked_items", "overrides", "output", "steps_used"}
 
 
 class BatchRepository:
@@ -112,7 +112,7 @@ class PassRepository:
         return Pass(
             id=row["id"], batch_id=row["batch_id"], number=row["number"], status=row["status"],
             stage_index=row["stage_index"], stage_key=row["stage_key"], blocked_reason=row["blocked_reason"],
-            blocked_choices=json.loads(row["blocked_choices"]), overrides=json.loads(row["overrides"]),
+            blocked_choices=json.loads(row["blocked_choices"]), blocked_items=json.loads(row["blocked_items"]), overrides=json.loads(row["overrides"]),
             steps_used=[StageStep(**step) for step in json.loads(row["steps_used"])],
             error=row["error"], output=VideoData.model_validate_json(row["output"]) if row["output"] else None,
             created_at=row["created_at"], started_at=row["started_at"], finished_at=row["finished_at"],

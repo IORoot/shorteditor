@@ -21,8 +21,9 @@ export class ProductionApi extends HttpClient {
     return this.send<StageHandoff>(`${BASE}/passes/${passId}/approve`, 'POST', {});
   }
 
-  resolve(passId: number, choice: string): Promise<Pass> {
-    return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', { choice });
+  /** Answers a blocked pass. picks are the clips kept, when the stop was Review by hand. */
+  resolve(passId: number, choice: string, picks?: number[]): Promise<Pass> {
+    return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', picks === undefined ? { choice } : { choice, picks });
   }
 
   /** A new pass from the original clips, optionally switching the batch to another pipeline first. */

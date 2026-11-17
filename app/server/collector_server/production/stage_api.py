@@ -14,12 +14,13 @@ if TYPE_CHECKING:
 
 
 class BlockedError(Exception):
-    """A stage cannot finish without the user choosing what to do."""
+    """A stage cannot finish without the user choosing what to do. items are the clips the user may pick from."""
 
-    def __init__(self, reason: str, choices: list[str]) -> None:
+    def __init__(self, reason: str, choices: list[str], items: list[str] | None = None) -> None:
         super().__init__(reason)
         self.reason = reason
         self.choices = choices
+        self.items = items or []
 
 
 class StageError(Exception):
@@ -34,6 +35,7 @@ class StageContext:
     ffmpeg: FfmpegRunner
     log: Callable[[str], None]
     cache_root: str | None = None  # where saved results of slow steps (Detect action) live; None turns saving off
+    ai_key: str | None = None  # the OpenRouter key from Settings, for the AI stages only
 
 
 class Stage(Protocol):

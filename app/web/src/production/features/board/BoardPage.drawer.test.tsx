@@ -84,7 +84,7 @@ describe('BoardPage review drawer', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'C, Failed' }));
     fireEvent.click(screen.getByRole('button', { name: 'Run again' }));
     await act(async () => undefined);
-    expect(api.runAgain).toHaveBeenCalledWith(7);
+    expect(api.runAgain.mock.calls[0][0]).toBe(7);  // the pipeline id is sent too, as the batch's own
   });
 
   it('stays open and follows the batch when a refresh brings a new state', { tags: ['full'] }, async () => {

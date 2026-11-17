@@ -197,9 +197,10 @@ class ProductionService:
                 self._batches.set_pipeline(batch.id, pipeline_id)
             elif batch.pipeline_id is None:
                 raise InvalidInputError("Choose a pipeline for this batch first")
-            return self._passes.create(batch_id, self._now(), overrides=latest.overrides if latest else None)
+            inherited = {stage: setting for stage, setting in (latest.overrides if latest else {}).items() if "picks" not in setting}  # picks were for one run's clips
+            return self._passes.create(batch_id, self._now(), overrides=inherited or None)
 
-    def resolve_block(self, pass_id: int, choice: str) -> Pass:
+    def resolve_block(self, pass_id: int, choice: str, picks: list[int] | None = None) -> Pass:
         with self._lock:
             current = self._need_pass(pass_id)
             self._need_newest(current)
@@ -207,8 +208,11 @@ class ProductionService:
                 raise StateError("Only a blocked pass can be resolved")
             if choice not in current.blocked_choices:
                 raise InvalidInputError(f"{choice} is not one of the choices: {', '.join(current.blocked_choices)}")
-            overrides = {**current.overrides, current.stage_key: {"choice": choice}}
-            updated = self._passes.update(pass_id, only_if_status="blocked", status="queued", overrides=overrides, blocked_reason=None, blocked_choices=[])
+            if picks is not None and (not picks or not all(0 <= i < len(current.blocked_items) for i in picks)):
+                raise InvalidInputError("Pick clips from the list shown")
+            setting = {"picks": sorted(set(picks))} if picks is not None else {"choice": choice}
+            overrides = {**current.overrides, current.stage_key: setting}
+            updated = self._passes.update(pass_id, only_if_status="blocked", status="queued", overrides=overrides, blocked_reason=None, blocked_choices=[], blocked_items=[])
             if updated is None:
                 raise StateError("The pass changed while you were choosing")
             return updated
@@ -252,7 +256,7 @@ class ProductionService:
                 stage_position=latest.stage_index + 1 if at_stage else (len(titles) if latest.status in ("review", "approved") else 0),
                 stage_count=len(titles), pass_number=latest.number,
                 queue_position=waiting.index(latest.id) if latest.id in waiting else None,
-                blocked_reason=latest.blocked_reason, blocked_choices=latest.blocked_choices, error=latest.error, output=latest.output,
+                blocked_reason=latest.blocked_reason, blocked_choices=latest.blocked_choices, blocked_items=latest.blocked_items, error=latest.error, output=latest.output,
             ))
         return cards
 

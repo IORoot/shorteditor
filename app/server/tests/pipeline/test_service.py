@@ -133,6 +133,7 @@ def test_an_unknown_id_is_not_found(svc):
         svc.set_enabled(99, True)
 
 
+@pytest.mark.full
 def test_duplicate_names_copy_then_copy_2(svc):
     p = svc.create(save(svc, "A", description="d"))
     one, two = svc.duplicate(p.id), svc.duplicate(p.id)

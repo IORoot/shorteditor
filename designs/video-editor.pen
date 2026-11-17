@@ -37909,106 +37909,6 @@
             },
             {
               "type": "frame",
-              "id": "TKeEh",
-              "opacity": 0.55,
-              "width": "fill_container",
-              "stroke": "$line",
-              "strokeWidth": {
-                "top": 1
-              },
-              "gap": 12,
-              "padding": [
-                12,
-                0,
-                0,
-                0
-              ],
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "yJZTP",
-                  "width": 36,
-                  "height": 36,
-                  "fill": "$fill-2",
-                  "cornerRadius": 10,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "B8dv4v",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "scissors",
-                      "library": "lucide",
-                      "fill": "$text"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cIEh7",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 2,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "uv9hF",
-                      "fill": "$text",
-                      "content": "Trim to action",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "LaLex",
-                      "fill": "$text-3",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Needs pieces: there is already a Trim after Detect action.",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "devsW",
-                      "fill": "$text-3",
-                      "content": "trim_pieces",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "b3q2G",
-                  "fill": "$fill-2",
-                  "cornerRadius": 20,
-                  "padding": [
-                    8,
-                    16
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "MUsQx",
-                      "fill": "$text-3",
-                      "content": "Can't add",
-                      "fontFamily": "Inter",
-                      "fontSize": 13,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "OBSaH",
               "width": "fill_container",
               "stroke": "$line",
@@ -38341,6 +38241,105 @@
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "CpdyQ",
+              "width": "fill_container",
+              "stroke": "$line",
+              "strokeWidth": {
+                "top": 1
+              },
+              "gap": 12,
+              "padding": [
+                12,
+                0,
+                0,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "O08Fg",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$fill-2",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "rveJy",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "hourglass",
+                      "library": "lucide",
+                      "fill": "$text"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ImQJh",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OWP2d",
+                      "fill": "$text",
+                      "content": "FFmpeg",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ylzkw",
+                      "fill": "$text-2",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Runs your own FFmpeg options on each clip, or on the joined video.",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZzJXh",
+                      "fill": "$text-3",
+                      "content": "ffmpeg",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "T3eB2",
+                  "fill": "$accent",
+                  "cornerRadius": 20,
+                  "padding": [
+                    8,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tRZKF",
+                      "fill": "$on-accent",
+                      "content": "Add",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             }
@@ -54537,154 +54536,6 @@
                                       "fontWeight": "500"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Qg3mI",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "gap": 20,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "xhvPv",
-                              "name": "Field Between clips",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 6,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "hrZ5N",
-                                  "fill": "$text-2",
-                                  "content": "Between clips",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 12,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "tmczs",
-                                  "name": "Segmented",
-                                  "width": "fill_container",
-                                  "fill": "$fill-2",
-                                  "cornerRadius": 12,
-                                  "padding": 3,
-                                  "children": [
-                                    {
-                                      "type": "frame",
-                                      "id": "vZfpJ",
-                                      "name": "Option Cut",
-                                      "width": "fill_container",
-                                      "fill": "$surface",
-                                      "cornerRadius": 9,
-                                      "layout": "vertical",
-                                      "gap": 8,
-                                      "padding": [
-                                        7,
-                                        12
-                                      ],
-                                      "justifyContent": "center",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "WvYK3",
-                                          "fill": "$text",
-                                          "content": "Cut",
-                                          "fontFamily": "Inter",
-                                          "fontSize": 13,
-                                          "fontWeight": "600"
-                                        }
-                                      ]
-                                    },
-                                    {
-                                      "type": "frame",
-                                      "id": "S3exPm",
-                                      "name": "Option Crossfade",
-                                      "width": "fill_container",
-                                      "cornerRadius": 9,
-                                      "layout": "vertical",
-                                      "gap": 8,
-                                      "padding": [
-                                        7,
-                                        12
-                                      ],
-                                      "justifyContent": "center",
-                                      "alignItems": "center",
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "WZTEY",
-                                          "fill": "$text-2",
-                                          "content": "Crossfade",
-                                          "fontFamily": "Inter",
-                                          "fontSize": 13,
-                                          "fontWeight": "500"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "k0XEX",
-                              "name": "Field Crossfade length (seconds)",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 6,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "nwfeI",
-                                  "fill": "$text-2",
-                                  "content": "Crossfade length (seconds)",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 12,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "wtBtE",
-                                  "name": "Input",
-                                  "width": "fill_container",
-                                  "fill": "$fill-2",
-                                  "cornerRadius": 10,
-                                  "gap": 8,
-                                  "padding": [
-                                    10,
-                                    12
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "yDo1q",
-                                      "fill": "$text",
-                                      "content": "0.5",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 14,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "sceDp",
-                                  "fill": "$text-3",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Used only with Crossfade.",
-                                  "fontFamily": "Inter",
-                                  "fontSize": 12,
-                                  "fontWeight": "normal"
                                 }
                               ]
                             }

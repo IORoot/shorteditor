@@ -5,15 +5,18 @@ import { BoardPage } from './production/features/board/BoardPage';
 import { productionApi } from './production/lib/api';
 import { PipelinePage } from './pipeline/PipelinePage';
 import { pipelineApi } from './pipeline/lib/api';
+import { SettingsPage } from './settings/SettingsPage';
+import { settingsApi } from './settings/lib/api';
 
 const TABS = [
   { id: 'collection', label: 'Collection', enabled: true },
   { id: 'pipeline', label: 'Pipeline', enabled: true },
   { id: 'production', label: 'Production', enabled: true },
   { id: 'output', label: 'Output', enabled: false },
+  { id: 'settings', label: 'Settings', enabled: true },
 ];
 
-type Section = 'collection' | 'pipeline' | 'production';
+type Section = 'collection' | 'pipeline' | 'production' | 'settings';
 
 export default function App() {
   const [section, setSection] = useState<Section>('collection');
@@ -33,6 +36,7 @@ export default function App() {
         <CollectionPage active={section === 'collection'} />
       </div>
       {section === 'pipeline' ? <PipelinePage api={pipelineApi} /> : null}
+      {section === 'settings' ? <SettingsPage api={settingsApi} /> : null}
       {section === 'production' ? <BoardPage api={productionApi} onManagePipelines={() => setSection('pipeline')} /> : null}
     </div>
   );

@@ -18,7 +18,6 @@ from ..stage_api import StageContext, StageError
 from . import detect_cache
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-KEY_VARIABLE = "OPENROUTER_API_KEY"  # read on this computer only; never stored, logged or sent to a worker
 MAX_FRAMES = 120  # shortcut: frames per piece are capped at this many, so long pieces get a lower frame rate; raise if clips need finer detail
 
 
@@ -48,9 +47,9 @@ class DetectAction:
     position = "any"
 
     def run(self, data: PiecesData, settings: DetectSettings, ctx: StageContext) -> PiecesData:
-        key = os.environ.get(KEY_VARIABLE, "").strip()
+        key = (ctx.ai_key or "").strip()
         if not key:
-            raise StageError(f"Set {KEY_VARIABLE} on this computer to use Detect action")
+            raise StageError("Add your OpenRouter key in Settings to use Detect action")
         found: list[Piece] = []
         for number, piece in enumerate(data.items):
             name = os.path.basename(piece.clip)

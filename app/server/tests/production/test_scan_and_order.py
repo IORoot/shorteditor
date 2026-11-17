@@ -152,6 +152,7 @@ def test_order_capture_time_falls_back_to_file_time(tmp_path):
     assert [p.clip for p in data.items] == [b, a]
 
 
+@pytest.mark.full
 def test_order_fallback_name_ignores_file_times_when_no_capture_time(tmp_path):
     a = make_clip(tmp_path / "a.mp4")
     b = make_clip(tmp_path / "b.mp4")

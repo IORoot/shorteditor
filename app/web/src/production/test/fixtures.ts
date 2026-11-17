@@ -22,6 +22,7 @@ export function makeCard(overrides: Partial<BatchCard> = {}): BatchCard {
     startedAt: null,
     blockedReason: null,
     blockedChoices: [],
+    blockedItems: [],
     error: null,
     output: null,
     ...overrides,

@@ -100,6 +100,7 @@ def test_bulk_rejects_an_unknown_placeholder(world):
         world.service.create_batches(world.request(name_template="{nope}"))
 
 
+@pytest.mark.full
 def test_bulk_skips_already_batched_and_lists_them(world):
     world.folder("2026-11-07_a")
     taken = world.folder("2026-11-08_b")

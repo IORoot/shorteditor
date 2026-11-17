@@ -4,8 +4,8 @@ from collector_server.production.stage_api import StageStep
 from collector_server.production.validation import validate_pipeline
 
 
-def test_builtin_registry_has_the_six_stages():
-    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output", "detect_action", "ffmpeg"])
+def test_builtin_registry_has_every_stage():
+    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output", "detect_action", "ffmpeg", "review_by_hand"])
 
 
 def test_join_pipeline_validates():

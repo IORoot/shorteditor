@@ -17,7 +17,7 @@ export interface ReviewDrawerProps {
   pipelines: PipelineChoice[];
   onApprove: () => void;
   onRunAgain: (pipelineId: number) => void;
-  onResolve: (choice: string) => void;
+  onResolve: (choice: string, picks?: number[]) => void;
   onClose: () => void;
 }
 
@@ -77,7 +77,7 @@ export function ReviewDrawer({ card, outputUrl, busy, error, pipelines, onApprov
         <>
           <p className="break-words text-small text-text-2">{card.blockedReason}</p>
           {card.blockedChoices.length > 0 ? (
-            <BlockedChoices choices={card.blockedChoices} busy={busy} onChoose={onResolve} />
+            <BlockedChoices choices={card.blockedChoices} items={card.blockedItems} busy={busy} onChoose={onResolve} />
           ) : (
             <p className="text-small text-text-3">No choices were offered for this block.</p>
           )}

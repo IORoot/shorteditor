@@ -33,6 +33,7 @@ def test_ordinary_options_pass_and_placeholders_fill_in():
     assert fill_placeholders(args, "in.mp4", "out.mp4")[-1] == "out.mp4"
 
 
+@pytest.mark.full
 def test_unclosed_quote_says_so():
     with pytest.raises(StageError, match="unclosed quote"):
         split_options('-vf "eq=brightness=0.1')

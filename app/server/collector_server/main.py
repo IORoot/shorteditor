@@ -24,6 +24,7 @@ from .collection.service import CollectorService
 from .collection.source_checker import LocalSourceChecker
 from .collection.undo import UndoService
 from .pipeline.wiring import build_pipeline
+from .settings.app_settings import OPENROUTER_KEY, AppSettings, build_settings_router
 from .production.wiring import build_library, build_production, build_usage
 
 TICK_SECONDS = 30
@@ -49,7 +50,8 @@ def create_default_app() -> FastAPI:
     output_root = os.environ.get("SHORT_EDITOR_OUTPUT") or os.path.join(os.path.dirname(os.path.abspath(db_path)), "production_output")
     library = build_library()
     pipeline = build_pipeline(db, library, build_usage(db))  # Pipeline reads production's usage and stage library
-    production = build_production(db, output_root, library, pipeline.service)
+    app_settings = AppSettings(db)
+    production = build_production(db, output_root, library, pipeline.service, ai_key=lambda: app_settings.get(OPENROUTER_KEY))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -77,6 +79,7 @@ def create_default_app() -> FastAPI:
     app.include_router(build_router(service, FolderBrowser(), run_service))
     app.include_router(pipeline.router)
     app.include_router(production.router)
+    app.include_router(build_settings_router(app_settings))
     return app
 
 

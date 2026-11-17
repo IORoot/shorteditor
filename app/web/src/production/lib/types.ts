@@ -31,6 +31,7 @@ export interface BatchCard {
   startedAt: string | null;
   blockedReason: string | null;
   blockedChoices: string[];
+  blockedItems: string[];
   error: string | null;
   output: VideoData | null;
 }
@@ -78,6 +79,7 @@ export interface Pass {
   stageKey: string;
   blockedReason: string | null;
   blockedChoices: string[];
+  blockedItems: string[];
   error: string | null;
   output: VideoData | null;
   createdAt: string;

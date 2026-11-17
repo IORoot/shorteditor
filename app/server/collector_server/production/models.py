@@ -31,6 +31,7 @@ class Pass(CamelModel):
     stage_key: str = ""
     blocked_reason: str | None = None
     blocked_choices: list[str] = []
+    blocked_items: list[str] = []  # the clips a review pass lets you pick from
     overrides: dict[str, dict] = {}
     steps_used: list[StageStep] = []  # the steps this pass ran with, saved when it started
     error: str | None = None
@@ -54,6 +55,7 @@ class RunAgain(CamelModel):
 
 class Resolve(CamelModel):
     choice: str
+    picks: list[int] | None = None  # the clips kept, for a Review by hand stop
 
 
 class BatchCard(CamelModel):
@@ -74,6 +76,7 @@ class BatchCard(CamelModel):
     queue_position: int | None
     blocked_reason: str | None
     blocked_choices: list[str]
+    blocked_items: list[str] = []
     error: str | None
     output: VideoData | None
 

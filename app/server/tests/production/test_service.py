@@ -342,3 +342,14 @@ def test_output_path_returns_the_checked_real_path(parts):
     detour = tmp / "results" / "b-1" / "pass-1" / ".." / "pass-1" / "output.mp4"
     passes.update(made.id, output=VideoData(path=str(detour), duration=1, size_bytes=1))
     assert service.output_path(made.id) == os.path.realpath(real)
+
+
+@pytest.mark.full
+def test_picks_are_refused_when_empty_and_do_not_carry_into_the_next_pass(parts):
+    service, passes, _, inbox, _ = parts
+    made = blocked(service, passes, inbox)
+    with pytest.raises(ValueError):
+        service.resolve_block(made.id, "Keep the picked clips", [])
+    passes.update(made.id, status="failed", overrides={"review_by_hand": {"picks": [0]}})
+    again = service.run_again(made.batch_id, None)
+    assert again.overrides == {}

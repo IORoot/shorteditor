@@ -136,12 +136,14 @@ def render_argv(tmp_path, **settings):
     return fake.calls[-1]
 
 
+@pytest.mark.full
 def test_smaller_quality_uses_seventy_percent_of_the_balanced_bitrate(tmp_path):
     balanced = render_argv(tmp_path, max_size_mb=20, quality="balanced")
     smaller = render_argv(tmp_path, max_size_mb=20, quality="smaller")
     assert abs(int(smaller[smaller.index("-b:v") + 1]) - 0.7 * int(balanced[balanced.index("-b:v") + 1])) < 2
 
 
+@pytest.mark.full
 def test_social_preset_ignores_typed_frame_rate_and_audio(tmp_path):
     argv = render_argv(tmp_path, preset="social", fps=60, audio_kbps=256, max_size_mb=None)
     assert "fps=30" in argv and "128k" in argv

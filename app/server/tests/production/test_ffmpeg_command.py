@@ -40,6 +40,7 @@ def test_refused_options_never_reach_ffmpeg(tmp_path):
     assert fake.calls == []
 
 
+@pytest.mark.full
 def test_joined_video_runs_once_on_the_video(tmp_path):
     fake = FakeFfmpeg()
     video = VideoData(path="/out/joined.mp4", duration=30, size_bytes=100)

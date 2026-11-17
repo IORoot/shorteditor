@@ -59,14 +59,10 @@ def _file(tmp_path):
     return str(tmp_path / "f")
 
 
-@pytest.mark.parametrize(
-    "make",
-    [_foreign, _file, _inside_file, lambda tmp: "out", lambda tmp: "/"],
-    ids=["foreign_files", "a_file", "inside_a_file", "relative", "top_of_disk"],
-)
-def test_unsafe_folders_are_refused(tmp_path, make):
-    with pytest.raises(OutputFolderError):
-        check_root(make(tmp_path))
+def test_unsafe_folders_are_refused(tmp_path):
+    for make in [_foreign, _file, _inside_file, lambda tmp: "out", lambda tmp: "/"]:  # foreign files, a file, inside a file, relative, top of disk
+        with pytest.raises(OutputFolderError):
+            check_root(make(tmp_path))
 
 
 @pytest.mark.full

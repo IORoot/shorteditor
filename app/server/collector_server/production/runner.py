@@ -24,13 +24,14 @@ _FFMPEG_LINES_KEPT = 3000
 
 class PassRunner:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry, pipelines: PipelineSource,
-                 now: Callable[[], str]) -> None:
+                 now: Callable[[], str], ai_key: Callable[[], str | None] = lambda: None) -> None:
         self._batches, self._passes, self._logs, self._registry, self._pipelines, self._now = batches, passes, logs, registry, pipelines, now
+        self._ai_key = ai_key  # read at the start of each pass, so a key saved in Settings is used by the next pass
 
     def run(self, pass_id: int, worker: Worker) -> None:
         claimed = self._passes.update(
             pass_id, only_if_status="queued", status="running", started_at=self._now(), finished_at=None,
-            error=None, blocked_reason=None, blocked_choices=[], output=None, stage_index=0, stage_key="",
+            error=None, blocked_reason=None, blocked_choices=[], blocked_items=[], output=None, stage_index=0, stage_key="",
         )
         if claimed is None:
             return  # someone else took it, or it is not waiting any more
@@ -48,12 +49,12 @@ class PassRunner:
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
-            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"))
+            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key())
             self._finish(pass_id, "review", pipeline, output=self._execute(claimed, steps, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
             self._discard(root, made_dir)
-            self._finish(pass_id, "blocked", pipeline, blocked_reason=blocked.reason, blocked_choices=blocked.choices, finished_at=None)
+            self._finish(pass_id, "blocked", pipeline, blocked_reason=blocked.reason, blocked_choices=blocked.choices, blocked_items=blocked.items, finished_at=None)
         except FfmpegError as error:
             pipeline(f"Failed: {error}")
             self._discard(root, made_dir)

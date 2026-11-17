@@ -53,6 +53,7 @@ def test_keep_first_trims_last_piece_to_fit(tmp_path):
     assert [round(p.length) for p in data.items] == [40, 20]
 
 
+@pytest.mark.full
 def test_keep_first_can_trim_the_start_of_the_last_piece(tmp_path):
     data = limit(pieces(20), tmp_path, max_seconds=15, choice="keep_first", trim_from="start")
     assert data.items[0].start == 5 and data.items[0].end is None
