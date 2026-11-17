@@ -38276,7 +38276,7 @@
                       "id": "rveJy",
                       "width": 16,
                       "height": 16,
-                      "icon": "hourglass",
+                      "icon": "terminal",
                       "library": "lucide",
                       "fill": "$text"
                     }
@@ -61074,6 +61074,322 @@
                   ]
                 }
               ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zHznc",
+      "x": 0,
+      "y": 0,
+      "name": "Settings - Light",
+      "clip": true,
+      "width": 760,
+      "height": 420,
+      "fill": "#F7F7F8",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 40,
+      "children": [
+        {
+          "type": "text",
+          "id": "xPFK2",
+          "name": "Title",
+          "fill": "#111111",
+          "content": "Settings",
+          "fontFamily": "Inter",
+          "fontSize": 30,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "QSrVJ",
+          "name": "AI card",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 12,
+          "stroke": "#E4E4E7",
+          "strokeWidth": 1,
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "A9Yvs",
+              "name": "AI heading",
+              "fill": "#111111",
+              "content": "AI",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "iilV8",
+              "name": "AI description",
+              "fill": "#6B6B70",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Used by the Detect action stage. The key is kept on this computer and is never shown in full.",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "L87Ms",
+              "name": "Key label",
+              "fill": "#333338",
+              "content": "OpenRouter API key",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "KCKj3",
+              "name": "Key field",
+              "width": "fill_container",
+              "fill": "#F4F4F5",
+              "cornerRadius": 8,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "VlKbH",
+                  "name": "Key value",
+                  "fill": "#6B6B70",
+                  "content": "•••••••••••••••1234",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "LktrT",
+              "name": "Key status",
+              "fill": "#15803D",
+              "content": "A key is saved (...1234)",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "bSmiW",
+              "name": "Buttons",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jfYBA",
+                  "name": "Save key",
+                  "fill": "#2F6BFF",
+                  "cornerRadius": 8,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SQ8Xc",
+                      "name": "Save label",
+                      "fill": "#FFFFFF",
+                      "content": "Save key",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "iXG8C",
+                  "name": "Remove key",
+                  "cornerRadius": 8,
+                  "stroke": "#D4D4D8",
+                  "strokeWidth": 1,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "N7CPI",
+                      "name": "Remove label",
+                      "fill": "#111111",
+                      "content": "Remove key",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "rxtU2",
+      "x": 0,
+      "y": 0,
+      "name": "Review by hand - Pick clips - Light",
+      "clip": true,
+      "width": 380,
+      "height": 400,
+      "fill": "#FFFFFF",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "KVUyw",
+          "name": "Heading",
+          "fill": "#111111",
+          "content": "Pick the clips to keep",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "Mq7Ny",
+          "name": "Help",
+          "fill": "#6B6B70",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Tick the clips to keep. Clips left unticked are dropped.",
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "xhBJ3",
+          "name": "Row a.mp4",
+          "width": "fill_container",
+          "fill": "#F4F4F5",
+          "cornerRadius": 8,
+          "gap": 10,
+          "padding": 8,
+          "children": [
+            {
+              "type": "frame",
+              "id": "J1xxUQ",
+              "name": "Checked",
+              "width": 18,
+              "height": 18,
+              "fill": "#2F6BFF",
+              "cornerRadius": 4
+            },
+            {
+              "type": "text",
+              "id": "cfWf5",
+              "name": "Name a",
+              "fill": "#111111",
+              "content": "a.mp4 (5.0 s)",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p58y0N",
+          "name": "Row b.mp4",
+          "width": "fill_container",
+          "cornerRadius": 8,
+          "stroke": "#D4D4D8",
+          "strokeWidth": 1,
+          "gap": 10,
+          "padding": 8,
+          "children": [
+            {
+              "type": "frame",
+              "id": "TA58A",
+              "name": "Unchecked",
+              "width": 18,
+              "height": 18,
+              "cornerRadius": 4,
+              "stroke": "#A1A1AA",
+              "strokeWidth": 1
+            },
+            {
+              "type": "text",
+              "id": "oJfnI",
+              "name": "Name b",
+              "fill": "#6B6B70",
+              "content": "b.mp4 (5.0 s)",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "SdKUG",
+          "name": "Row c.mp4",
+          "width": "fill_container",
+          "fill": "#F4F4F5",
+          "cornerRadius": 8,
+          "gap": 10,
+          "padding": 8,
+          "children": [
+            {
+              "type": "frame",
+              "id": "MgBPv",
+              "name": "Checked",
+              "width": 18,
+              "height": 18,
+              "fill": "#2F6BFF",
+              "cornerRadius": 4
+            },
+            {
+              "type": "text",
+              "id": "uufn3",
+              "name": "Name c",
+              "fill": "#111111",
+              "content": "c.mp4 (5.0 s)",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "obdX3",
+          "name": "Keep button",
+          "width": "fill_container",
+          "fill": "#2F6BFF",
+          "cornerRadius": 8,
+          "padding": [
+            10,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "IHCgV",
+              "name": "Keep label",
+              "fill": "#FFFFFF",
+              "content": "Keep 2 picked",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
             }
           ]
         }
