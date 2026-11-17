@@ -163,8 +163,8 @@ def test_cards_are_newest_batch_first(parts):
 def test_logs_come_back_in_order(parts):
     service, passes, logs, inbox, _ = parts
     made = passes.for_batch(create(service, inbox).id)[0]
-    logs.add(made.id, "pipeline", NOW, "a")
-    logs.add(made.id, "pipeline", NOW, "b")
+    logs.add_many(made.id, "pipeline", [(NOW, "a")])
+    logs.add_many(made.id, "pipeline", [(NOW, "b")])
     assert service.logs(made.id, "pipeline") == ["a", "b"]
 
 

@@ -71,7 +71,6 @@ class StageInfo(CamelModel):
 
 
 class BatchCard(CamelModel):
-    id: int
     batch_id: int
     pass_id: int
     run_on: str

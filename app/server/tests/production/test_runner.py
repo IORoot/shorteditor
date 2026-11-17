@@ -191,16 +191,18 @@ def test_running_a_pass_again_starts_its_logs_afresh(env):
     assert log[0] == "Scan folder started" and not any("Blocked" in line for line in log)
 
 
-def test_a_failed_rerun_leaves_no_output_from_an_earlier_run(env):
+def test_a_folder_that_already_holds_files_is_never_wiped(env):
+    """A reset database starts its ids again, so the same folder name can belong to an old, approved video."""
     from collector_server.production.output_paths import claim_root, folder_name
 
     queued = env.queue()
     claim_root(str(env.root / "out"))
     old = env.root / "out" / folder_name(env.batches.get(queued.batch_id)) / "pass-1"
     old.mkdir(parents=True)
-    (old / "output.mp4").write_bytes(b"old")
+    (old / "output.mp4").write_bytes(b"old approved video")
     failed = env.run(queued)
-    assert failed.status == "failed" and not (old / "output.mp4").exists()
+    assert failed.status == "failed" and "already holds files" in failed.error
+    assert (old / "output.mp4").read_bytes() == b"old approved video"
 
 
 def test_an_unusable_output_folder_gives_a_plain_message(db, tmp_path):

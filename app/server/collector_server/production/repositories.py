@@ -116,9 +116,6 @@ class LogRepository:
     def __init__(self, db: Database) -> None:
         self._db = db
 
-    def add(self, pass_id: int, kind: LogKind, at: str, text: str) -> None:
-        self._db.execute("INSERT INTO production_logs (pass_id, kind, at, text) VALUES (?, ?, ?, ?)", (pass_id, kind, at, text))
-
     def add_many(self, pass_id: int, kind: LogKind, rows: list[tuple[str, str]]) -> None:
         """rows are (time, text) pairs."""
         self._db.executemany(

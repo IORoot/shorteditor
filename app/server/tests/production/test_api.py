@@ -115,8 +115,8 @@ def test_approve_returns_the_handoff_and_refuses_the_wrong_state(api):
 
 def test_logs_by_kind(api):
     api.create()
-    api.repo_logs.add(1, "pipeline", NOW, "Scan folder started")
-    api.repo_logs.add(1, "ffmpeg", NOW, "frame=1")
+    api.repo_logs.add_many(1, "pipeline", [(NOW, "Scan folder started")])
+    api.repo_logs.add_many(1, "ffmpeg", [(NOW, "frame=1")])
     assert api.client.get("/api/production/passes/1/logs?kind=pipeline").json() == {"lines": ["Scan folder started"]}
     assert api.client.get("/api/production/passes/1/logs?kind=ffmpeg").json() == {"lines": ["frame=1"]}
     assert api.client.get("/api/production/passes/1/logs?kind=other").status_code == 422

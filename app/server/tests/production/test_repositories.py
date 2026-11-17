@@ -87,9 +87,9 @@ def test_update_rejects_unknown_fields_and_statuses(repos):
 def test_logs_keep_order_and_separate_kinds(repos):
     batches, passes, logs = repos
     made = passes.create(make_batch(batches).id, NOW)
-    logs.add(made.id, "pipeline", NOW, "Scan folder started")
-    logs.add(made.id, "ffmpeg", NOW, "frame=1")
-    logs.add(made.id, "pipeline", NOW, "Scan folder done")
+    logs.add_many(made.id, "pipeline", [(NOW, "Scan folder started")])
+    logs.add_many(made.id, "ffmpeg", [(NOW, "frame=1")])
+    logs.add_many(made.id, "pipeline", [(NOW, "Scan folder done")])
     assert logs.for_pass(made.id, "pipeline") == ["Scan folder started", "Scan folder done"]
     assert logs.for_pass(made.id, "ffmpeg") == ["frame=1"]
     assert logs.for_pass(999, "pipeline") == []
@@ -99,7 +99,7 @@ def test_add_many_keeps_order(repos):
     batches, passes, logs = repos
     made = passes.create(make_batch(batches).id, NOW)
     logs.add_many(made.id, "ffmpeg", [(NOW, "one"), (NOW, "two"), (NOW, "three")])
-    logs.add(made.id, "ffmpeg", NOW, "four")
+    logs.add_many(made.id, "ffmpeg", [(NOW, "four")])
     assert logs.for_pass(made.id, "ffmpeg") == ["one", "two", "three", "four"]
 
 
@@ -126,7 +126,7 @@ def test_deleting_a_batch_removes_its_passes_and_logs(db, repos):
     batches, passes, logs = repos
     batch = make_batch(batches)
     made = passes.create(batch.id, NOW)
-    logs.add(made.id, "pipeline", NOW, "x")
+    logs.add_many(made.id, "pipeline", [(NOW, "x")])
     db.execute("DELETE FROM production_batches WHERE id = ?", (batch.id,))
     assert passes.get(made.id) is None and logs.for_pass(made.id, "pipeline") == []
 
@@ -162,7 +162,7 @@ def test_clear_removes_only_that_passes_logs(repos):
     batches, passes, logs = repos
     batch = make_batch(batches)
     one, two = passes.create(batch.id, NOW), passes.create(batch.id, NOW)
-    logs.add(one.id, "pipeline", NOW, "a")
-    logs.add(two.id, "pipeline", NOW, "b")
+    logs.add_many(one.id, "pipeline", [(NOW, "a")])
+    logs.add_many(two.id, "pipeline", [(NOW, "b")])
     logs.clear(one.id)
     assert logs.for_pass(one.id, "pipeline") == [] and logs.for_pass(two.id, "pipeline") == ["b"]

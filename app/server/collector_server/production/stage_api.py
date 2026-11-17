@@ -38,7 +38,6 @@ class StageContext:
     output_dir: str
     ffmpeg: FfmpegRunner
     log: Callable[[str], None]
-    fit: str = "crop"
 
 
 class Stage(Protocol):

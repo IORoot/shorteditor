@@ -34,7 +34,7 @@ class PassRunner:
         self._logs.clear(pass_id)  # a pass run again starts with a clean log
         pipeline = LogSink(self._logs, pass_id, "pipeline", self._now)  # every line at once: it is the live progress
         ffmpeg = LogSink(self._logs, pass_id, "ffmpeg", self._now, batch=_FFMPEG_BATCH, keep=_FFMPEG_LINES_KEPT)
-        root = output_dir = work_dir = None
+        root = output_dir = work_dir = made_dir = None
         try:
             batch = self._batches.get(claimed.batch_id)
             if batch is None:
@@ -42,24 +42,25 @@ class PassRunner:
             root = batch.output_root
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
+            made_dir = output_dir  # only now is the result folder this run's own
             ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline)
             self._finish(pass_id, "review", pipeline, output=self._execute(claimed, batch, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
-            self._discard(root, output_dir)
+            self._discard(root, made_dir)
             self._finish(pass_id, "blocked", pipeline, blocked_reason=blocked.reason, blocked_choices=blocked.choices, finished_at=None)
         except FfmpegError as error:
             pipeline(f"Failed: {error}")
-            self._discard(root, output_dir)
+            self._discard(root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=f"FFmpeg stopped (code {error.code}). The log has the details.")
         except StageError as error:
             pipeline(f"Failed: {error}")
-            self._discard(root, output_dir)
+            self._discard(root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=str(error))
         except Exception as error:  # noqa: BLE001 - anything else is a bug; keep it in the log, not on screen
             for line in traceback.format_exc().splitlines():
                 pipeline(line)
-            self._discard(root, output_dir)
+            self._discard(root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=f"Something went wrong: {type(error).__name__}")
         finally:
             if root:
@@ -72,7 +73,10 @@ class PassRunner:
     def _prepare(root: str, output_dir: str, work_dir: str) -> None:
         try:
             claim_root(root)  # refuses a folder that holds someone else's files
-            remove_inside(root, output_dir)  # nothing from an earlier run of this pass may linger
+            if os.path.isdir(output_dir) and os.listdir(output_dir):
+                # Passes that did not finish clear their folder, so this is a finished video, for example
+                # from before a database reset started the ids again. Never wipe it.
+                raise StageError(f"{output_dir} already holds files from an earlier run")
             os.makedirs(work_dir, exist_ok=True)
         except (OutputFolderError, OSError) as error:
             raise StageError(f"Cannot write to the output folder: {getattr(error, 'strerror', None) or error}") from error

@@ -152,7 +152,7 @@ class ProductionService:
             titles = [self._registry.get(s.key).title if self._known(s.key) else s.key for s in active]
             at_stage = latest.status in _WITH_STAGE and bool(latest.stage_key)
             cards.append(BatchCard(
-                id=batch.id, batch_id=batch.id, pass_id=latest.id, run_on=batch.run_on, started_at=latest.started_at, name=batch.name, input_folder=batch.input_folder, pipeline=titles, status=latest.status,
+                batch_id=batch.id, pass_id=latest.id, run_on=batch.run_on, started_at=latest.started_at, name=batch.name, input_folder=batch.input_folder, pipeline=titles, status=latest.status,
                 stage_title=titles[latest.stage_index] if at_stage and latest.stage_index < len(titles) else "",
                 stage_position=latest.stage_index + 1 if at_stage else (len(titles) if latest.status in ("review", "approved") else 0),
                 stage_count=len(titles), pass_number=latest.number,
