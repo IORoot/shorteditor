@@ -1,3 +1,4 @@
+import pytest
 import ast
 from pathlib import Path
 
@@ -50,6 +51,8 @@ def test_shared_imports_no_stage():
     assert violations([f for f in _files() if f[0].startswith("shared/")]) == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_flags_a_collection_module_importing_production():
     assert len(violations([("collection/a.py", "from ..production import x")])) == 1
     assert len(violations([("collection/a.py", "from collector_server.production.x import y")])) == 1
@@ -64,6 +67,8 @@ def test_flags_a_pipeline_module_importing_production():
     assert len(violations([("pipeline/a.py", "from collector_server.production.x import y")])) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_finds_files():
     assert len(_files()) > 30
     assert len([f for f in _files() if f[0].startswith("shared/")]) > 3

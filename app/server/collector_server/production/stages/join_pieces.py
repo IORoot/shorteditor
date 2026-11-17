@@ -26,6 +26,7 @@ class JoinSettings(CamelModel):
     height: int = Field(1920, ge=16, le=7680, multiple_of=2)
     fps: int = Field(30, ge=1, le=120)
     fit: Literal["crop", "blur"] = "crop"
+    loudness: bool = Field(True, title="Level the loudness across clips")
 
 
 class JoinPieces:
@@ -39,6 +40,7 @@ class JoinPieces:
 
     key = "join_pieces"
     title = "Join in order"
+    description = "Makes one video from the pieces, in order."
     settings_model = JoinSettings
     transitions = {"pieces": "video"}
     position = "any"
@@ -56,7 +58,10 @@ class JoinPieces:
         with open(listing, "w", encoding="utf-8") as handle:
             handle.writelines("file '" + path.replace("'", "'\\''") + "'\n" for path in segments)
         joined = os.path.join(ctx.work_dir, "joined.mp4")
-        ctx.ffmpeg.run(["-f", "concat", "-safe", "0", "-i", listing, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", joined])
+        join = ["-f", "concat", "-safe", "0", "-i", listing, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k"]
+        if settings.loudness:
+            join += ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11"]
+        ctx.ffmpeg.run([*join, joined])
         for path in [*segments, listing]:
             os.remove(path)
         return VideoData(path=joined, duration=ctx.ffmpeg.duration(joined), size_bytes=os.path.getsize(joined))

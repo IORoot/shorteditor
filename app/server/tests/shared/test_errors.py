@@ -15,6 +15,8 @@ def test_guarded_turns_service_errors_into_http_answers(error, status):
     assert caught.value.detail == "boom"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_guarded_lets_other_errors_through():
     def fail():
         raise RuntimeError("x")
@@ -23,5 +25,7 @@ def test_guarded_lets_other_errors_through():
         guarded(fail)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_guarded_returns_the_result():
     assert guarded(lambda: 5) == 5

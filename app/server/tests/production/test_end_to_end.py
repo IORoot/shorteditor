@@ -4,7 +4,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from collector_server.production.catalog import StageLibrary
+from collector_server.production.builtin import build_registry
+from collector_server.production.stage_api import StageStep
 from collector_server.production.wiring import build_production
+from collector_server.shared.pipeline import PipelineRef
+from tests.production.helpers import FakePipelines
 from tests.production.helpers import make_clip, requires_ffmpeg
 
 pytestmark = requires_ffmpeg
@@ -19,7 +24,8 @@ def steps(limit=60):
 
 @pytest.fixture
 def system(db, tmp_path):
-    production = build_production(db, str(tmp_path / "out"))
+    pipelines = FakePipelines({1: PipelineRef(id=1, name="Join", enabled=True, steps=[StageStep(**s) for s in steps()]), 2: PipelineRef(id=2, name="Short", enabled=True, steps=[StageStep(**s) for s in steps(limit=3)])})
+    production = build_production(db, str(tmp_path / "out"), StageLibrary(build_registry()), pipelines)
     app = FastAPI()
     app.include_router(production.router)
     inbox = tmp_path / "in"
@@ -50,7 +56,7 @@ def add_clips(system, seconds=2):
 
 def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
     add_clips(system)
-    created = system.client.post("/api/production/batches", json={"name": "Coach Saturdays", "inputFolder": str(system.folder), "steps": steps()})
+    created = system.client.post("/api/production/batches", json={"name": "Coach Saturdays", "inputFolder": str(system.folder), "pipelineId": 1})
     assert created.status_code == 201
     batch_id = created.json()["id"]
     assert system.board()[0]["status"] == "queued"
@@ -73,9 +79,11 @@ def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
     assert system.board()[0]["passNumber"] == 2 and system.board()[0]["status"] == "review"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_an_over_length_batch_blocks_and_resolves(system):
     add_clips(system, seconds=2)
-    system.client.post("/api/production/batches", json={"name": "Long", "inputFolder": str(system.folder), "steps": steps(limit=3)})
+    system.client.post("/api/production/batches", json={"name": "Long", "inputFolder": str(system.folder), "pipelineId": 2})
     system.go()
     [card] = system.board()
     assert card["status"] == "blocked" and card["blockedChoices"] == ["drop_shortest", "keep_first"]
@@ -86,10 +94,12 @@ def test_an_over_length_batch_blocks_and_resolves(system):
     assert card["status"] == "review" and abs(card["output"]["duration"] - 3.0) < 0.4
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_several_batches_run_one_after_another(system):
     add_clips(system)
     for name in ("One", "Two"):
-        system.client.post("/api/production/batches", json={"name": name, "inputFolder": str(system.folder), "steps": steps()})
+        system.client.post("/api/production/batches", json={"name": name, "inputFolder": str(system.folder), "pipelineId": 1})
     first = system.queue.tick()
     assert len(first) == 1  # the local worker takes one job at a time
     system.queue.wait_idle(60)
@@ -97,13 +107,17 @@ def test_several_batches_run_one_after_another(system):
     assert sorted(c["status"] for c in system.board()) == ["review", "review"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_an_empty_folder_fails_with_a_readable_message(system):
-    system.client.post("/api/production/batches", json={"name": "Empty", "inputFolder": str(system.folder), "steps": steps()})
+    system.client.post("/api/production/batches", json={"name": "Empty", "inputFolder": str(system.folder), "pipelineId": 1})
     system.go()
     [card] = system.board()
     assert card["status"] == "failed" and card["error"].startswith("No clips found")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_new_folder_appears_is_batched_runs_and_reaches_review(system, tmp_path):
     import os
     import time
@@ -111,7 +125,7 @@ def test_a_new_folder_appears_is_batched_runs_and_reaches_review(system, tmp_pat
     parent = tmp_path / "collected"
     parent.mkdir()
     watch = system.client.post("/api/production/watches", json={
-        "name": "Coach", "parentFolder": str(parent), "pattern": r"^\d{4}-\d{2}-\d{2}_.+$", "steps": steps(), "settleMinutes": 10,
+        "name": "Coach", "parentFolder": str(parent), "pattern": r"^\d{4}-\d{2}-\d{2}_.+$", "pipelineId": 1, "settleMinutes": 10,
     })
     assert watch.status_code == 201 and watch.json()["status"] == "watching"
 

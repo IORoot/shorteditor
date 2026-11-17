@@ -15,6 +15,7 @@ class StageStep(CamelModel):
 class StageInfo(CamelModel):
     key: str
     title: str
+    description: str = ""
     transitions: dict[str, str]
     position: str
     settings_schema: dict

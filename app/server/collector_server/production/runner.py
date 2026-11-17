@@ -12,7 +12,9 @@ from .output_paths import OutputFolderError, claim_root, output_paths, remove_in
 from .pieces import VideoData
 from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
-from .stage_api import BlockedError, StageContext, StageError
+from collector_server.shared.pipeline import PipelineSource
+
+from .stage_api import BlockedError, StageContext, StageError, StageStep
 from .validation import build_settings, validate_pipeline
 from .worker import Worker
 
@@ -21,8 +23,9 @@ _FFMPEG_LINES_KEPT = 3000
 
 
 class PassRunner:
-    def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry, now: Callable[[], str]) -> None:
-        self._batches, self._passes, self._logs, self._registry, self._now = batches, passes, logs, registry, now
+    def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry, pipelines: PipelineSource,
+                 now: Callable[[], str]) -> None:
+        self._batches, self._passes, self._logs, self._registry, self._pipelines, self._now = batches, passes, logs, registry, pipelines, now
 
     def run(self, pass_id: int, worker: Worker) -> None:
         claimed = self._passes.update(
@@ -40,11 +43,13 @@ class PassRunner:
             if batch is None:
                 raise StageError("The batch no longer exists")
             root = batch.output_root
+            steps = self._steps_for(batch)
+            self._passes.update(pass_id, steps_used=[step.model_dump() for step in steps])  # kept with the pass, whatever changes later
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
-            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline)
-            self._finish(pass_id, "review", pipeline, output=self._execute(claimed, batch, ctx))
+            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"))
+            self._finish(pass_id, "review", pipeline, output=self._execute(claimed, steps, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
             self._discard(root, made_dir)
@@ -92,12 +97,23 @@ class PassRunner:
         if saved is None:
             pipeline("Result not saved: the pass was changed while it ran")
 
-    def _execute(self, current: Pass, batch: Batch, ctx: StageContext) -> VideoData:
-        errors = validate_pipeline(self._registry, batch.steps)
+    def _steps_for(self, batch: Batch) -> list[StageStep]:
+        """A pipeline batch runs the pipeline's steps as they are when the pass starts. The switch is checked here."""
+        if batch.pipeline_id is None:
+            return batch.steps
+        ref = self._pipelines.get_pipeline(batch.pipeline_id)
+        if ref is None:
+            raise StageError("The pipeline of this batch no longer exists")
+        if not ref.enabled:
+            raise StageError(f"Pipeline '{ref.name}' is off. Switch it on, then run again.")
+        return ref.steps
+
+    def _execute(self, current: Pass, steps: list[StageStep], ctx: StageContext) -> VideoData:
+        errors = validate_pipeline(self._registry, steps)
         if errors:
             raise StageError(". ".join(errors))
         plan = []  # check every stage's settings first, so a typo does not surface after a long scan
-        for step in (s for s in batch.steps if s.enabled):
+        for step in (s for s in steps if s.enabled):
             stage = self._registry.get(step.key)
             plan.append((step, stage, build_settings(stage, {**step.settings, **current.overrides.get(step.key, {})})))
         data = None

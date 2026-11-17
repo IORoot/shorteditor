@@ -7,6 +7,7 @@ export interface StageStep {
 export interface StageInfo {
   key: string;
   title: string;
+  description: string;
   transitions: Record<string, string>;
   position: string;
   settingsSchema: Record<string, unknown>;

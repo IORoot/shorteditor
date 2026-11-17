@@ -13,7 +13,7 @@ const flush = () => act(async () => { await vi.advanceTimersByTimeAsync(0); });
 const wait = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 
 describe('useBoard', () => {
-  it('loads once, then refreshes quietly without going back to loading', async () => {
+  it('loads once, then refreshes quietly without going back to loading', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockResolvedValueOnce(running).mockResolvedValue([makeCard({ status: 'review' })]);
     const { result } = renderHook(() => useBoard({ cards }, 2000, 10000));
     expect(result.current.state.status).toBe('loading');
@@ -52,7 +52,7 @@ describe('useBoard', () => {
     expect(result.current.staleError).toBeNull();
   });
 
-  it('shows an error when the first load fails and recovers by itself', async () => {
+  it('shows an error when the first load fails and recovers by itself', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockRejectedValueOnce(new Error('backend down')).mockResolvedValue(idle);
     const { result } = renderHook(() => useBoard({ cards }, 2000, 10000));
     await flush();
@@ -61,7 +61,7 @@ describe('useBoard', () => {
     expect(result.current.state).toEqual({ status: 'ready', data: idle });
   });
 
-  it('reload fetches straight away and keeps showing the data meanwhile', async () => {
+  it('reload fetches straight away and keeps showing the data meanwhile', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockResolvedValue(idle);
     const { result } = renderHook(() => useBoard({ cards }, 2000, 10000));
     await flush();
@@ -71,7 +71,7 @@ describe('useBoard', () => {
     expect(cards).toHaveBeenCalledTimes(2);
   });
 
-  it('stops polling when it unmounts', async () => {
+  it('stops polling when it unmounts', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockResolvedValue(running);
     const { unmount } = renderHook(() => useBoard({ cards }, 2000, 10000));
     await flush();
@@ -80,7 +80,7 @@ describe('useBoard', () => {
     expect(cards).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores a slow answer that arrives after unmount', async () => {
+  it('ignores a slow answer that arrives after unmount', { tags: ['full'] }, async () => {
     let resolve: (value: unknown) => void = () => undefined;
     const cards = vi.fn(() => new Promise((r) => { resolve = r; }));
     const { unmount } = renderHook(() => useBoard({ cards } as never, 2000, 10000));
@@ -91,7 +91,7 @@ describe('useBoard', () => {
     expect(cards).toHaveBeenCalledTimes(1);
   });
 
-  it('uses the answer of the newest request when reload is called while one is in flight', async () => {
+  it('uses the answer of the newest request when reload is called while one is in flight', { tags: ['full'] }, async () => {
     const answers: ((value: unknown) => void)[] = [];
     const cards = vi.fn(() => new Promise((resolve) => answers.push(resolve)));
     const { result } = renderHook(() => useBoard({ cards } as never, 2000, 10000));
@@ -105,7 +105,7 @@ describe('useBoard', () => {
     expect(result.current.state).toEqual({ status: 'ready', data: idle });
   });
 
-  it('treats a server that never answers as a failure, so the board says it is stale', async () => {
+  it('treats a server that never answers as a failure, so the board says it is stale', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockResolvedValueOnce(running).mockImplementation(() => new Promise(() => undefined));
     const { result } = renderHook(() => useBoard({ cards } as never, 2000, 10000));
     await flush();

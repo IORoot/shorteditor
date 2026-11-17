@@ -4,7 +4,7 @@ import { makeCard } from '../../test/fixtures';
 import { BoardPage } from './BoardPage';
 import type { ProductionApi } from '../../lib/api';
 
-const apiOf = (cards: ReturnType<typeof vi.fn>) => ({ cards, defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }), createBatch: vi.fn() }) as unknown as ProductionApi;
+const apiOf = (cards: ReturnType<typeof vi.fn>) => ({ cards, defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }), pipelines: vi.fn().mockResolvedValue([{ id: 1, name: 'Join clips', stageCount: 5 }]), createBatch: vi.fn() }) as unknown as ProductionApi;
 
 describe('BoardPage', () => {
   it('shows the title, the counts and the batch names once loaded', async () => {
@@ -16,12 +16,12 @@ describe('BoardPage', () => {
     expect(screen.getByText('2 batches · 1 queued · 1 ready to review')).toBeInTheDocument();
   });
 
-  it('shows the empty state', async () => {
+  it('shows the empty state', { tags: ['full'] }, async () => {
     render(<BoardPage api={apiOf(vi.fn().mockResolvedValue([]))} />);
     expect(await screen.findByText('No batches yet. Create one to start.')).toBeInTheDocument();
   });
 
-  it('shows the error with a Retry button that loads again', async () => {
+  it('shows the error with a Retry button that loads again', { tags: ['full'] }, async () => {
     const cards = vi.fn().mockRejectedValueOnce(new Error('Couldn’t reach the backend')).mockResolvedValue([makeCard({ name: 'Back again' })]);
     render(<BoardPage api={apiOf(cards)} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach the backend');
@@ -29,7 +29,7 @@ describe('BoardPage', () => {
     expect(await screen.findByText('Back again')).toBeInTheDocument();
   });
 
-  it('tells the user when the list on screen may be out of date', async () => {
+  it('tells the user when the list on screen may be out of date', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     try {
       const cards = vi.fn().mockResolvedValueOnce([makeCard({ name: 'Still here', status: 'running' })]).mockRejectedValue(new Error('offline'));

@@ -36,6 +36,8 @@ def payload(**overrides):
     return base
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_collectors_expose_their_config(client):
     coach = client.get("/api/collectors/1").json()
     assert coach["config"]["host"] == "coach-nas"
@@ -43,6 +45,8 @@ def test_collectors_expose_their_config(client):
     assert coach["source"] == "ssh://coach-nas/volume1/clips"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_get_unknown_collector_is_404(client):
     assert client.get("/api/collectors/99").status_code == 404
 
@@ -64,10 +68,14 @@ def test_put_config_validation_errors_are_422_with_a_message(client):
     assert "Unknown token" in response.json()["detail"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_put_config_unknown_collector_is_404(client):
     assert client.put("/api/collectors/99", json=payload()).status_code == 404
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_preview_folder(client):
     response = client.post(
         "/api/preview/folder",
@@ -77,11 +85,15 @@ def test_preview_folder(client):
     assert response.json() == {"relativePath": "2026-11-14_Sat_coach", "fullPath": "/Volumes/Edit/Collected/2026-11-14_Sat_coach"}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_preview_folder_reports_template_errors(client):
     response = client.post("/api/preview/folder", json={"folderTemplate": "{nope}"})
     assert response.status_code == 422
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_browse_lists_directories_and_reports_errors(client, tmp_path):
     body = client.get("/api/fs/browse").json()
     assert body["path"] == str(tmp_path)

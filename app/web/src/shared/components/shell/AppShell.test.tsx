@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { AppShell } from './AppShell';
 
 describe('AppShell', () => {
-  it('renders every slot', () => {
+  it('renders every slot', { tags: ['full'] }, () => {
     render(
       <AppShell
         sidebar={<p>side</p>}
@@ -19,7 +19,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: 'act' })).toBeInTheDocument();
   });
 
-  it('puts the schedule section and the history in the same grid row', () => {
+  it('puts the schedule section and the history in the same grid row', { tags: ['full'] }, () => {
     render(<AppShell sidebar={null} title={null} actions={null} main={<p>main</p>} panel={<p>panel</p>} />);
     const main = screen.getByRole('main');
     const schedule = screen.getByRole('region', { name: 'Schedule' });

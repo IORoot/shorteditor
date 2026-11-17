@@ -28,6 +28,8 @@ def test_a_paused_watch_is_never_checked(world, scheduler):
     assert world.watches.get(watch.id).last_checked_at is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_only_due_enabled_watches_are_checked(world, scheduler):
     fast = world.ws.create(world.data(name="fast", interval_minutes=1))
     slow = world.ws.create(world.data(name="slow", interval_minutes=60))
@@ -36,6 +38,8 @@ def test_only_due_enabled_watches_are_checked(world, scheduler):
     assert scheduler.tick() == [fast.id] and slow.id not in scheduler.tick()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_one_watch_failing_does_not_stop_the_others(world, scheduler, caplog, monkeypatch):
     bad = world.ws.create(world.data(name="bad"))
     good = world.ws.create(world.data(name="good"))
@@ -52,6 +56,8 @@ def test_one_watch_failing_does_not_stop_the_others(world, scheduler, caplog, mo
     assert "boom" in caplog.text and world.watches.get(good.id).last_checked_at is not None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_watch_whose_folder_vanished_is_checked_again_after_its_interval(world, scheduler):
     watch = world.ws.create(world.data(interval_minutes=5))
     world.parent.rename(world.tmp / "gone")
@@ -61,6 +67,8 @@ def test_a_watch_whose_folder_vanished_is_checked_again_after_its_interval(world
     assert scheduler.tick() == [watch.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_clock_that_jumps_back_does_not_silence_a_watch(world, scheduler):
     watch = world.ws.create(world.data(interval_minutes=5))
     scheduler.tick()
@@ -68,6 +76,8 @@ def test_a_clock_that_jumps_back_does_not_silence_a_watch(world, scheduler):
     assert scheduler.tick() == [watch.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_bad_stored_timestamp_does_not_stop_the_tick(world, scheduler, db):
     good = world.ws.create(world.data(name="good"))
     bad = world.ws.create(world.data(name="bad"))

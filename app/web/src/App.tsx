@@ -33,7 +33,7 @@ export default function App() {
         <CollectionPage active={section === 'collection'} />
       </div>
       {section === 'pipeline' ? <PipelinePage api={pipelineApi} /> : null}
-      {section === 'production' ? <BoardPage api={productionApi} /> : null}
+      {section === 'production' ? <BoardPage api={productionApi} onManagePipelines={() => setSection('pipeline')} /> : null}
     </div>
   );
 }

@@ -16,7 +16,7 @@ function show(rows = [summary()], impact = { watches: 0, waitingBatches: 0 }) {
 }
 
 describe('PipelineList', () => {
-  it('shows each pipeline with its numbers', async () => {
+  it('shows each pipeline with its numbers', { tags: ['full'] }, async () => {
     show([summary({ usedBy: 3 }), summary({ id: 2, name: 'Short', maxSeconds: null, maxSizeMb: null, stageCount: 3, enabled: false })]);
     const first = await screen.findByRole('listitem', { name: 'Pipeline Join clips' });
     expect(first).toHaveTextContent('15 min');
@@ -29,20 +29,20 @@ describe('PipelineList', () => {
     expect(within(second).getByRole('switch')).not.toBeChecked();
   });
 
-  it('says so when there are none, and opens the editor from New and from a row', async () => {
+  it('says so when there are none, and opens the editor from New and from a row', { tags: ['full'] }, async () => {
     const empty = show([]);
     expect(await screen.findByText(/No pipelines yet/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'New pipeline' }));
     expect(empty.onNew).toHaveBeenCalled();
   });
 
-  it('opens a pipeline when its name is clicked', async () => {
+  it('opens a pipeline when its name is clicked', { tags: ['full'] }, async () => {
     const { onOpen } = show();
     fireEvent.click(await screen.findByRole('button', { name: 'Edit Join clips' }));
     expect(onOpen).toHaveBeenCalledWith(1);
   });
 
-  it('switches an unused pipeline off at once, without asking', async () => {
+  it('switches an unused pipeline off at once, without asking', { tags: ['full'] }, async () => {
     const { api } = show();
     fireEvent.click(await screen.findByRole('switch', { name: 'Switch Join clips' }));
     await waitFor(() => expect(api.setEnabled).toHaveBeenCalledWith(1, false));
@@ -70,7 +70,7 @@ describe('PipelineList', () => {
     await waitFor(() => expect(api.setEnabled).toHaveBeenCalledWith(1, false));
   });
 
-  it('shows the server message when switching fails', async () => {
+  it('shows the server message when switching fails', { tags: ['full'] }, async () => {
     const { api } = show();
     api.setEnabled.mockRejectedValue(new Error('The server said no'));
     fireEvent.click(await screen.findByRole('switch', { name: 'Switch Join clips' }));

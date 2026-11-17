@@ -22,14 +22,14 @@ describe('RunRow', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
   });
 
-  it('calls onUndo with the run id', () => {
+  it('calls onUndo with the run id', { tags: ['full'] }, () => {
     const onUndo = vi.fn();
     render(<table><tbody><RunRow run={run} onUndo={onUndo} /></tbody></table>);
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(onUndo).toHaveBeenCalledWith(9);
   });
 
-  it('hides Undo when the run cannot be undone', () => {
+  it('hides Undo when the run cannot be undone', { tags: ['full'] }, () => {
     render(<table><tbody><RunRow run={{ ...run, canUndo: false, status: 'failed', trigger: 'manual' }} onUndo={() => undefined} /></tbody></table>);
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('RunRow', () => {
 });
 
 describe('RunRow running state', () => {
-  it('shows a Running chip with live progress text', () => {
+  it('shows a Running chip with live progress text', { tags: ['full'] }, () => {
     render(<table><tbody><RunRow run={{ ...run, status: 'running', outcome: 'Moving 3 of 9…', canUndo: false }} onUndo={() => undefined} /></tbody></table>);
     expect(screen.getByText('Running')).toBeInTheDocument();
     expect(screen.getByText('Moving 3 of 9…')).toBeInTheDocument();
@@ -46,22 +46,22 @@ describe('RunRow running state', () => {
 });
 
 describe('RunHistory', () => {
-  it('shows loading when there is no state yet', () => {
+  it('shows loading when there is no state yet', { tags: ['full'] }, () => {
     render(<RunHistory state={null} onUndo={() => undefined} />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading history');
   });
 
-  it('shows the empty state', () => {
+  it('shows the empty state', { tags: ['full'] }, () => {
     render(<RunHistory state={{ status: 'ready', data: [] }} onUndo={() => undefined} />);
     expect(screen.getByText(/No runs yet/)).toBeInTheDocument();
   });
 
-  it('shows an error message', () => {
+  it('shows an error message', { tags: ['full'] }, () => {
     render(<RunHistory state={{ status: 'error', message: 'down' }} onUndo={() => undefined} />);
     expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t load history');
   });
 
-  it('renders a row per run', () => {
+  it('renders a row per run', { tags: ['full'] }, () => {
     render(<RunHistory state={{ status: 'ready', data: [run, { ...run, id: 10 }] }} onUndo={() => undefined} />);
     const rows = within(screen.getByRole('table')).getAllByRole('row');
     expect(rows).toHaveLength(3);

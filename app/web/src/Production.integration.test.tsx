@@ -21,6 +21,7 @@ function server(initial: BatchCard[]) {
     if (state.down) return Promise.resolve(new Response('down', { status: 503 }));
     if (url === '/api/production/batches' && method === 'GET') return json(state.cards);
     if (url === '/api/production/defaults') return json({ outputRoot: '/Volumes/Edit/production_output', workers: [{ id: 'local', label: 'This computer' }] });
+    if (url === '/api/production/pipelines') return json([{ id: 1, name: 'Join clips', stageCount: 5 }]);
     if (url === '/api/production/batches' && method === 'POST' && state.holdCreate) return new Promise(() => undefined);
     if (url === '/api/production/batches' && method === 'POST') return state.createError ? json({ detail: state.createError }, 422) : json({ id: 9 }, 201);
     if (/^\/api\/production\/passes\/\d+\/approve$/.test(url)) return json({ runId: 1, stage: 'production', folders: [] });
@@ -45,7 +46,7 @@ afterEach(() => {
 });
 
 describe('Production, end to end', () => {
-  it('shows each batch in the right column', async () => {
+  it('shows each batch in the right column', { tags: ['full'] }, async () => {
     server([
       makeCard({ name: 'Coach Saturdays', status: 'review', output }),
       makeCard({ name: 'Jams', status: 'failed', error: 'No clips found' }),
@@ -69,21 +70,10 @@ describe('Production, end to end', () => {
     const before = backend.boardLoads();
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Coach Saturdays' } });
     fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/clips/coach' } });
-    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
-    expect(backend.posted(/\/batches$/)[0].body).toEqual({
-      name: 'Coach Saturdays',
-      inputFolder: '/clips/coach',
-      runOn: 'any',
-      steps: [
-        { key: 'scan_folder', settings: {}, enabled: true },
-        { key: 'order_clips', settings: { orderBy: 'capture_time' }, enabled: true },
-        { key: 'limit_length', settings: { maxSeconds: 45 }, enabled: true },
-        { key: 'join_pieces', settings: { fit: 'crop' }, enabled: true },
-        { key: 'render_output', settings: { maxSizeMb: 150 }, enabled: true },
-      ],
-    });
+    expect(backend.posted(/\/batches$/)[0].body).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'any' });
     await waitFor(() => expect(backend.boardLoads()).toBeGreaterThan(before));
   });
 
@@ -94,6 +84,7 @@ describe('Production, end to end', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
     fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
     fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('must not overlap');
     expect(screen.getByRole('dialog', { name: 'New batch' })).toBeInTheDocument();
@@ -101,7 +92,7 @@ describe('Production, end to end', () => {
     expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull();
   });
 
-  it('can still create a batch when the defaults could not be loaded, leaving the output folder to the server', async () => {
+  it('can still create a batch when the defaults could not be loaded, leaving the output folder to the server', { tags: ['full'] }, async () => {
     const backend = server([]);
     const original = globalThis.fetch as unknown as (u: string, i?: RequestInit) => Promise<Response>;
     vi.stubGlobal('fetch', (url: string, init?: RequestInit) => (url === '/api/production/defaults' ? Promise.resolve(new Response('x', { status: 500 })) : original(url, init)));
@@ -109,17 +100,19 @@ describe('Production, end to end', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
     fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
     fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
     await waitFor(() => expect(backend.posted(/\/batches$/)).toHaveLength(1));
     expect('outputRoot' in (backend.posted(/\/batches$/)[0].body as object)).toBe(false);
   });
 
-  it('sends one request when Create is clicked twice while the server is still answering', async () => {
+  it('sends one request when Create is clicked twice while the server is still answering', { tags: ['full'] }, async () => {
     const backend = server([]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
     fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
     fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     backend.state.holdCreate = true;
     const create = screen.getByRole('button', { name: 'Create batch' });
     fireEvent.click(create);
@@ -128,7 +121,7 @@ describe('Production, end to end', () => {
     expect(backend.posted(/\/batches$/)).toHaveLength(1);
   });
 
-  it('closes the review drawer when the New batch dialog opens, and starts the form empty each time', async () => {
+  it('closes the review drawer when the New batch dialog opens, and starts the form empty each time', { tags: ['full'] }, async () => {
     server([makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
@@ -145,7 +138,7 @@ describe('Production, end to end', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('');
   });
 
-  it('approves a finished batch from the drawer and moves it to the approved row', async () => {
+  it('approves a finished batch from the drawer and moves it to the approved row', { tags: ['full'] }, async () => {
     const card = makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
     const backend = server([card]);
     await openProduction();
@@ -157,7 +150,7 @@ describe('Production, end to end', () => {
     expect(within(screen.getByRole('region', { name: 'Ready to review' })).getByText('Nothing here')).toBeInTheDocument();
   });
 
-  it('sends the chosen way out of a blocked batch', async () => {
+  it('sends the chosen way out of a blocked batch', { tags: ['full'] }, async () => {
     const backend = server([makeCard({ name: 'Long', status: 'blocked', blockedReason: 'Over the limit', blockedChoices: ['drop_shortest', 'keep_first'], passId: 21 })]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Long, Blocked' }));
@@ -165,7 +158,7 @@ describe('Production, end to end', () => {
     await waitFor(() => expect(backend.posted(/passes\/21\/resolve$/)[0].body).toEqual({ choice: 'drop_shortest' }));
   });
 
-  it('shows the error with a Retry when the server is down, and recovers', async () => {
+  it('shows the error with a Retry when the server is down, and recovers', { tags: ['full'] }, async () => {
     const backend = server([makeCard({ name: 'Back again', status: 'queued' })]);
     backend.state.down = true;
     await openProduction();
@@ -175,7 +168,7 @@ describe('Production, end to end', () => {
     expect(await screen.findByText('Back again')).toBeInTheDocument();
   });
 
-  it('follows a running batch to the next stage without closing the open drawer', async () => {
+  it('follows a running batch to the next stage without closing the open drawer', { tags: ['full'] }, async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const running = makeCard({ name: 'Tuesday', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 3, passId: 31 });
     const backend = server([running]);

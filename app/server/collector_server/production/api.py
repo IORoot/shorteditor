@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
+from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -29,13 +29,9 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     def output(pass_id: Id) -> FileResponse:
         return FileResponse(guarded(lambda: service.output_path(pass_id)), media_type="video/mp4")
 
-    @router.get("/stages", response_model=list[StageInfo])
-    def stages() -> list[StageInfo]:
-        return service.stages()
-
-    @router.post("/pipelines/validate", response_model=ValidateResult)
-    def validate(request: ValidateRequest) -> ValidateResult:
-        return ValidateResult(errors=service.check_pipeline(request.steps))
+    @router.get("/pipelines", response_model=list[PipelineChoice])
+    def pipelines() -> list[PipelineChoice]:
+        return service.pipelines_for_choice()
 
     @router.get("/batches", response_model=list[BatchCard])
     def cards() -> list[BatchCard]:
@@ -43,7 +39,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.post("/batches", response_model=Batch, status_code=201)
     def create(request: BatchCreate) -> Batch:
-        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.steps, request.run_on, request.output_root))
+        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root))
 
     @router.post("/folders/preview", response_model=FolderPreview)
     def preview_folders(request: FolderPreviewRequest) -> FolderPreview:
@@ -60,7 +56,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.post("/batches/{batch_id}/passes", response_model=Pass, status_code=201)
     def run_again(batch_id: Id, request: RunAgain) -> Pass:
-        return guarded(lambda: service.run_again(batch_id, request.steps))
+        return guarded(lambda: service.run_again(batch_id, request.pipeline_id))
 
     @router.post("/passes/{pass_id}/resolve", response_model=Pass)
     def resolve(pass_id: Id, request: Resolve) -> Pass:

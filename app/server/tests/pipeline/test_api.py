@@ -47,6 +47,8 @@ def test_create_then_list_and_get(api):
     assert got["usedBy"] == [] and got["recentBatches"] == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_template_and_stages_and_check(api):
     assert len(api.steps()) == 5
     keys = [s["key"] for s in api.client.get(f"{BASE}/stages").json()]
@@ -55,6 +57,8 @@ def test_template_and_stages_and_check(api):
     assert errors
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_save_enable_duplicate_delete_flow(api):
     pid = api.create().json()["id"]
     saved = api.client.put(f"{BASE}/pipelines/{pid}", json={"name": "Renamed", "description": "d", "steps": api.steps()})
@@ -86,11 +90,15 @@ def test_errors_map_to_404_409_422(api):
     assert bad.status_code == 422 and isinstance(bad.json()["detail"], str)
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("pid", [0, 2**63])
 def test_id_out_of_range_is_422(api, pid):
     assert api.client.get(f"{BASE}/pipelines/{pid}").status_code == 422
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_camel_case_bodies_are_accepted(api):
     steps = [{"key": k, "settings": {}, "enabled": True} for k in ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]]
     assert api.client.post(f"{BASE}/pipelines", json={"name": "A", "steps": steps}).status_code == 201

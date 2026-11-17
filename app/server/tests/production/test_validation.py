@@ -1,3 +1,4 @@
+import pytest
 from collector_server.production.stage_api import StageStep
 from collector_server.production.validation import validate_pipeline
 from tests.production.helpers import fake_registry
@@ -23,37 +24,45 @@ def test_render_must_be_last():
     assert any("Render must be last" in m for m in check("scan", "join", "render", "order"))
 
 
+@pytest.mark.full
 def test_stage_needs_matching_input():
     errors = check("scan", "join", "join", "render")
     assert "Join in order needs pieces; the step before it makes a video" in errors
 
 
+@pytest.mark.full
 def test_unknown_stage_reported():
     assert any("nope" in m for m in check("scan", "nope", "join", "render"))
 
 
+@pytest.mark.full
 def test_disabled_steps_are_skipped():
     assert check("scan", "join", "join", "render", disabled=()) != []
     assert check("scan", "join", "order", "render", disabled=("order",)) == []
 
 
+@pytest.mark.full
 def test_pipeline_must_end_with_video():
     assert "The pipeline must end with a video" in check("scan")
 
 
+@pytest.mark.full
 def test_empty_pipeline_reported():
     assert validate_pipeline(fake_registry(), []) == ["The pipeline has no steps"]
 
 
+@pytest.mark.full
 def test_first_step_that_needs_pieces_says_nothing_comes_before_it():
     assert "Order clips needs pieces; nothing comes before it" in check("order", "join", "render")
 
 
+@pytest.mark.full
 def test_one_typo_gives_one_chain_message():
     errors = check("scan", "nope", "join", "render")
     assert errors == ["There is no stage called nope"]
 
 
+@pytest.mark.full
 def test_build_settings_returns_a_validated_model():
     from collector_server.production.validation import build_settings
 
@@ -61,6 +70,7 @@ def test_build_settings_returns_a_validated_model():
     assert build_settings(stage, {}).model_dump() == {}
 
 
+@pytest.mark.full
 def test_build_settings_says_which_stage_and_field():
     import pytest
 

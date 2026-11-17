@@ -36,6 +36,8 @@ def test_groups_clips_by_day_with_the_template(collectors, clock, dirs):
     assert "modified time" in plan.notes[-1]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_collects_non_video_files_but_ignores_hidden_and_output_folder_files(collectors, clock, dirs):
     source, output = dirs
     inner_out = source / "collected"
@@ -49,6 +51,8 @@ def test_collects_non_video_files_but_ignores_hidden_and_output_folder_files(col
     assert sorted(f.name for g in plan.groups for f in g.files) == ["keep.MP4", "notes.txt"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scans_subfolders_and_renames_duplicate_names(collectors, clock, dirs):
     source, output = dirs
     make_clip(source / "one" / "GX01.mp4", SAT_14)
@@ -57,6 +61,8 @@ def test_scans_subfolders_and_renames_duplicate_names(collectors, clock, dirs):
     assert sorted(f.name for f in plan.groups[0].files) == ["GX01-2.mp4", "GX01.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_existing_folders_get_a_numbered_suffix(collectors, clock, dirs):
     source, output = dirs
     make_clip(source / "a.mp4", SAT_14)
@@ -69,6 +75,8 @@ def test_existing_folders_get_a_numbered_suffix(collectors, clock, dirs):
     assert plan_for(collectors, clock, source, output).groups[0].folder == "2026-11-14_Sat_coach-3"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_week_month_and_none_grouping(collectors, clock, dirs):
     source, output = dirs
     make_clip(source / "a.mp4", datetime(2026, 11, 12, 9, 0, tzinfo=LONDON))
@@ -81,6 +89,8 @@ def test_week_month_and_none_grouping(collectors, clock, dirs):
     assert [g.folder for g in none.groups] == ["all_2026-11-16"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_empty_source_has_a_note(collectors, clock, dirs):
     source, output = dirs
     plan = plan_for(collectors, clock, source, output)
@@ -88,6 +98,8 @@ def test_empty_source_has_a_note(collectors, clock, dirs):
     assert plan.notes == ["No files found in the input folder."]
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize(
     "overrides,error,message",
     [
@@ -106,6 +118,8 @@ def test_unsupported_or_invalid_configs_raise(collectors, clock, dirs, overrides
         TransferPlanner(clock).plan(record)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_missing_input_folder_raises(collectors, clock, tmp_path):
     record = collectors.add_with_config(config_for(tmp_path / "missing", tmp_path / "out"))
     with pytest.raises(FileNotFoundError, match="Input folder not found"):

@@ -11,19 +11,19 @@ from .stage_api import StageStep
 
 _PASS_FIELDS = {
     "status", "stage_index", "stage_key", "blocked_reason", "blocked_choices",
-    "overrides", "error", "output", "started_at", "finished_at",
+    "overrides", "error", "output", "started_at", "finished_at", "steps_used",
 }
-_JSON_FIELDS = {"blocked_choices", "overrides", "output"}
+_JSON_FIELDS = {"blocked_choices", "overrides", "output", "steps_used"}
 
 
 class BatchRepository:
     def __init__(self, db: Database) -> None:
         self._db = db
 
-    def create(self, name: str, input_folder: str, steps: list[StageStep], run_on: str, output_root: str, now: str) -> Batch:
+    def create(self, name: str, input_folder: str, pipeline_id: int | None, steps: list[StageStep], run_on: str, output_root: str, now: str) -> Batch:
         cursor = self._db.execute(
-            "INSERT INTO production_batches (name, input_folder, steps, run_on, output_root, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (name, input_folder, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now),
+            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
 
@@ -34,8 +34,11 @@ class BatchRepository:
     def delete(self, batch_id: int) -> None:
         self._db.execute("DELETE FROM production_batches WHERE id = ?", (batch_id,))
 
-    def update_steps(self, batch_id: int, steps: list[StageStep]) -> None:
-        self._db.execute("UPDATE production_batches SET steps = ? WHERE id = ?", (json.dumps([step.model_dump() for step in steps]), batch_id))
+    def set_pipeline(self, batch_id: int, pipeline_id: int) -> None:
+        self._db.execute("UPDATE production_batches SET pipeline_id = ? WHERE id = ?", (pipeline_id, batch_id))
+
+    def by_pipeline(self, pipeline_id: int) -> list[Batch]:
+        return [self._batch(row) for row in self._db.query("SELECT * FROM production_batches WHERE pipeline_id = ? ORDER BY id", (pipeline_id,))]
 
     def list(self) -> list[Batch]:
         return [self._batch(row) for row in self._db.query("SELECT * FROM production_batches ORDER BY id")]
@@ -44,7 +47,7 @@ class BatchRepository:
     def _batch(row) -> Batch:  # noqa: ANN001
         return Batch(
             id=row["id"], name=row["name"], input_folder=row["input_folder"], run_on=row["run_on"],
-            steps=[StageStep(**step) for step in json.loads(row["steps"])],
+            pipeline_id=row["pipeline_id"], steps=[StageStep(**step) for step in json.loads(row["steps"])],
             output_root=row["output_root"], created_at=row["created_at"],
         )
 
@@ -110,6 +113,7 @@ class PassRepository:
             id=row["id"], batch_id=row["batch_id"], number=row["number"], status=row["status"],
             stage_index=row["stage_index"], stage_key=row["stage_key"], blocked_reason=row["blocked_reason"],
             blocked_choices=json.loads(row["blocked_choices"]), overrides=json.loads(row["overrides"]),
+            steps_used=[StageStep(**step) for step in json.loads(row["steps_used"])],
             error=row["error"], output=VideoData.model_validate_json(row["output"]) if row["output"] else None,
             created_at=row["created_at"], started_at=row["started_at"], finished_at=row["finished_at"],
         )

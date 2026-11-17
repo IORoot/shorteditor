@@ -18,6 +18,8 @@ export interface BatchCard {
   passId: number;
   name: string;
   inputFolder: string;
+  pipelineId: number | null;
+  pipelineName: string | null;
   pipeline: string[];
   status: PassStatus;
   stageTitle: string;
@@ -46,13 +48,15 @@ export interface Defaults {
 export interface BatchCreate {
   name: string;
   inputFolder: string;
-  steps: StageStep[];
+  pipelineId: number;
   runOn: string;
   outputRoot?: string;
 }
 
-export interface ValidateResult {
-  errors: string[];
+export interface PipelineChoice {
+  id: number;
+  name: string;
+  stageCount: number;
 }
 
 export interface Batch {
@@ -100,7 +104,7 @@ export interface BulkCreate {
   parentFolder: string;
   pattern: string;
   nameTemplate: string;
-  steps: StageStep[];
+  pipelineId: number;
   runOn: string;
   outputRoot?: string;
   include: string[];
@@ -118,7 +122,7 @@ export interface WatchCreate {
   parentFolder: string;
   pattern: string;
   nameTemplate: string;
-  steps: StageStep[];
+  pipelineId: number;
   runOn: string;
   outputRoot?: string;
   intervalMinutes: number;
@@ -134,6 +138,8 @@ export interface WatchView {
   parentFolder: string;
   pattern: string;
   nameTemplate: string;
+  pipelineId: number | null;
+  pipelineName: string | null;
   steps: StageStep[];
   runOn: string;
   outputRoot: string | null;

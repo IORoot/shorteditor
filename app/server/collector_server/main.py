@@ -24,7 +24,7 @@ from .collection.service import CollectorService
 from .collection.source_checker import LocalSourceChecker
 from .collection.undo import UndoService
 from .pipeline.wiring import build_pipeline
-from .production.wiring import build_production
+from .production.wiring import build_library, build_production, build_usage
 
 TICK_SECONDS = 30
 PRODUCTION_TICK_SECONDS = 2
@@ -47,8 +47,9 @@ def create_default_app() -> FastAPI:
     run_service = RunService(collectors, planner, scheduler, UndoService(moves, runs, files))
     seed_demo(collectors, service.save_schedule)
     output_root = os.environ.get("SHORT_EDITOR_OUTPUT") or os.path.join(os.path.dirname(os.path.abspath(db_path)), "production_output")
-    production = build_production(db, output_root)
-    pipeline = build_pipeline(db, production.catalog)
+    library = build_library()
+    pipeline = build_pipeline(db, library, build_usage(db))  # Pipeline reads production's usage and stage library
+    production = build_production(db, output_root, library, pipeline.service)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):

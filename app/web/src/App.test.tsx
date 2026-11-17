@@ -48,7 +48,7 @@ describe('App sections', () => {
     expect(await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 })).toBeInTheDocument();
   });
 
-  it('keeps one header that does not remount on a tab click', async () => {
+  it('keeps one header that does not remount on a tab click', { tags: ['full'] }, async () => {
     mockBoth();
     render(<App />);
     await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 });
@@ -61,7 +61,7 @@ describe('App sections', () => {
     expect(document.activeElement).toBe(tab);
   });
 
-  it('keeps the selected collector when the user visits Production and comes back', async () => {
+  it('keeps the selected collector when the user visits Production and comes back', { tags: ['full'] }, async () => {
     mockBoth();
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: /Class Tuesdays/ }));
@@ -72,7 +72,7 @@ describe('App sections', () => {
     expect(await screen.findByRole('heading', { name: 'Class Tuesdays', level: 1 })).toBeInTheDocument();
   });
 
-  it('does not lose an unsaved collector edit when the user clicks another tab', async () => {
+  it('does not lose an unsaved collector edit when the user clicks another tab', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector, second]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -90,7 +90,7 @@ describe('App sections', () => {
     expect(await screen.findByLabelText('Name')).toHaveValue('Typed but not saved');
   });
 
-  it('stops refreshing a running collector while the user is on Production', async () => {
+  it('stops refreshing a running collector while the user is on Production', { tags: ['full'] }, async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const calls = { runs: 0 };
@@ -114,7 +114,7 @@ describe('App sections', () => {
     }
   });
 
-  it('stops refreshing the board once the user leaves it', async () => {
+  it('stops refreshing the board once the user leaves it', { tags: ['full'] }, async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const calls = { count: 0 };
@@ -140,7 +140,7 @@ describe('App sections', () => {
 });
 
 describe('App', () => {
-  it('shows the collector, history and schedule once data loads', async () => {
+  it('shows the collector, history and schedule once data loads', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -151,19 +151,19 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Schedule' })).toBeInTheDocument();
   });
 
-  it('shows an error state when the backend is down', async () => {
+  it('shows an error state when the backend is down', { tags: ['full'] }, async () => {
     mockBackend({ '/api/collectors': () => Promise.resolve(new Response('down', { status: 503 })) });
     render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach the backend');
   });
 
-  it('shows the empty state when there are no collectors', async () => {
+  it('shows the empty state when there are no collectors', { tags: ['full'] }, async () => {
     mockBackend({ '/api/collectors': () => jsonResponse([]) });
     render(<App />);
     expect(await screen.findByText('No collectors yet.')).toBeInTheDocument();
   });
 
-  it('saves the schedule and reloads collectors', async () => {
+  it('saves the schedule and reloads collectors', { tags: ['full'] }, async () => {
     const fetchMock = mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -177,7 +177,7 @@ describe('App', () => {
     });
   });
 
-  it('opens the edit screen from the Edit button and returns on Cancel', async () => {
+  it('opens the edit screen from the Edit button and returns on Cancel', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -204,7 +204,7 @@ describe('App', () => {
   };
   const finishedRun = { id: 5, collectorId: 1, startedAt: 'Sat 14 Nov, 18:40', trigger: 'manual', status: 'done', outcome: 'Moved 2 clips into 1 folder', canUndo: true };
 
-  it('Dry run shows the plan and changes nothing', async () => {
+  it('Dry run shows the plan and changes nothing', { tags: ['full'] }, async () => {
     const fetchMock = mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -219,7 +219,7 @@ describe('App', () => {
     expect(fetchMock.mock.calls.some(([url]) => url === '/api/collectors/1/run')).toBe(false);
   });
 
-  it('Run now shows the plan first and only starts the run after confirming', async () => {
+  it('Run now shows the plan first and only starts the run after confirming', { tags: ['full'] }, async () => {
     const fetchMock = mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -235,7 +235,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /Move 2 clips|Starting/ })).not.toBeInTheDocument());
   });
 
-  it('shows the reason when a dry run cannot be made', async () => {
+  it('shows the reason when a dry run cannot be made', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -246,7 +246,7 @@ describe('App', () => {
     expect(await screen.findByText('Input folder not found: /nope')).toBeInTheDocument();
   });
 
-  it('shows why a run could not be started and stays open', async () => {
+  it('shows why a run could not be started and stays open', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([]),
@@ -260,7 +260,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Move 2 clips' })).toBeEnabled();
   });
 
-  it('Undo calls the API and refreshes the history', async () => {
+  it('Undo calls the API and refreshes the history', { tags: ['full'] }, async () => {
     const fetchMock = mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([finishedRun]),
@@ -271,7 +271,7 @@ describe('App', () => {
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === '/api/runs/5/undo')).toBe(true));
   });
 
-  it('shows an error when Undo fails', async () => {
+  it('shows an error when Undo fails', { tags: ['full'] }, async () => {
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
       '/api/collectors/1/runs': () => jsonResponse([finishedRun]),
@@ -282,7 +282,7 @@ describe('App', () => {
     expect(await screen.findByText('This run can’t be undone')).toBeInTheDocument();
   });
 
-  it('polls while a run is running, shows progress and disables Run now', async () => {
+  it('polls while a run is running, shows progress and disables Run now', { tags: ['full'] }, async () => {
     let calls = 0;
     mockBackend({
       '/api/collectors': () => jsonResponse([collector]),
@@ -298,7 +298,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Run now' })).toBeEnabled();
   });
 
-  it('opens the edit screen even when the backend is older and sends no filter settings', async () => {
+  it('opens the edit screen even when the backend is older and sends no filter settings', { tags: ['full'] }, async () => {
     const { filters, dateSource, filenamePattern, ...oldConfig } = collector.config;
     void filters; void dateSource; void filenamePattern;
     mockBackend({
@@ -313,7 +313,7 @@ describe('App', () => {
     expect(screen.getByText(/every video file in the input folder is collected/)).toBeInTheDocument();
   });
 
-  it('tells you to restart the backend when saving to an older one', async () => {
+  it('tells you to restart the backend when saving to an older one', { tags: ['full'] }, async () => {
     const { filters, dateSource, filenamePattern, ...oldConfig } = collector.config;
     void filters; void dateSource; void filenamePattern;
     const old = { ...collector, config: oldConfig };

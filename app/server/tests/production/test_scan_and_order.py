@@ -37,6 +37,27 @@ def test_scan_finds_clips_in_subfolders(tmp_path, folder):
     assert all(p.start == 0 and p.end is None and p.clip.startswith("/") for p in data.items)
 
 
+def test_scan_name_filter_keeps_matching_names_and_empty_matches_all(tmp_path, folder):
+    make_clip(folder / "coach_1.mp4")
+    make_clip(folder / "other.mp4")
+    data, _ = scan(tmp_path, name_contains="COACH")
+    assert names(data) == ["coach_1.mp4"]
+    data, _ = scan(tmp_path, name_contains="coach", name_mode="not_contains")
+    assert names(data) == ["other.mp4"]
+    data, _ = scan(tmp_path, name_contains="")
+    assert names(data) == ["coach_1.mp4", "other.mp4"]
+
+
+def test_scan_skips_a_second_clip_with_the_same_name(tmp_path, folder):
+    make_clip(folder / "a.mp4")
+    make_clip(folder / "sub" / "a.mp4")
+    data, log = scan(tmp_path)
+    assert len(data.items) == 1
+    assert any("name already used" in line for line in log)
+
+
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_can_skip_subfolders(tmp_path, folder):
     make_clip(folder / "a.mp4")
     make_clip(folder / "sub" / "b.mp4")
@@ -44,6 +65,8 @@ def test_scan_can_skip_subfolders(tmp_path, folder):
     assert names(data) == ["a.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_ignores_other_extensions_and_is_case_insensitive(tmp_path, folder):
     make_clip(folder / "a.mp4")
     make_clip(folder / "B.MOV")
@@ -52,6 +75,8 @@ def test_scan_ignores_other_extensions_and_is_case_insensitive(tmp_path, folder)
     assert names(data) == ["B.MOV", "a.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_skips_clips_shorter_than_minimum_and_says_so(tmp_path, folder):
     make_clip(folder / "long.mp4", seconds=2)
     make_clip(folder / "short.mp4", seconds=0.5)
@@ -60,6 +85,8 @@ def test_scan_skips_clips_shorter_than_minimum_and_says_so(tmp_path, folder):
     assert any("1 clip" in line and "short" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_skips_unreadable_clips_and_reports_them(tmp_path, folder):
     make_clip(folder / "good.mp4")
     (folder / "broken.mp4").write_bytes(b"not a video")
@@ -68,11 +95,15 @@ def test_scan_skips_unreadable_clips_and_reports_them(tmp_path, folder):
     assert any("broken.mp4" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_empty_folder_fails_plainly(tmp_path, folder):
     with pytest.raises(StageError, match="^No clips found"):
         scan(tmp_path)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_handles_odd_file_names(tmp_path, folder):
     make_clip(folder / "it's a \"clip\" é -x.mp4")
     data, _ = scan(tmp_path)
@@ -87,16 +118,22 @@ def order(tmp_path, data, **settings):
     return ORDER.run(data, ORDER.settings_model(**settings), make_ctx(tmp_path))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_by_name(tmp_path):
     data = order(tmp_path, clips(("/x/b.mp4", 1), ("/x/a.mp4", 1)), order_by="name")
     assert [p.clip for p in data.items] == ["/x/a.mp4", "/x/b.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_by_duration(tmp_path):
     data = order(tmp_path, clips(("/x/a.mp4", 5), ("/x/b.mp4", 2)), order_by="duration")
     assert [p.clip for p in data.items] == ["/x/b.mp4", "/x/a.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_by_capture_time_uses_tag(tmp_path):
     a = make_clip(tmp_path / "a.mp4", creation_time="2026-11-10T09:00:00Z")
     b = make_clip(tmp_path / "b.mp4", creation_time="2026-11-10T07:00:00Z")
@@ -104,6 +141,8 @@ def test_order_by_capture_time_uses_tag(tmp_path):
     assert [p.clip for p in data.items] == [b, a]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_capture_time_falls_back_to_file_time(tmp_path):
     a = make_clip(tmp_path / "a.mp4")
     b = make_clip(tmp_path / "b.mp4")
@@ -113,11 +152,24 @@ def test_order_capture_time_falls_back_to_file_time(tmp_path):
     assert [p.clip for p in data.items] == [b, a]
 
 
+def test_order_fallback_name_ignores_file_times_when_no_capture_time(tmp_path):
+    a = make_clip(tmp_path / "a.mp4")
+    b = make_clip(tmp_path / "b.mp4")
+    os.utime(a, (2000, 2000))
+    os.utime(b, (1000, 1000))
+    data = order(tmp_path, clips((a, 2), (b, 2)), fallback="name")
+    assert [p.clip for p in data.items] == [a, b]
+
+
+@pytest.mark.full
+@pytest.mark.full
 def test_order_newest_first(tmp_path):
     data = order(tmp_path, clips(("/x/a.mp4", 1), ("/x/b.mp4", 1)), order_by="name", direction="newest_first")
     assert [p.clip for p in data.items] == ["/x/b.mp4", "/x/a.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_random_same_seed_same_order(tmp_path):
     data = clips(*[(f"/x/{n:02d}.mp4", 1) for n in range(12)])
     first = order(tmp_path, data, order_by="random", seed=7)
@@ -125,6 +177,8 @@ def test_order_random_same_seed_same_order(tmp_path):
     assert [p.clip for p in first.items] == [p.clip for p in again.items]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_random_different_seed_differs(tmp_path):
     data = clips(*[(f"/x/{n:02d}.mp4", 1) for n in range(12)])
     one = order(tmp_path, data, order_by="random", seed=1)
@@ -132,11 +186,15 @@ def test_order_random_different_seed_differs(tmp_path):
     assert [p.clip for p in one.items] != [p.clip for p in two.items]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_missing_folder_fails_plainly(tmp_path):
     with pytest.raises(StageError, match="does not exist"):
         scan(tmp_path)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_by_created_follows_file_creation(tmp_path):
     first = make_clip(tmp_path / "z_first.mp4")
     time.sleep(0.05)
@@ -145,6 +203,8 @@ def test_order_by_created_follows_file_creation(tmp_path):
     assert [p.clip for p in data.items] == [first, second]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_both_stages_pass_registry_shape_checks():
     from collector_server.production.registry import StageRegistry
 
@@ -153,6 +213,8 @@ def test_both_stages_pass_registry_shape_checks():
     registry.register(ORDER)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_reports_a_missing_ffmpeg_instead_of_no_clips(tmp_path, folder):
     (folder / "a.mp4").write_bytes(b"x")
     ctx = make_ctx(tmp_path, worker=FakeWorker(error=FileNotFoundError()))
@@ -160,6 +222,8 @@ def test_scan_reports_a_missing_ffmpeg_instead_of_no_clips(tmp_path, folder):
         SCAN.run(None, SCAN.settings_model(), ctx)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_says_why_a_clip_could_not_be_read(tmp_path, folder):
     make_clip(folder / "good.mp4")
     (folder / "broken.mp4").write_bytes(b"not a video")
@@ -167,6 +231,8 @@ def test_scan_says_why_a_clip_could_not_be_read(tmp_path, folder):
     assert any("broken.mp4" in line and "Invalid data" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_ignores_hidden_files_and_folders_quietly(tmp_path, folder):
     make_clip(folder / "real.mp4")
     (folder / "._real.mp4").write_bytes(b"apple double")
@@ -177,6 +243,8 @@ def test_scan_ignores_hidden_files_and_folders_quietly(tmp_path, folder):
     assert not any("Skipped" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_follows_file_links_but_not_folder_links(tmp_path, folder):
     real = make_clip(tmp_path / "elsewhere.mp4")
     os.symlink(real, folder / "linked.mp4")
@@ -187,6 +255,8 @@ def test_scan_follows_file_links_but_not_folder_links(tmp_path, folder):
     assert names(data) == ["linked.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_logs_a_folder_it_cannot_open(tmp_path, folder):
     make_clip(folder / "a.mp4")
     locked = folder / "locked"
@@ -200,6 +270,8 @@ def test_scan_logs_a_folder_it_cannot_open(tmp_path, folder):
     assert any("locked" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_shortens_the_list_of_skipped_clips(tmp_path, folder):
     make_clip(folder / "ok.mp4", seconds=2)
     for n in range(8):
@@ -209,16 +281,22 @@ def test_scan_shortens_the_list_of_skipped_clips(tmp_path, folder):
     assert "and 3 more" in line
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_rejects_a_negative_minimum_length():
     with pytest.raises(ValueError):
         SCAN.settings_model(min_length=-1)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_by_name_uses_file_name_ignoring_case_and_folders(tmp_path):
     data = order(tmp_path, clips(("/x/sub/b.mp4", 1), ("/x/Z.mp4", 1), ("/x/a.mp4", 1)), order_by="name")
     assert [os.path.basename(p.clip) for p in data.items] == ["a.mp4", "b.mp4", "Z.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_equal_clips_keep_path_order_in_both_directions(tmp_path):
     data = clips(("/x/c.mp4", 5), ("/x/a.mp4", 5), ("/x/b.mp4", 5))
     oldest = order(tmp_path, data, order_by="duration")
@@ -227,21 +305,29 @@ def test_equal_clips_keep_path_order_in_both_directions(tmp_path):
     assert [p.clip for p in newest.items] == ["/x/a.mp4", "/x/b.mp4", "/x/c.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_order_reports_a_clip_that_vanished(tmp_path):
     with pytest.raises(StageError, match="no longer there"):
         order(tmp_path, clips(("/gone/a.mp4", 1)))
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("extensions", [["mp4"] * 21, ["../x"], ["mp4\n"], [""], ["*"], ["a" * 20]])
 def test_scan_rejects_odd_extension_lists(extensions):
     with pytest.raises(ValueError):
         SCAN.settings_model(extensions=extensions)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_accepts_ordinary_extensions():
     assert SCAN.settings_model(extensions=["mp4", ".MOV", "m4v", "mkv"]).extensions[1] == ".MOV"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_refuses_a_folder_with_far_too_many_files(tmp_path, folder):
     for n in range(5):
         (folder / f"f{n}.txt").write_text("x")
@@ -249,7 +335,17 @@ def test_scan_refuses_a_folder_with_far_too_many_files(tmp_path, folder):
         scan(tmp_path, max_files=3)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_scan_file_limit_has_bounds():
     for bad in (0, 100_001):
         with pytest.raises(ValueError):
             SCAN.settings_model(max_files=bad)
+
+
+def test_newest_first_keeps_clips_without_capture_time_after_the_dated_ones(tmp_path):
+    early = make_clip(tmp_path / "early.mp4", creation_time="2026-11-10T07:00:00Z")
+    late = make_clip(tmp_path / "late.mp4", creation_time="2026-11-10T09:00:00Z")
+    undated = make_clip(tmp_path / "undated.mp4")
+    data = order(tmp_path, clips((early, 2), (late, 2), (undated, 2)), direction="newest_first", fallback="name")
+    assert [os.path.basename(p.clip) for p in data.items] == ["late.mp4", "early.mp4", "undated.mp4"]

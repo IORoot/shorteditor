@@ -23,6 +23,8 @@ def accepts(e: FilterEngine, name: str, when: datetime = SAT_0930) -> bool:
     return e.accepts(ClipFacts(name, ClipTimes(modified=when, created=when)))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_no_groups_accepts_everything():
     assert accepts(engine(), "anything.mp4")
     assert accepts(engine([]), "anything.mp4")
@@ -34,27 +36,37 @@ def test_name_rule_is_a_case_insensitive_substring():
     assert accepts(e, "my-coach-clip.mp4") and not accepts(e, "other.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_glob_rule_matches_the_whole_name_case_insensitively():
     e = engine([rule("glob", value="gx01*.mp4")])
     assert accepts(e, "GX011234.MP4") and not accepts(e, "proxy_GX011234.MP4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_name_rule_matches_case_when_case_sensitive_is_on():
     e = engine([rule("name", value="Coach", case_sensitive=True)])
     assert accepts(e, "my-Coach-clip.mp4") and not accepts(e, "my-coach-clip.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_glob_rule_matches_case_when_case_sensitive_is_on():
     e = engine([rule("glob", value="GX01*.mp4", case_sensitive=True)])
     assert accepts(e, "GX011234.mp4") and not accepts(e, "GX011234.MP4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_regex_rule_is_case_sensitive_only_when_asked():
     loose = engine([rule("regex", value="^gx")])
     strict = engine([rule("regex", value="^gx", case_sensitive=True)])
     assert accepts(loose, "GX1.mp4") and not accepts(strict, "GX1.mp4") and accepts(strict, "gx1.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_regex_rule_searches_the_name():
     e = engine([rule("regex", value=r"^GX\d{4}")])
     assert accepts(e, "GX1234_a.mp4") and not accepts(e, "xGX1234.mp4")
@@ -68,12 +80,16 @@ def test_date_range_is_inclusive_on_both_ends_and_can_be_open_ended():
     assert not accepts(engine([rule("date_range", date_to="2026-11-13")]), "a.mp4", SAT_0930)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_weekday_rule_uses_sunday_as_zero():
     assert accepts(engine([rule("weekday", days=[6])]), "a.mp4", SAT_0930)
     assert not accepts(engine([rule("weekday", days=[0, 1])]), "a.mp4", SAT_0930)
     assert accepts(engine([rule("weekday", days=[1])]), "a.mp4", MON_1800)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_window_is_start_inclusive_and_end_exclusive():
     e = engine([rule("window", days=[6], start="09:30", end="10:30")])
     assert accepts(e, "a.mp4", datetime(2026, 11, 14, 9, 30, tzinfo=LONDON))
@@ -83,6 +99,8 @@ def test_window_is_start_inclusive_and_end_exclusive():
     assert not accepts(e, "a.mp4", datetime(2026, 11, 15, 9, 45, tzinfo=LONDON))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_exclude_inverts_a_rule():
     e = engine([rule("name", value="proxy", exclude=True)])
     assert accepts(e, "clip.mp4") and not accepts(e, "proxy_clip.mp4")
@@ -103,11 +121,15 @@ def test_groups_are_ored():
     assert not accepts(e, "a.mp4", MON_1800)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_empty_groups_are_ignored_not_treated_as_match_none():
     e = engine([], [rule("name", value="keep")])
     assert accepts(e, "keep.mp4") and not accepts(e, "other.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize(
     "bad,message",
     [
@@ -128,6 +150,8 @@ def test_invalid_rules_raise_clear_errors(bad, message):
         engine([bad])
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_each_date_rule_reads_its_own_source():
     modified = datetime(2026, 11, 14, 9, 0, tzinfo=LONDON)  # Saturday
     created = datetime(2026, 11, 16, 9, 0, tzinfo=LONDON)  # Monday
@@ -156,22 +180,30 @@ def select(groups, names, folders=None):
     return FilterEngine([FilterGroup(rules=list(g)) for g in groups]).select(items, facts, folder)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_only_samples_its_own_groups_matches():
     result = select([[rule("name", value="keep"), sample_rule(value=2)]], ["keep1", "keep2", "keep3", "skip1"])
     assert len(result.accepted) == 2 and result.candidates == {0, 1, 2}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_exclude_rules_apply_before_the_random_pick():
     result = select([[rule("name", value="keep"), rule("name", value="keep2", exclude=True), sample_rule(value=10)]], ["keep1", "keep2", "keep3"])
     assert result.accepted == {0, 2}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_groups_are_ored_and_each_group_samples_separately():
     groups = [[rule("name", value="a"), sample_rule(value=1)], [rule("name", value="b"), sample_rule(value=1)]]
     result = select(groups, ["a1", "a2", "b1", "b2", "c1"])
     assert len(result.accepted) == 2 and result.candidates == {0, 1, 2, 3}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_folder_scope_picks_within_each_folder():
     folders = {"a1": "day1", "a2": "day1", "b1": "day2", "b2": "day2"}
     result = select([[sample_rule(value=1, scope="folder")]], ["a1", "a2", "b1", "b2"], folders)

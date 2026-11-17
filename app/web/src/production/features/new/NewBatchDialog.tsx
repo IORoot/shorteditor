@@ -5,11 +5,10 @@ import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl
 import type { BrowseResult } from '../../../shared/lib/types';
 import { useFolderPreview } from '../../hooks/useFolderPreview';
 import { batchesNow, defaultForm, defaultManyForm, formFromWatch, isValid, manyIsValid, type ManyForm, type NewBatchForm } from '../../lib/presets';
-import type { Defaults, FolderPreview, WatchView } from '../../lib/types';
+import type { Defaults, FolderPreview, PipelineChoice, WatchView } from '../../lib/types';
 import { BatchSettingsFields } from './BatchSettingsFields';
 import { FolderField } from './FolderField';
 import { ManyFoldersForm } from './ManyFoldersForm';
-import { Select } from './Select';
 
 type Mode = 'one' | 'many';
 
@@ -18,6 +17,8 @@ export type WatchTarget = { kind: 'add' } | { kind: 'edit'; watch: WatchView };
 
 export interface NewBatchDialogProps {
   defaults: Defaults;
+  pipelines: PipelineChoice[];
+  onManagePipelines?: () => void;
   busy: boolean;
   error: string | null;
   onCreate: (form: NewBatchForm) => void;
@@ -35,7 +36,7 @@ function initialMany(target: WatchTarget | undefined): ManyForm {
   return target.kind === 'edit' ? formFromWatch(target.watch) : { ...defaultManyForm(), watching: true };
 }
 
-export function NewBatchDialog({ defaults, busy, error, onCreate, onCreateMany, onSaveWatch, onClose, browse, previewFolders, watchTarget }: NewBatchDialogProps) {
+export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, error, onCreate, onCreateMany, onSaveWatch, onClose, browse, previewFolders, watchTarget }: NewBatchDialogProps) {
   const [mode, setMode] = useState<Mode>(watchTarget ? 'many' : 'one');
   const [form, setForm] = useState<NewBatchForm>(defaultForm);
   const [many, setMany] = useState<ManyForm>(() => initialMany(watchTarget));
@@ -92,17 +93,15 @@ export function NewBatchDialog({ defaults, busy, error, onCreate, onCreateMany, 
           <>
             <FormField label="Name" autoFocus placeholder="e.g. Coach Saturdays – 14 Nov" value={form.name} onChange={(event) => set({ name: event.target.value })} />
             <FolderField label="Input folder" value={form.inputFolder} onChange={(inputFolder) => set({ inputFolder })} browse={browse} />
-            <Select label="Pipeline" value="join" onChange={() => undefined}>
-              <option value="join">Join clips</option>
-              <option value="action" disabled>Action clips (coming with AI detect)</option>
-            </Select>
-            <BatchSettingsFields value={form} onChange={set} defaults={defaults} browse={browse} />
+            <BatchSettingsFields value={form} onChange={set} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} />
           </>
         ) : (
           <ManyFoldersForm
             form={many}
             onChange={setManyForm}
             defaults={defaults}
+            pipelines={pipelines}
+            onManagePipelines={onManagePipelines}
             browse={browse}
             preview={preview}
             watch={watchTarget ? (watchTarget.kind === 'edit' ? 'edit' : 'locked') : 'optional'}

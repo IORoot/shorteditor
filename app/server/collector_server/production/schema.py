@@ -43,9 +43,22 @@ CREATE INDEX IF NOT EXISTS production_logs_by_pass ON production_logs (pass_id, 
 """
 
 
+# Columns added after the tables first existed. CREATE TABLE IF NOT EXISTS never adds them to an old table.
+_NEW_COLUMNS = {
+    "production_batches": {"pipeline_id": "INTEGER"},
+    "production_passes": {"steps_used": "TEXT NOT NULL DEFAULT '[]'"},
+    "production_watches": {"pipeline_id": "INTEGER"},
+}
+
+
 def ensure_schema(db: Database) -> None:
     # shortcut: statements are split on ';', so no default or comment above may contain one
     for statement in _TABLES.split(";"):
         if statement.strip():
             db.execute(statement)
     ensure_watch_schema(db)
+    for table, columns in _NEW_COLUMNS.items():
+        present = {row["name"] for row in db.query(f"PRAGMA table_info({table})")}
+        for name, ddl in columns.items():
+            if name not in present:
+                db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")

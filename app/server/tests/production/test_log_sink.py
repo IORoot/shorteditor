@@ -1,3 +1,4 @@
+import pytest
 from collector_server.production.log_sink import LogSink
 
 NOW = "2026-11-17T10:00:00+00:00"
@@ -25,12 +26,16 @@ def test_log_lines_are_written_in_groups():
     assert [len(w) for w in logs.writes] == [50, 50, 20]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_batch_of_one_writes_every_line_at_once():
     logs = CountingLogs()
     sink_of(logs, batch=1)("x")
     assert len(logs.writes) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_each_line_keeps_its_own_time():
     logs = CountingLogs()
     sink = sink_of(logs, batch=50)
@@ -40,6 +45,8 @@ def test_each_line_keeps_its_own_time():
     assert [at for at, _ in logs.writes[0]] == ["t0", "t1"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_ffmpeg_log_keeps_a_limited_number_of_lines():
     logs = CountingLogs()
     sink = sink_of(logs, batch=50, keep=100)
@@ -50,6 +57,8 @@ def test_ffmpeg_log_keeps_a_limited_number_of_lines():
     assert len(written) == 101 and written[-1] == "(more lines were not kept)" and written[99] == "line 99"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_very_long_log_lines_are_shortened():
     logs = CountingLogs()
     sink = sink_of(logs, batch=1)

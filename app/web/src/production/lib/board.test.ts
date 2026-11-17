@@ -3,7 +3,7 @@ import { makeCard } from '../test/fixtures';
 import { COLUMNS, chipLabel, clock, columnOf, groupCards, queueCaption, stageSegments, subtitle, toneOf } from './board';
 
 describe('column order', () => {
-  it('lists the columns Queued, Running, Needs attention, Ready to review', () => {
+  it('lists the columns Queued, Running, Needs attention, Ready to review', { tags: ['full'] }, () => {
     expect(COLUMNS).toEqual(['queued', 'running', 'attention', 'review']);
   });
 });
@@ -22,7 +22,7 @@ describe('columnOf', () => {
 });
 
 describe('groupCards', () => {
-  it('sorts queued by queue position, keeps running order and shows newest batches first elsewhere', () => {
+  it('sorts queued by queue position, keeps running order and shows newest batches first elsewhere', { tags: ['full'] }, () => {
     const q2 = makeCard({ status: 'queued', queuePosition: 2 });
     const q0 = makeCard({ status: 'queued', queuePosition: 0 });
     const lost = makeCard({ status: 'queued', queuePosition: null });
@@ -40,7 +40,7 @@ describe('groupCards', () => {
 });
 
 describe('subtitle', () => {
-  it('lists the non-empty parts', () => {
+  it('lists the non-empty parts', { tags: ['full'] }, () => {
     const cards = [
       makeCard({ status: 'review' }), makeCard({ status: 'review' }), makeCard({ status: 'failed' }), makeCard({ status: 'blocked' }),
       makeCard({ status: 'running' }), makeCard({ status: 'queued' }), makeCard({ status: 'queued' }), makeCard({ status: 'approved' }),
@@ -48,7 +48,7 @@ describe('subtitle', () => {
     expect(subtitle(cards)).toBe('8 batches · 2 queued · 1 running · 2 need attention · 2 ready to review');
   });
 
-  it('leaves out zero parts, says batch for one, and handles an empty board', () => {
+  it('leaves out zero parts, says batch for one, and handles an empty board', { tags: ['full'] }, () => {
     expect(subtitle([makeCard({ status: 'running' })])).toBe('1 batch · 1 running');
     expect(subtitle([])).toBe('No batches yet');
   });
@@ -70,29 +70,29 @@ describe('labels and tones', () => {
 });
 
 describe('stageSegments', () => {
-  it('marks done, current and to-do stages while running', () => {
+  it('marks done, current and to-do stages while running', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ status: 'running', stagePosition: 3, stageCount: 5 }))).toEqual(['done', 'done', 'run', 'todo', 'todo']);
   });
-  it('stops at the stage where a batch is blocked or failed', () => {
+  it('stops at the stage where a batch is blocked or failed', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ status: 'blocked', stagePosition: 3 }))).toEqual(['done', 'done', 'run', 'todo', 'todo']);
     expect(stageSegments(makeCard({ status: 'failed', stagePosition: 1 }))).toEqual(['run', 'todo', 'todo', 'todo', 'todo']);
   });
-  it('is all done for finished batches and all to do when queued', () => {
+  it('is all done for finished batches and all to do when queued', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ status: 'review', stagePosition: 5 }))).toEqual(['done', 'done', 'done', 'done', 'done']);
     expect(stageSegments(makeCard({ status: 'queued' }))).toEqual(['todo', 'todo', 'todo', 'todo', 'todo']);
   });
-  it('shows a pass that failed before any stage started as not started, and a starting pass at its first stage', () => {
+  it('shows a pass that failed before any stage started as not started, and a starting pass at its first stage', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ status: 'failed', stagePosition: 0 }))).toEqual(['todo', 'todo', 'todo', 'todo', 'todo']);
     expect(stageSegments(makeCard({ status: 'running', stagePosition: 0 }))).toEqual(['run', 'todo', 'todo', 'todo', 'todo']);
   });
-  it('copes with no stages or an out-of-range position', () => {
+  it('copes with no stages or an out-of-range position', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ stageCount: 0 }))).toEqual([]);
     expect(stageSegments(makeCard({ status: 'running', stagePosition: 9, stageCount: 3 }))).toEqual(['done', 'done', 'run']);
   });
 });
 
 describe('queueCaption', () => {
-  it('says Next, then how many batches come first', () => {
+  it('says Next, then how many batches come first', { tags: ['full'] }, () => {
     expect(queueCaption(makeCard({ queuePosition: 0 }))).toBe('Next');
     expect(queueCaption(makeCard({ queuePosition: 1 }))).toBe('Starts after 1 batch');
     expect(queueCaption(makeCard({ queuePosition: 3 }))).toBe('Starts after 3 batches');
@@ -101,7 +101,7 @@ describe('queueCaption', () => {
 });
 
 describe('clock', () => {
-  it('formats seconds as mm:ss', () => {
+  it('formats seconds as mm:ss', { tags: ['full'] }, () => {
     expect(clock(58.4)).toBe('00:58');
     expect(clock(125)).toBe('02:05');
     expect(clock(3725)).toBe('62:05');
@@ -113,13 +113,13 @@ describe('clock', () => {
 describe('a status this version does not know', () => {
   const odd = () => makeCard({ status: 'paused' as never });
 
-  it('lands in Needs attention instead of breaking the board', () => {
+  it('lands in Needs attention instead of breaking the board', { tags: ['full'] }, () => {
     expect(columnOf(odd())).toBe('attention');
     expect(groupCards([makeCard({ status: 'queued' }), odd()]).attention).toHaveLength(1);
     expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 queued · 1 need attention');
   });
 
-  it('shows the raw status as its label with a warning tone', () => {
+  it('shows the raw status as its label with a warning tone', { tags: ['full'] }, () => {
     expect(chipLabel(odd())).toBe('paused');
     expect(toneOf(odd())).toBe('warn');
     expect(stageSegments(odd())).toHaveLength(5);
@@ -127,7 +127,7 @@ describe('a status this version does not know', () => {
 });
 
 describe('stageSegments limits', () => {
-  it('never builds more than 50 segments, however many stages the server claims', () => {
+  it('never builds more than 50 segments, however many stages the server claims', { tags: ['full'] }, () => {
     expect(stageSegments(makeCard({ status: 'queued', stageCount: 5_000_000 }))).toHaveLength(50);
   });
 });

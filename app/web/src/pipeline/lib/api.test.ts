@@ -14,7 +14,7 @@ const sent = (fetchMock: ReturnType<typeof vi.fn>) => {
 const steps = [{ key: 'scan_folder', settings: {}, enabled: true }];
 
 describe('PipelineApi', () => {
-  it('reads the list, one pipeline, the impact, the stages', async () => {
+  it('reads the list, one pipeline, the impact, the stages', { tags: ['full'] }, async () => {
     for (const [call, url] of [
       [(c: PipelineApi) => c.list(), '/api/pipeline/pipelines'],
       [(c: PipelineApi) => c.get(3), '/api/pipeline/pipelines/3'],
@@ -37,7 +37,7 @@ describe('PipelineApi', () => {
     expect(sent(saved.fetchMock)).toEqual({ url: '/api/pipeline/pipelines/1', method: 'PUT', body });
   });
 
-  it('switches, duplicates and deletes', async () => {
+  it('switches, duplicates and deletes', { tags: ['full'] }, async () => {
     const on = api({});
     await on.client.setEnabled(2, false);
     expect(sent(on.fetchMock)).toEqual({ url: '/api/pipeline/pipelines/2/enabled', method: 'POST', body: { enabled: false } });
@@ -49,14 +49,14 @@ describe('PipelineApi', () => {
     expect(sent(gone.fetchMock)).toMatchObject({ url: '/api/pipeline/pipelines/2', method: 'DELETE' });
   });
 
-  it('unwraps the template and the check', async () => {
+  it('unwraps the template and the check', { tags: ['full'] }, async () => {
     expect(await api({ steps }).client.template()).toEqual(steps);
     const check = api({ errors: ['bad'] });
     expect(await check.client.check(steps)).toEqual(['bad']);
     expect(sent(check.fetchMock)).toEqual({ url: '/api/pipeline/check', method: 'POST', body: { steps } });
   });
 
-  it('shows the server message on a refusal', async () => {
+  it('shows the server message on a refusal', { tags: ['full'] }, async () => {
     const { client } = api({ detail: 'There is already a pipeline called A' }, 422);
     await expect(client.create({ name: 'A', description: '', steps })).rejects.toThrow('There is already a pipeline called A');
   });

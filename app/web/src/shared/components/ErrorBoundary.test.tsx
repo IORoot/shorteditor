@@ -9,7 +9,7 @@ function Boom(): never {
 afterEach(() => vi.restoreAllMocks());
 
 describe('ErrorBoundary', () => {
-  it('renders its children when nothing goes wrong', () => {
+  it('renders its children when nothing goes wrong', { tags: ['full'] }, () => {
     render(<ErrorBoundary><p>fine</p></ErrorBoundary>);
     expect(screen.getByText('fine')).toBeInTheDocument();
   });
@@ -25,7 +25,7 @@ describe('ErrorBoundary', () => {
     expect(onReload).toHaveBeenCalled();
   });
 
-  it('logs the crash for debugging', () => {
+  it('logs the crash for debugging', { tags: ['full'] }, () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     render(<ErrorBoundary><Boom /></ErrorBoundary>);
     expect(log.mock.calls.some((call) => String(call[0]).includes('crashed while rendering'))).toBe(true);

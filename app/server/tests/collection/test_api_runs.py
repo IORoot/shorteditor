@@ -44,6 +44,8 @@ def wait_for(client, collector_id, status="done"):
     raise AssertionError("run did not finish")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_dry_run_returns_the_plan_and_touches_nothing(stack):
     client, record, source, output = stack
     make_clip(source / "a.mp4", SAT)
@@ -79,6 +81,8 @@ def test_undo_restores_the_files(stack):
     assert client.post(f"/api/runs/{run['id']}/undo").status_code == 409
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_run_with_no_clips_is_done_and_not_undoable(stack):
     client, record, _, _ = stack
     client.post(f"/api/collectors/{record.id}/run")
@@ -86,6 +90,8 @@ def test_run_with_no_clips_is_done_and_not_undoable(stack):
     assert final["outcome"] == "No new clips found" and final["canUndo"] is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_errors_are_reported_with_messages(stack, collectors, tmp_path):
     client, record, _, _ = stack
     ssh = collectors.add_with_config(config_for(tmp_path / "in", tmp_path / "out", name="Remote", source_type="ssh", host="nas"))
@@ -99,6 +105,8 @@ def test_errors_are_reported_with_messages(stack, collectors, tmp_path):
     assert client.post("/api/runs/999/undo").status_code == 404
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_history_shows_a_running_status_label(stack, runs, clock):
     client, record, _, _ = stack
     runs.add(record.id, clock.now(), "manual", "running", "Moving 3 of 9…")

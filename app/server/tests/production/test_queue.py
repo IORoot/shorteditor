@@ -47,7 +47,7 @@ def env(db):
         return JobQueue(passes, batches, runner, {w: FakeWorker(w) for w in worker_ids}, lambda: NOW)
 
     def add(run_on="any"):
-        batch = batches.create("B", "/in", [StageStep(key="scan_folder")], run_on, "/out", NOW)
+        batch = batches.create("B", "/in", None, [StageStep(key="scan_folder")], run_on, "/out", NOW)
         return passes.create(batch.id, NOW).id
 
     return build, add, runner, passes
@@ -75,6 +75,8 @@ def test_one_job_per_worker(env):
     queue.wait_idle()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_first_in_first_out(env):
     build, add, runner, _ = env
     queue = build("local")
@@ -88,6 +90,8 @@ def test_first_in_first_out(env):
     assert order == ids
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_two_workers_run_two_jobs_at_once(env):
     build, add, runner, _ = env
     queue = build("a", "b")
@@ -101,6 +105,8 @@ def test_two_workers_run_two_jobs_at_once(env):
     runner.release(three)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_batch_pinned_to_a_worker_waits_for_that_worker(env):
     build, add, runner, _ = env
     queue = build("a", "b")
@@ -115,6 +121,8 @@ def test_a_batch_pinned_to_a_worker_waits_for_that_worker(env):
     queue.wait_idle()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_pass_for_an_unknown_worker_stays_queued(env):
     build, add, _, passes = env
     queue = build("local")
@@ -123,6 +131,8 @@ def test_pass_for_an_unknown_worker_stays_queued(env):
     assert passes.get(ghost).status == "queued"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_pass_is_not_started_twice(env):
     build, add, runner, _ = env
     queue = build("a", "b")
@@ -149,6 +159,8 @@ def test_a_crashing_runner_frees_the_worker_and_fails_the_pass(env):
     queue.wait_idle()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_recover_fails_running_passes_and_leaves_the_rest(env):
     build, add, _, passes = env
     queue = build("local")
@@ -159,6 +171,8 @@ def test_recover_fails_running_passes_and_leaves_the_rest(env):
     assert passes.get(waiting).status == "queued"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_recover_removes_the_leftovers_of_an_interrupted_run(env, tmp_path):
     import os
 
@@ -166,7 +180,7 @@ def test_recover_removes_the_leftovers_of_an_interrupted_run(env, tmp_path):
 
     build, _, _, passes = env
     queue = build("local")
-    batch = queue._batches.create("B", "/in", [StageStep(key="scan_folder")], "any", str(tmp_path / "out"), NOW)
+    batch = queue._batches.create("B", "/in", None, [StageStep(key="scan_folder")], "any", str(tmp_path / "out"), NOW)
     stuck = passes.create(batch.id, NOW)
     from collector_server.production.output_paths import claim_root
 
@@ -180,6 +194,8 @@ def test_recover_removes_the_leftovers_of_an_interrupted_run(env, tmp_path):
     assert not os.path.exists(work) and not os.path.exists(out)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_tick_does_not_look_at_the_queue_when_every_worker_is_busy(env):
     build, add, runner, passes = env
     queue = build("local")

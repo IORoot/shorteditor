@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
 import { chipLabel, queueCaption, toneOf } from '../../lib/board';
-import type { BatchCard } from '../../lib/types';
+import type { BatchCard, PipelineChoice } from '../../lib/types';
 import { BlockedChoices } from './BlockedChoices';
 import { OutputMeta } from './OutputMeta';
+import { RunAgain } from './RunAgain';
 import { VideoPlayer } from './VideoPlayer';
 
 export interface ReviewDrawerProps {
@@ -13,8 +14,9 @@ export interface ReviewDrawerProps {
   outputUrl: string;
   busy: boolean;
   error: string | null;
+  pipelines: PipelineChoice[];
   onApprove: () => void;
-  onRunAgain: () => void;
+  onRunAgain: (pipelineId: number) => void;
   onResolve: (choice: string) => void;
   onClose: () => void;
 }
@@ -24,7 +26,7 @@ function progress(card: BatchCard): string {
   return card.stageTitle ? `${card.stageTitle} · stage ${card.stagePosition} of ${card.stageCount}` : 'Starting';
 }
 
-export function ReviewDrawer({ card, outputUrl, busy, error, onApprove, onRunAgain, onResolve, onClose }: ReviewDrawerProps) {
+export function ReviewDrawer({ card, outputUrl, busy, error, pipelines, onApprove, onRunAgain, onResolve, onClose }: ReviewDrawerProps) {
   const panel = useRef<HTMLElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -84,14 +86,14 @@ export function ReviewDrawer({ card, outputUrl, busy, error, onApprove, onRunAga
       {card.status === 'failed' ? <p className="break-words text-small text-bad">{card.error}</p> : null}
       {card.status === 'running' || card.status === 'queued' ? <p className="text-small text-text-2">{progress(card)}</p> : null}
       {card.status === 'review' ? (
-        <div className="mt-auto flex gap-2.5 pt-2">
+        <div className="mt-auto flex flex-col gap-4 pt-2">
           {card.output ? <Button variant="primary" disabled={busy} onClick={onApprove}>Approve</Button> : null}
-          <Button disabled={busy} onClick={onRunAgain}>Run again</Button>
+          <RunAgain currentPipelineId={card.pipelineId} pipelines={pipelines} busy={busy} onRunAgain={onRunAgain} />
         </div>
       ) : null}
       {card.status === 'failed' || card.status === 'approved' ? (
-        <div className="mt-auto flex gap-2.5 pt-2">
-          <Button disabled={busy} onClick={onRunAgain}>Run again</Button>
+        <div className="mt-auto pt-2">
+          <RunAgain currentPipelineId={card.pipelineId} pipelines={pipelines} busy={busy} onRunAgain={onRunAgain} />
         </div>
       ) : null}
     </aside>

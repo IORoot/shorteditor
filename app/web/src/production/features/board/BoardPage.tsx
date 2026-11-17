@@ -9,25 +9,29 @@ import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
 import { subtitle } from '../../lib/board';
 import { toBulkRequest, toRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
-import type { Defaults } from '../../lib/types';
+import type { Defaults, PipelineChoice } from '../../lib/types';
 import { NewBatchDialog, type WatchTarget } from '../new/NewBatchDialog';
 import { ReviewDrawer } from '../review/ReviewDrawer';
 import { WatchesPanel } from '../watches/WatchesPanel';
 import { Board } from './Board';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch'>;
+  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'defaults' | 'pipelines' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch'>;
   browse?: (path?: string) => Promise<BrowseResult>;
+  /** Opens the Pipeline tab from the New batch dialog. */
+  onManagePipelines?: () => void;
 }
 
 // Without the server's defaults the form still works: an empty output folder means "use the server's".
 const NO_DEFAULTS: Defaults = { outputRoot: '', workers: [] };
+const NO_PIPELINES: PipelineChoice[] = [];
 
-export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardPageProps) {
+export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManagePipelines }: BoardPageProps) {
   const board = useBoard(api);
   const action = useAction();
   const create = useAction();
   const defaults = useLoad(() => api.defaults(), []);
+  const pipelines = useLoad(() => api.pipelines(), []);  // reloaded each time the board opens, so a new pipeline shows up
   const [newOpen, setNewOpen] = useState(false);
   const [watchesOpen, setWatchesOpen] = useState(false);
   const [watchTarget, setWatchTarget] = useState<WatchTarget | null>(null);
@@ -159,6 +163,8 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
       {newOpen || watchTarget ? (
         <NewBatchDialog
           defaults={defaults.state.status === 'ready' ? defaults.state.data : NO_DEFAULTS}
+          pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
+          onManagePipelines={onManagePipelines}
           busy={create.busy}
           error={create.error}
           browse={browse}
@@ -188,7 +194,8 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path) }: BoardP
           busy={action.busy}
           error={action.error}
           onApprove={() => act(() => api.approve(opened.passId))}
-          onRunAgain={() => act(() => api.runAgain(opened.batchId))}
+          pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
+          onRunAgain={(pipelineId) => act(() => api.runAgain(opened.batchId, pipelineId))}
           onResolve={(choice) => act(() => api.resolve(opened.passId, choice))}
           onClose={() => open(null)}
         />

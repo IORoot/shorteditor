@@ -42,6 +42,8 @@ def new_run(engine, **overrides):
     return record, run
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_plural_helper():
     assert plural(1, "clip") == "1 clip" and plural(2, "clip") == "2 clips"
 
@@ -59,6 +61,8 @@ def test_move_run_moves_files_and_logs_every_move(engine):
     assert engine["moves"].count(run.id) == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_copy_and_link_runs_use_their_own_verbs(engine):
     make_clip(engine["source"] / "a.mp4", SAT)
     record, run = new_run(engine, transfer="copy")
@@ -69,6 +73,8 @@ def test_copy_and_link_runs_use_their_own_verbs(engine):
     assert os.path.islink(engine["output"] / "links" / "a.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_nothing_to_do_is_reported_not_failed(engine):
     record, run = new_run(engine)
     assert engine["mover"].move(record, run.id, lambda _t: None) == "No new clips found"
@@ -99,6 +105,8 @@ def test_a_failure_stops_the_run_and_keeps_the_moves_done_so_far(engine):
     assert second.exists()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_undo_restores_files_and_removes_the_empty_folder(engine):
     make_clip(engine["source"] / "a.mp4", SAT)
     record, run = new_run(engine)
@@ -110,6 +118,8 @@ def test_undo_restores_files_and_removes_the_empty_folder(engine):
     assert result.outcome.endswith("Undone: restored 1")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_undo_skips_files_that_cannot_be_restored(engine):
     make_clip(engine["source"] / "a.mp4", SAT)
     record, run = new_run(engine)
@@ -132,6 +142,8 @@ def test_undoing_a_copy_removes_the_copies_only(engine):
     assert not (engine["output"] / "2026-11-14_Sat_coach").exists()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_undo_errors(engine):
     with pytest.raises(LookupError):
         engine["undo"].undo(999)
@@ -140,6 +152,8 @@ def test_undo_errors(engine):
         engine["undo"].undo(run.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_undo_removes_every_folder_the_run_created_even_nested_ones(engine):
     make_clip(engine["source"] / "a.mp4", SAT)
     record, run = new_run(engine, folder_template="2026/{date:YYYY-MM-DD}_{suffix}", group_by="day")
@@ -152,6 +166,8 @@ def test_undo_removes_every_folder_the_run_created_even_nested_ones(engine):
     assert not (engine["output"] / "2026").exists()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_undo_keeps_a_folder_the_run_did_not_empty(engine):
     make_clip(engine["source"] / "a.mp4", SAT)
     record, run = new_run(engine)

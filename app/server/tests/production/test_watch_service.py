@@ -8,6 +8,8 @@ from collector_server.production.errors import InvalidInputError
 from collector_server.production.repositories import BatchRepository, LogRepository, PassRepository
 from collector_server.production.schema import ensure_schema
 from collector_server.production.service import NotFoundError, ProductionService
+from collector_server.production.catalog import StageLibrary
+from tests.production.helpers import FakePipelines
 from collector_server.production.stage_api import StageStep
 from collector_server.production.watch_models import WatchCreate
 from collector_server.production.watch_repository import WatchRepository
@@ -34,7 +36,7 @@ def world(db, tmp_path):
     ensure_schema(db)
     clock = Clock()
     batches, passes = BatchRepository(db), PassRepository(db)
-    service = ProductionService(batches, passes, LogRepository(db), build_registry(), lambda: "t", str(tmp_path / "out"), ["local", "studio"])
+    service = ProductionService(batches, passes, LogRepository(db), StageLibrary(build_registry()), FakePipelines(), lambda: "t", str(tmp_path / "out"), ["local", "studio"])
     watches = WatchRepository(db)
     watch_service = WatchService(watches, service, clock)
 
@@ -57,7 +59,7 @@ def world(db, tmp_path):
         return str(base)
 
     w.folder = folder
-    w.data = lambda **kw: WatchCreate(**{"name": "Coach", "parent_folder": str(w.parent), "pattern": DATE, "steps": STEPS, **kw})
+    w.data = lambda **kw: WatchCreate(**{"name": "Coach", "parent_folder": str(w.parent), "pattern": DATE, "pipeline_id": 1, **kw})
     return w
 
 
@@ -88,6 +90,8 @@ def test_folder_batches_once_it_has_settled(world):
     assert world.watches.get(watch.id).waiting == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_settle_time_of_zero_batches_at_once(world):
     watch = world.ws.create(world.data(settle_minutes=0))
     world.folder("2026-11-07_a", age_minutes=0)
@@ -102,6 +106,8 @@ def test_nothing_is_batched_twice_across_checks(world):
     assert len(world.batches.list()) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_deleting_the_batch_does_not_bring_the_folder_back(world):
     watch = world.ws.create(world.data())
     world.folder("2026-11-07_a")
@@ -110,6 +116,8 @@ def test_deleting_the_batch_does_not_bring_the_folder_back(world):
     assert world.ws.check(watch.id).created == [] and world.batches.list() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_existing_folders_are_baselined_by_default(world):
     world.folder("2026-11-07_old")
     watch = world.ws.create(world.data())
@@ -118,6 +126,8 @@ def test_existing_folders_are_baselined_by_default(world):
     assert [b.name for b in world.ws.check(watch.id).created] == ["2026-11-08_new"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_include_existing_creates_for_settled_existing_folders(world):
     world.folder("2026-11-07_old")
     world.folder("2026-11-08_busy", age_minutes=2)
@@ -126,6 +136,8 @@ def test_include_existing_creates_for_settled_existing_folders(world):
     assert world.watches.get(watch.id).waiting == ["2026-11-08_busy"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_folder_without_videos_is_not_marked_seen_so_it_can_be_batched_later(world):
     watch = world.ws.create(world.data())
     world.folder("2026-11-07_a", clips=0)
@@ -134,6 +146,8 @@ def test_folder_without_videos_is_not_marked_seen_so_it_can_be_batched_later(wor
     assert [b.name for b in world.ws.check(watch.id).created] == ["2026-11-07_a"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_folder_empty_at_baseline_is_still_batched_once_videos_arrive(world):
     world.folder("2026-11-07_a", clips=0)
     watch = world.ws.create(world.data())
@@ -141,6 +155,8 @@ def test_a_folder_empty_at_baseline_is_still_batched_once_videos_arrive(world):
     assert len(world.ws.check(watch.id).created) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_cap_per_check_leaves_the_rest_for_the_next_check(world):
     watch = world.ws.create(world.data(max_per_check=2))
     for n in range(5):
@@ -151,6 +167,8 @@ def test_cap_per_check_leaves_the_rest_for_the_next_check(world):
     assert world.ws.check(watch.id).created == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_batches_are_created_in_folder_name_order(world):
     watch = world.ws.create(world.data())
     for name in ("2026-11-09_c", "2026-11-07_a", "2026-11-08_b"):
@@ -161,11 +179,13 @@ def test_batches_are_created_in_folder_name_order(world):
 def test_already_batched_folder_is_marked_seen_not_duplicated(world):
     watch = world.ws.create(world.data())
     path = world.folder("2026-11-07_a")
-    world.service.create_batch("Manual", path, STEPS, "any", None)
+    world.service.create_batch("Manual", path, 1, "any", None)
     assert world.ws.check(watch.id).created == [] and len(world.batches.list()) == 1
     assert path in world.watches.seen(watch.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_missing_parent_sets_a_problem_and_recovers_when_it_returns(world):
     watch = world.ws.create(world.data())
     gone = world.tmp / "moved"
@@ -178,13 +198,17 @@ def test_missing_parent_sets_a_problem_and_recovers_when_it_returns(world):
     assert result.error is None and len(result.created) == 1 and world.watches.get(watch.id).last_error is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_an_invalid_pattern_or_settings_is_refused_on_create(world):
-    for over, message in (({"pattern": "(a+)+"}, "far too long"), ({"name_template": "{nope}"}, "does not have"), ({"run_on": "ghost"}, "no worker"), ({"parent_folder": str(world.tmp / "nope")}, "does not exist"), ({"parent_folder": "relative"}, "absolute"), ({"output_root": str(world.parent / "x")}, "must not overlap"), ({"steps": [StageStep(key="join_pieces")]}, "")):
+    for over, message in (({"pattern": "(a+)+"}, "far too long"), ({"name_template": "{nope}"}, "does not have"), ({"run_on": "ghost"}, "no worker"), ({"parent_folder": str(world.tmp / "nope")}, "does not exist"), ({"parent_folder": "relative"}, "absolute"), ({"output_root": str(world.parent / "x")}, "must not overlap")):
         with pytest.raises(InvalidInputError, match=message):
             world.ws.create(world.data(**over))
     assert world.watches.list() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_edit_keeps_what_was_seen(world):
     watch = world.ws.create(world.data())
     world.folder("2026-11-07_a")
@@ -193,6 +217,8 @@ def test_edit_keeps_what_was_seen(world):
     assert world.ws.check(watch.id).created == [] and len(world.batches.list()) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_edit_is_validated_and_unknown_ids_are_not_found(world):
     watch = world.ws.create(world.data())
     with pytest.raises(InvalidInputError):
@@ -202,6 +228,8 @@ def test_edit_is_validated_and_unknown_ids_are_not_found(world):
             call()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_two_checks_at_once_create_each_folder_once(world):
     watch = world.ws.create(world.data())
     for n in range(6):
@@ -213,6 +241,8 @@ def test_two_checks_at_once_create_each_folder_once(world):
     assert sum(counts) == 6 and len(world.batches.list()) == 6
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_watch_and_a_manual_bulk_create_never_double_up(world):
     from collector_server.production.models import BulkCreate
 
@@ -223,7 +253,7 @@ def test_a_watch_and_a_manual_bulk_create_never_double_up(world):
 
     def bulk():
         try:
-            outcomes.append(len(world.service.create_batches(BulkCreate(parent_folder=str(world.parent), pattern=DATE, steps=STEPS)).created))
+            outcomes.append(len(world.service.create_batches(BulkCreate(parent_folder=str(world.parent), pattern=DATE, pipeline_id=1)).created))
         except InvalidInputError:
             outcomes.append(0)
 
@@ -233,6 +263,8 @@ def test_a_watch_and_a_manual_bulk_create_never_double_up(world):
     assert sum(outcomes) == 6 and len(world.batches.list()) == 6
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_watch_uses_its_template_settings_and_output_folder(world):
     watch = world.ws.create(world.data(name_template="{1} coach", pattern=r"^(\d{4})-\d{2}-\d{2}_.+$", run_on="studio", output_root=str(world.tmp / "reels")))
     world.folder("2026-11-07_a")
@@ -240,6 +272,8 @@ def test_the_watch_uses_its_template_settings_and_output_folder(world):
     assert (batch.name, batch.run_on, batch.output_root) == ("2026 coach", "studio", str(world.tmp / "reels"))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_status_and_status_line_for_each_state(world):
     watch = world.ws.create(world.data(interval_minutes=5, settle_minutes=10))
     fresh = world.ws.get(watch.id)
@@ -264,18 +298,24 @@ def test_status_and_status_line_for_each_state(world):
     assert problem.status == "problem" and problem.status_line.startswith("Problem:") and "Checking again in 5 minutes" in problem.status_line
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_list_returns_views_in_creation_order(world):
     first = world.ws.create(world.data(name="A"))
     second = world.ws.create(world.data(name="B"))
     assert [v.id for v in world.ws.list()] == [first.id, second.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_delete_removes_the_watch(world):
     watch = world.ws.create(world.data())
     world.ws.delete(watch.id)
     assert world.ws.list() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_scheduler_cannot_batch_existing_folders_while_a_watch_is_being_created(world, monkeypatch):
     import collector_server.production.watch_service as watch_module
     from collector_server.production.watch_scheduler import WatchScheduler
@@ -299,6 +339,8 @@ def test_the_scheduler_cannot_batch_existing_folders_while_a_watch_is_being_crea
     assert world.ws.get(watch.id).status == "watching" and world.watches.get(watch.id).enabled is True
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_folder_still_being_copied_when_the_watch_is_created_is_batched_once_it_settles(world):
     world.folder("2026-11-07_busy", age_minutes=2)
     watch = world.ws.create(world.data(settle_minutes=10))
@@ -320,6 +362,8 @@ def test_changing_the_parent_folder_starts_from_a_fresh_baseline(world):
     assert world.ws.check(watch.id).created == [] and world.batches.list() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_widening_the_pattern_does_not_batch_what_was_already_there(world):
     world.folder("2026-11-07_a")
     world.folder("notes")
@@ -328,6 +372,8 @@ def test_widening_the_pattern_does_not_batch_what_was_already_there(world):
     assert world.ws.check(watch.id).created == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_changing_the_parent_with_include_existing_batches_the_new_folders(world):
     other = world.tmp / "other"
     (other / "2026-11-01_x").mkdir(parents=True)
@@ -345,10 +391,10 @@ def test_one_bad_folder_does_not_stop_the_others_and_good_ones_stay_marked(world
         world.folder(f"2026-11-0{n}_x")
     real = world.service.create_batch
 
-    def flaky(name, *rest):
+    def flaky(name, *rest, **kw):
         if name == "2026-11-01_x":
             raise InvalidInputError("The folder vanished")
-        return real(name, *rest)
+        return real(name, *rest, **kw)
 
     monkeypatch.setattr(world.service, "create_batch", flaky)
     result = world.ws.check(watch.id)
@@ -360,6 +406,8 @@ def test_one_bad_folder_does_not_stop_the_others_and_good_ones_stay_marked(world
     assert [b.name for b in world.ws.check(watch.id).created] == ["2026-11-01_x"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_paused_watch_with_an_old_problem_says_paused_and_does_not_promise_a_check(world):
     watch = world.ws.create(world.data())
     world.parent.rename(world.tmp / "moved")
@@ -370,12 +418,16 @@ def test_a_paused_watch_with_an_old_problem_says_paused_and_does_not_promise_a_c
     assert ".." not in view.status_line
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_problem_that_ends_with_a_dot_is_not_followed_by_another(world):
     watch = world.ws.create(world.data())
     world.watches.record_check(watch.id, "2026-11-17T10:00:00+00:00", "The folder is gone.", [], 0)
     assert ".." not in world.ws.get(watch.id).status_line
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_cap_counts_only_batches_created_and_leaves_settled_folders_for_next_time(world):
     watch = world.ws.create(world.data(max_per_check=1))
     world.folder("2026-11-07_a")
@@ -384,13 +436,15 @@ def test_the_cap_counts_only_batches_created_and_leaves_settled_folders_for_next
     assert len(first.created) == 1 and first.waiting == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_watch_deleted_during_its_check_is_handled(world, monkeypatch):
     watch = world.ws.create(world.data())
     world.folder("2026-11-07_a")
     real = world.service.create_batch
 
-    def create_then_delete(*args):
-        batch = real(*args)
+    def create_then_delete(*args, **kw):
+        batch = real(*args, **kw)
         world.watches.delete(watch.id)
         return batch
 

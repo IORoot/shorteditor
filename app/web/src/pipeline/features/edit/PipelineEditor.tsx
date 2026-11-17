@@ -1,3 +1,4 @@
+import { ArrowLeft, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { useAction } from '../../../shared/hooks/useAction';
@@ -5,10 +6,12 @@ import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { useLoad } from '../../../shared/hooks/useLoad';
 import type { PipelineApi } from '../../lib/api';
 import { fromText, type Field } from '../../lib/schemaForm';
-import { addStage, move, setEnabled, setSetting } from '../../lib/steps';
+import { addStage, move, moveTo, setEnabled, setSetting, titleOf } from '../../lib/steps';
 import type { PipelineDetail, StageInfo, StageStep, UsageItem } from '../../lib/types';
 import { ChecksPanel } from './ChecksPanel';
+import { RecentBatches } from './RecentBatches';
 import { StageColumn, type Row } from './StageColumn';
+import { StageLibraryDialog } from './StageLibraryDialog';
 import { StageSettings } from './StageSettings';
 
 type EditorApi = Pick<PipelineApi, 'get' | 'template' | 'stages' | 'check' | 'create' | 'save' | 'duplicate' | 'deletePipeline'>;
@@ -55,7 +58,7 @@ function Editor({ api, id, detail, initial, library, onOpen, onClose }: EditorPr
   const [name, setName] = useState(detail?.name ?? '');
   const [description, setDescription] = useState(detail?.description ?? '');
   const [selected, setSelected] = useState<number | null>(rows[0]?.uid ?? null);
-  const [adding, setAdding] = useState(library[0]?.key ?? '');
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, { text: string; error: string | null }>>({});
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -106,24 +109,24 @@ function Editor({ api, id, detail, initial, library, onOpen, onClose }: EditorPr
     update(setSetting(steps, index, field.name, value));
   };
 
-  const reorder = (at: number, direction: -1 | 1) => {
-    const to = at + direction;
+  const reorder = (direction: -1 | 1) => {
+    const to = index + direction;
     if (to < 0 || to >= rows.length) return;
-    setRows(move(rows, at, direction));
+    setRows(move(rows, index, direction));
   };
 
-  const add = () => {
-    const info = library.find((candidate) => candidate.key === adding);
-    if (!info) return;
+  const add = (info: StageInfo) => {
     const uid = ++counter.current;
     setRows((all) => [...all, { uid, step: addStage(steps, info)[steps.length] }]);
     setSelected(uid);
+    setLibraryOpen(false);
   };
 
-  const remove = (at: number) => {
-    const uid = rows[at].uid;
+  const remove = () => {
+    if (!current) return;
+    const uid = current.uid;
     setRows((all) => all.filter((row) => row.uid !== uid));
-    if (selected === uid) setSelected(rows[at + 1]?.uid ?? rows[at - 1]?.uid ?? null);
+    setSelected(rows[index + 1]?.uid ?? rows[index - 1]?.uid ?? null);
   };
 
   const save = async () => {
@@ -143,56 +146,60 @@ function Editor({ api, id, detail, initial, library, onOpen, onClose }: EditorPr
 
   const canSave = name.trim() !== '' && !checking && errors.length === 0 && !badNumber && steps.length > 0 && !action.busy;
   const usedBy: UsageItem[] = detail?.usedBy ?? [];
+  const recentBatches: UsageItem[] = detail?.recentBatches ?? [];
   const problems = current ? Object.fromEntries(Object.entries(draftFor(current.uid)).flatMap(([key, d]) => (d.error ? [[key, d.error]] : []))) : {};
   const texts = current ? Object.fromEntries(Object.entries(draftFor(current.uid)).map(([key, d]) => [key, d.text])) : {};
+  const lastTitle = rows.length > 0 ? titleOf(rows[rows.length - 1].step, library) : null;
 
   return (
-    <main className="flex flex-1 flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-1 flex-col gap-2">
-          <h1 className="text-h1 font-bold tracking-[-0.6px]">{id === null ? 'New pipeline' : name || 'Pipeline'}</h1>
-          <div className="flex max-w-3xl gap-3">
-            <label className="flex flex-1 flex-col gap-1.5 text-caption font-semibold text-text-2">Name
-              <input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} className="input input-sm rounded-[10px] border-0 bg-fill-2 text-body font-normal text-base-content" />
-            </label>
-            <label className="flex flex-[2] flex-col gap-1.5 text-caption font-semibold text-text-2">Description
-              <input value={description} maxLength={300} onChange={(event) => setDescription(event.target.value)} className="input input-sm rounded-[10px] border-0 bg-fill-2 text-body font-normal text-base-content" />
-            </label>
+    <main className="flex flex-1 items-start gap-4">
+      <StageColumn rows={rows} library={library} selected={selected} onSelect={setSelected} onToggle={(index, on) => update(setEnabled(steps, index, on))} onMoveTo={(from, to) => setRows(moveTo(rows, from, to))} onAdd={() => setLibraryOpen(true)} />
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <button type="button" onClick={onClose} className="flex w-fit items-center gap-1 text-small text-text-2">
+              <ArrowLeft size={14} aria-hidden="true" />Pipelines
+            </button>
+            <div className="flex items-center gap-3">
+              <input aria-label="Name" value={name} maxLength={120} placeholder="Pipeline name" onChange={(event) => setName(event.target.value)} className="min-w-0 flex-1 bg-transparent text-[30px] font-bold tracking-[-0.6px] focus:outline-none" />
+              {id !== null && detail?.enabled ? <span className="rounded-xl bg-ok-soft px-2.5 py-1 text-label font-semibold text-ok">Enabled</span> : null}
+            </div>
+            <input aria-label="Description" value={description} maxLength={300} placeholder="Description" onChange={(event) => setDescription(event.target.value)} className="bg-transparent text-small text-text-2 focus:outline-none" />
+          </div>
+          <div className="flex items-center gap-2">
+            {id !== null ? <Button variant="ghost" disabled={action.busy} onClick={() => void duplicate()}>Duplicate</Button> : null}
+            {id !== null ? <Button variant="ghost" disabled={action.busy} onClick={() => setConfirmingDelete(true)}>Delete</Button> : null}
+            <Button onClick={onClose}>Cancel</Button>
+            <Button variant="primary" icon={<Check size={15} aria-hidden="true" />} disabled={!canSave} onClick={() => void save()}>Save pipeline</Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {id !== null ? <Button disabled={action.busy} onClick={() => void duplicate()}>Duplicate</Button> : null}
-          {id !== null ? <Button variant="ghost" disabled={action.busy} onClick={() => setConfirmingDelete(true)}>Delete</Button> : null}
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!canSave} onClick={() => void save()}>Save</Button>
-        </div>
-      </div>
-      {confirmingDelete ? (
-        <div role="alertdialog" aria-label="Delete pipeline" className="flex items-center gap-3 rounded-[16px] bg-bad-soft p-4">
-          <p className="text-small font-semibold text-bad">Delete “{name}”? This cannot be undone.</p>
-          <Button variant="danger" disabled={action.busy} onClick={() => void destroy()}>Delete pipeline</Button>
-          <Button onClick={() => setConfirmingDelete(false)}>Keep it</Button>
-        </div>
-      ) : null}
-      {action.error ? <p role="alert" className="break-words rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{action.error}</p> : null}
-      <div className="flex items-start gap-4">
-        <StageColumn
-          rows={rows}
-          library={library}
-          selected={selected}
-          adding={adding}
-          onSelect={setSelected}
-          onMove={reorder}
-          onToggle={(at, on) => update(setEnabled(steps, at, on))}
-          onRemove={remove}
-          onPick={setAdding}
-          onAdd={add}
-        />
+        {confirmingDelete ? (
+          <div role="alertdialog" aria-label="Delete pipeline" className="flex items-center gap-3 rounded-[16px] bg-bad-soft p-4">
+            <p className="text-small font-semibold text-bad">Delete “{name}”? This cannot be undone.</p>
+            <Button variant="danger" disabled={action.busy} onClick={() => void destroy()}>Delete pipeline</Button>
+            <Button onClick={() => setConfirmingDelete(false)}>Keep it</Button>
+          </div>
+        ) : null}
+        {action.error ? <p role="alert" className="break-words rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{action.error}</p> : null}
         {current ? (
-          <StageSettings step={current.step} info={library.find((info) => info.key === current.step.key)} drafts={texts} problems={problems} onText={onText} onValue={onValue} />
-        ) : <p className="flex-1 text-body text-text-3">Add a stage to begin.</p>}
-        <ChecksPanel errors={errors} checking={checking} usedBy={usedBy} />
+          <StageSettings
+            step={current.step}
+            info={library.find((info) => info.key === current.step.key)}
+            position={index + 1}
+            total={rows.length}
+            drafts={texts}
+            problems={problems}
+            onText={onText}
+            onValue={onValue}
+            onToggle={(on) => update(setEnabled(steps, index, on))}
+            onMove={reorder}
+            onRemove={remove}
+          />
+        ) : <p className="text-body text-text-3">Add a stage to begin.</p>}
+        <RecentBatches batches={recentBatches} />
       </div>
+      <ChecksPanel errors={errors} checking={checking} usedBy={usedBy} />
+      {libraryOpen ? <StageLibraryDialog library={library} after={lastTitle} onPick={add} onClose={() => setLibraryOpen(false)} /> : null}
     </main>
   );
 }

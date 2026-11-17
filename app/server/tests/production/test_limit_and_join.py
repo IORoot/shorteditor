@@ -17,6 +17,8 @@ def limit(data, tmp_path, **settings):
     return LIMIT.run(data, LIMIT.settings_model(**settings), make_ctx(tmp_path))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_within_limit_is_unchanged(tmp_path):
     data = pieces(20, 30)
     assert limit(data, tmp_path, max_seconds=60) == data
@@ -29,27 +31,71 @@ def test_over_limit_blocks_with_choices(tmp_path):
     assert "80 s" in blocked.value.reason and "20 s over" in blocked.value.reason
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_drop_shortest_keeps_order_and_fits(tmp_path):
     data = limit(pieces(30, 5, 20, 8), tmp_path, max_seconds=60, choice="drop_shortest")
     assert [p.clip for p in data.items] == ["/x/0.mp4", "/x/2.mp4", "/x/3.mp4"]
     assert data.total <= 60
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_drop_shortest_trims_a_single_piece_that_is_still_too_long(tmp_path):
     data = limit(pieces(90), tmp_path, max_seconds=60, choice="drop_shortest")
     assert len(data.items) == 1 and abs(data.total - 60) < 0.001
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_keep_first_trims_last_piece_to_fit(tmp_path):
     data = limit(pieces(40, 40), tmp_path, max_seconds=60, choice="keep_first")
     assert [round(p.length) for p in data.items] == [40, 20]
 
 
+def test_keep_first_can_trim_the_start_of_the_last_piece(tmp_path):
+    data = limit(pieces(20), tmp_path, max_seconds=15, choice="keep_first", trim_from="start")
+    assert data.items[0].start == 5 and data.items[0].end is None
+    assert abs(data.total - 15) < 0.001
+
+
+class RecordingFfmpeg:
+    def __init__(self):
+        self.calls = []
+
+    def run(self, args):
+        self.calls.append(args)
+        with open(args[-1], "wb") as out:
+            out.write(b"x")
+
+    def has_audio(self, path):
+        return True
+
+    def duration(self, path):
+        return 5.0
+
+
+def test_join_levels_loudness_only_when_asked(tmp_path):
+    from collector_server.production.stage_api import StageContext
+
+    fake = RecordingFfmpeg()
+    ctx = StageContext(str(tmp_path), str(tmp_path), str(tmp_path), fake, lambda line: None)
+    piece = [Piece(clip="/x/a.mp4", clip_duration=5)]
+    JOIN.run(PiecesData(items=piece), JOIN.settings_model(loudness=True), ctx)
+    assert "loudnorm=I=-16:TP=-1.5:LRA=11" in fake.calls[-1]
+    JOIN.run(PiecesData(items=piece), JOIN.settings_model(loudness=False), ctx)
+    assert not any("loudnorm" in arg for arg in fake.calls[-1])
+
+
+@pytest.mark.full
+@pytest.mark.full
 def test_keep_first_drops_a_sliver_instead_of_a_tiny_piece(tmp_path):
     data = limit(pieces(60, 10), tmp_path, max_seconds=60.02, choice="keep_first")
     assert len(data.items) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_limit_must_be_positive():
     with pytest.raises(ValueError):
         LIMIT.settings_model(max_seconds=0)
@@ -75,6 +121,8 @@ def test_join_makes_one_video_of_summed_length(tmp_path):
     assert probe(video.path, "stream=width,height", "v:0") == "1080,1920"
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_clip_without_audio_has_audio_track(tmp_path):
     a = make_clip(tmp_path / "a.mp4", seconds=2, audio=False)
@@ -84,6 +132,8 @@ def test_join_clip_without_audio_has_audio_track(tmp_path):
     assert abs(video.duration - 4.0) < 0.3
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_mixed_shapes(tmp_path):
     wide = make_clip(tmp_path / "wide.mp4", seconds=2, width=320, height=180)
@@ -92,6 +142,8 @@ def test_join_mixed_shapes(tmp_path):
     assert probe(video.path, "stream=width,height", "v:0") == "1080,1920"
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_trimmed_piece_uses_start_and_end(tmp_path):
     clip = make_clip(tmp_path / "a.mp4", seconds=4)
@@ -100,6 +152,8 @@ def test_join_trimmed_piece_uses_start_and_end(tmp_path):
     assert abs(video.duration - 2.0) < 0.3
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_blur_fit_runs(tmp_path):
     tall = make_clip(tmp_path / "tall.mp4", seconds=2, width=180, height=320)
@@ -108,6 +162,8 @@ def test_join_blur_fit_runs(tmp_path):
     assert probe(video.path, "stream=width,height", "v:0") == "360,640"
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_same_clip_twice_and_odd_names(tmp_path):
     clip = make_clip(tmp_path / "it's a \"clip\" é.mp4", seconds=2)
@@ -115,6 +171,8 @@ def test_join_same_clip_twice_and_odd_names(tmp_path):
     assert abs(video.duration - 4.0) < 0.3
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_handles_forty_pieces_one_at_a_time(tmp_path):
     clip = make_clip(tmp_path / "a.mp4", seconds=1)
@@ -123,6 +181,8 @@ def test_join_handles_forty_pieces_one_at_a_time(tmp_path):
     assert any("40/40" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_cleans_up_segment_files(tmp_path):
     clip = make_clip(tmp_path / "a.mp4", seconds=1)
@@ -130,11 +190,15 @@ def test_join_cleans_up_segment_files(tmp_path):
     assert sorted(os.listdir(ctx.work_dir)) == ["joined.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_join_with_no_pieces_fails_plainly(tmp_path):
     with pytest.raises(StageError):
         join(tmp_path, PiecesData(items=[]))
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_works_when_the_work_folder_has_a_quote_in_its_name(tmp_path):
     home = tmp_path / "Coach's Saturdays"
@@ -145,12 +209,14 @@ def test_join_works_when_the_work_folder_has_a_quote_in_its_name(tmp_path):
 
 
 def stream_seconds(path, kind):
-    """How much the stream really holds. Container durations hide extra audio packets, so count them."""
+    """How much the stream really holds. Container durations hide extra audio packets, so add up every packet's length."""
     if kind == "v":
         return float(probe(path, "format=duration"))
-    return len(probe(path, "packet=pts_time", "a").splitlines()) * 1024 / 48000
+    return sum(float(line.strip(",")) for line in probe(path, "packet=duration_time", "a").splitlines() if line.strip(","))
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_keeps_audio_and_video_the_same_length_over_many_pieces(tmp_path):
     clip = make_clip(tmp_path / "a.mp4", seconds=1)
@@ -158,6 +224,8 @@ def test_join_keeps_audio_and_video_the_same_length_over_many_pieces(tmp_path):
     assert abs(stream_seconds(video.path, "a") - stream_seconds(video.path, "v")) < 0.05
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_clip_whose_audio_is_shorter_than_its_video(tmp_path):
     short = make_clip(tmp_path / "short.mp4", seconds=4, audio_seconds=1.5)
@@ -175,6 +243,8 @@ def test_join_clip_whose_audio_is_shorter_than_its_video(tmp_path):
     assert abs(video.duration - 6.0) < 0.3
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_clip_tagged_as_rotated(tmp_path):
     plain = make_clip(tmp_path / "plain.mp4", seconds=2, width=320, height=180)
@@ -183,6 +253,8 @@ def test_join_clip_tagged_as_rotated(tmp_path):
     assert probe(video.path, "stream=width,height", "v:0") == "1080,1920"
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_join_does_not_leave_the_final_file_depending_on_segments(tmp_path):
     clip = make_clip(tmp_path / "a.mp4", seconds=1)
@@ -190,16 +262,22 @@ def test_join_does_not_leave_the_final_file_depending_on_segments(tmp_path):
     assert probe(video.path, "stream=codec_name", "a") == "aac"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_limit_has_a_sensible_minimum():
     with pytest.raises(ValueError):
         LIMIT.settings_model(max_seconds=0.5)
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("fields", [{"width": 100000}, {"height": 8194}, {"width": 2**31}])
 def test_join_rejects_unreasonable_canvas_sizes(fields):
     with pytest.raises(ValueError):
         JOIN.settings_model(**fields)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_join_accepts_a_4k_canvas():
     assert JOIN.settings_model(width=2160, height=3840).height == 3840

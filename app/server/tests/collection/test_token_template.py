@@ -11,41 +11,57 @@ def render(text: str, **kw) -> str:
     return FolderTemplate(text).render(ClipContext(when=SAT, **kw))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_default_date_format():
     assert render("{date}") == "2026-11-14"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_custom_date_formats():
     assert render("{date:YYYY-MM-DD}") == "2026-11-14"
     assert render("{date:YY.MM.DD_HHmm}") == "26.11.14_1840"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_weekday_short_and_long():
     assert render("{weekday}") == "Sat"
     assert render("{weekday:long}") == "Saturday"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_design_example():
     assert render("{date:YYYY-MM-DD}_{weekday}_{suffix}", suffix="coach") == "2026-11-14_Sat_coach"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_nested_paths_are_kept():
     assert render("{date:YYYY}/{date:MM}/{weekday}") == "2026/11/Sat"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_window_and_counter_tokens():
     assert render("{window:name}_{window:start}_{counter}", window_name="Morning", window_start="09-00", counter=3) == "Morning_09-00_03"
 
 
+@pytest.mark.full
 def test_empty_segments_are_dropped_and_unsafe_chars_replaced():
     assert render("a//{suffix}/b:c", suffix="") == "a/b-c"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_uses_window_detection():
     assert FolderTemplate("{window:name}").uses_window()
     assert not FolderTemplate("{date}").uses_window()
 
 
+@pytest.mark.full
 @pytest.mark.parametrize(
     "text,message",
     [

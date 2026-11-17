@@ -24,12 +24,16 @@ def test_create_and_get_round_trip(repo):
     assert got.created_at == got.updated_at == T1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_list_is_in_id_order(repo):
     a = repo.create("A", "", [], T1)
     b = repo.create("B", "", [], T1)
     assert [p.id for p in repo.list()] == [a.id, b.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_changes_content_and_updated_at_only(repo):
     p = repo.create("A", "", [], T1)
     repo.update(p.id, "B", "d", [StageStep(key="x")], T2)
@@ -37,6 +41,8 @@ def test_update_changes_content_and_updated_at_only(repo):
     assert (got.name, got.description, got.steps, got.updated_at, got.created_at, got.enabled) == ("B", "d", [StageStep(key="x")], T2, T1, True)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_set_enabled_does_not_change_updated_at(repo):
     p = repo.create("A", "", [], T1)
     repo.set_enabled(p.id, False)
@@ -46,12 +52,16 @@ def test_set_enabled_does_not_change_updated_at(repo):
     assert repo.get(p.id).enabled is True
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_delete_removes_it_and_get_returns_none(repo):
     p = repo.create("A", "", [], T1)
     repo.delete(p.id)
     assert repo.get(p.id) is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_meta_set_get_and_overwrite(repo):
     assert repo.get_meta("seeded") is None
     repo.set_meta("seeded", "1")

@@ -9,6 +9,8 @@ export function makeCard(overrides: Partial<BatchCard> = {}): BatchCard {
     passId: id,
     name: `Batch ${id}`,
     inputFolder: `/clips/batch-${id}`,
+    pipelineId: 1,
+    pipelineName: 'Join clips',
     pipeline: ['Scan folder', 'Order clips', 'Limit length', 'Join in order', 'Render'],
     status: 'queued',
     stageTitle: '',

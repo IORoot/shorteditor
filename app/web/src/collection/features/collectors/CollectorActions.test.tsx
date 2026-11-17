@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CollectorActions } from './CollectorActions';
 
 describe('CollectorActions', () => {
-  it('shows Edit, Dry run and Run now, each with an icon', () => {
+  it('shows Edit, Dry run and Run now, each with an icon', { tags: ['full'] }, () => {
     render(<CollectorActions onEdit={() => undefined} />);
     for (const name of ['Edit', 'Dry run', 'Run now']) {
       expect(screen.getByRole('button', { name }).querySelector('svg')).not.toBeNull();
@@ -21,7 +21,7 @@ describe('CollectorActions', () => {
     expect([onEdit, onDryRun, onRun].map((fn) => fn.mock.calls.length)).toEqual([1, 1, 1]);
   });
 
-  it('can disable Run now while a run is in progress', () => {
+  it('can disable Run now while a run is in progress', { tags: ['full'] }, () => {
     render(<CollectorActions onEdit={() => undefined} runDisabled />);
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Dry run' })).toBeEnabled();

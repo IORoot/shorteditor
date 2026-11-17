@@ -105,3 +105,20 @@ def rotate_metadata(source, target, degrees=90):
     """Copy a clip and tag it as rotated, as phones do."""
     subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-display_rotation", str(degrees), "-i", str(source), "-c", "copy", str(target)], check=True)
     return str(target)
+
+
+class FakePipelines:
+    """Stands in for Pipeline's PipelineSource. Pipeline 1 is switched on with the Join steps."""
+
+    def __init__(self, pipelines=None):
+        from collector_server.production.stage_api import StageStep
+        from collector_server.shared.pipeline import PipelineRef
+
+        join = [StageStep(key=k) for k in ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]]
+        self.pipelines = pipelines if pipelines is not None else {1: PipelineRef(id=1, name="Join clips", enabled=True, steps=join)}
+
+    def get_pipeline(self, pipeline_id):
+        return self.pipelines.get(pipeline_id)
+
+    def enabled_pipelines(self):
+        return [p for p in self.pipelines.values() if p.enabled]

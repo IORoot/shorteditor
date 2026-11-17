@@ -21,11 +21,11 @@ function show({ id = 1 as number | null, existing = detail(), errors = [] as str
 }
 
 const ready = async () => screen.findByRole('listitem', { name: 'Stage 1 Scan folder' });
-const save = () => screen.getByRole('button', { name: 'Save' });
+const save = () => screen.getByRole('button', { name: 'Save pipeline' });
 const stageTitles = () => screen.getAllByRole('listitem').filter((li) => /^Stage \d/.test(li.getAttribute('aria-label') ?? '')).map((li) => li.getAttribute('aria-label'));
 
 describe('PipelineEditor', () => {
-  it('shows the name, the stages, the first stage settings and a valid check', async () => {
+  it('shows the name, the stages, the first stage settings and a valid check', { tags: ['full'] }, async () => {
     show();
     await ready();
     expect(screen.getByLabelText('Name')).toHaveValue('Join clips');
@@ -34,33 +34,65 @@ describe('PipelineEditor', () => {
     expect(await screen.findByText('The order is valid')).toBeInTheDocument();
   });
 
-  it('reorders, switches and removes stages', async () => {
+  it('reorders, switches and removes stages', { tags: ['full'] }, async () => {
     show();
     await ready();
-    fireEvent.click(screen.getByRole('button', { name: 'Move Limit length 2 up' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select Limit length 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move Limit length up' }));
     expect(stageTitles()).toEqual(['Stage 1 Limit length', 'Stage 2 Scan folder', 'Stage 3 Render']);
-    fireEvent.click(screen.getByRole('switch', { name: 'Use Render 3' }));
-    expect(screen.getByRole('switch', { name: 'Use Render 3' })).not.toBeChecked();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Scan folder 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select Render 3' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Use Render' }));
+    expect(screen.getByRole('switch', { name: 'Use Render' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Select Scan folder 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Scan folder' }));
     expect(stageTitles()).toEqual(['Stage 1 Limit length', 'Stage 2 Render']);
   });
 
-  it('adds a stage with its defaults and selects it', async () => {
+  it('drags a stage to a new place and shows where it will drop', async () => {
     show();
     await ready();
-    fireEvent.change(screen.getByLabelText('Stage to add'), { target: { value: 'limit_length' } });
+    const grip = screen.getByRole('button', { name: 'Drag Scan folder 1' });
+    fireEvent.pointerDown(grip);
+    fireEvent.pointerMove(grip, { clientY: 500 });
+    expect(screen.getByTestId('drop-line')).toBeInTheDocument();
+    fireEvent.pointerUp(grip);
+    expect(stageTitles()).toEqual(['Stage 1 Limit length', 'Stage 2 Render', 'Stage 3 Scan folder']);
+    expect(screen.queryByTestId('drop-line')).toBeNull();
+  });
+
+  it('drops a dragged stage into the gap the line showed', async () => {
+    const rows = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const index = Array.from(this.parentElement?.querySelectorAll(':scope > li[data-row]') ?? []).indexOf(this);
+      return { top: index * 100, height: 100, bottom: index * 100 + 100, left: 0, right: 0, width: 0, x: 0, y: index * 100, toJSON: () => ({}) } as DOMRect;
+    });
+    show();
+    await ready();
+    const grip = screen.getByRole('button', { name: 'Drag Scan folder 1' });
+    fireEvent.pointerDown(grip);
+    fireEvent.pointerMove(grip, { clientY: 200 }); // between Limit length and Render
+    expect(screen.getByTestId('drop-line')).toBeInTheDocument();
+    fireEvent.pointerUp(grip);
+    rows.mockRestore();
+    expect(stageTitles()).toEqual(['Stage 1 Limit length', 'Stage 2 Scan folder', 'Stage 3 Render']);
+  });
+
+  it('adds a stage with its defaults and selects it', { tags: ['full'] }, async () => {
+    show();
+    await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Add stage' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add a stage' });
+    fireEvent.click(within(within(dialog).getByText('Limit length').closest('li') as HTMLElement).getByRole('button', { name: 'Add' }));
     expect(stageTitles()).toHaveLength(4);
-    expect(screen.getByLabelText('Max seconds')).toHaveValue('900');
-    expect(screen.getByLabelText('Choice')).toHaveValue('');
-    expect(screen.getByRole('option', { name: 'Ask each time' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Max length (seconds)')).toHaveValue('900');
+    const choice = within(screen.getByRole('radiogroup', { name: 'When a batch is over the limit' }));
+    expect(choice.getByRole('radio', { name: 'Ask me' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('edits a number and saves exactly what was typed, then closes', async () => {
     const { api, onClose } = show();
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Select Limit length 2' }));
-    fireEvent.change(screen.getByLabelText('Max seconds'), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '45' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Short' } });
     await screen.findByText('The order is valid');
     await waitFor(() => expect(save()).toBeEnabled());
@@ -72,7 +104,7 @@ describe('PipelineEditor', () => {
     expect(body.steps[1].settings).toEqual({ maxSeconds: 45 });
   });
 
-  it('stores an emptied "choice" or "size" as null', async () => {
+  it('stores an emptied "choice" or "size" as null', { tags: ['full'] }, async () => {
     const { api } = show();
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Select Render 3' }));
@@ -83,11 +115,11 @@ describe('PipelineEditor', () => {
     expect(api.save.mock.calls[0][1].steps[2].settings).toEqual({ maxSizeMb: null });
   });
 
-  it('will not save a bad number, and says what is wrong', async () => {
+  it('will not save a bad number, and says what is wrong', { tags: ['full'] }, async () => {
     show();
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Select Limit length 2' }));
-    fireEvent.change(screen.getByLabelText('Max seconds'), { target: { value: 'abc' } });
+    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: 'abc' } });
     expect(screen.getByText('Use a number like 45 or 30.5')).toBeInTheDocument();
     await screen.findByText('The order is valid');
     expect(save()).toBeDisabled();
@@ -100,7 +132,7 @@ describe('PipelineEditor', () => {
     expect(save()).toBeDisabled();
   });
 
-  it('will not save an empty name', async () => {
+  it('will not save an empty name', { tags: ['full'] }, async () => {
     show();
     await ready();
     await screen.findByText('The order is valid');
@@ -108,7 +140,7 @@ describe('PipelineEditor', () => {
     expect(save()).toBeDisabled();
   });
 
-  it('shows the server refusal and stays open', async () => {
+  it('shows the server refusal and stays open', { tags: ['full'] }, async () => {
     const { api, onClose } = show();
     api.save.mockRejectedValue(new Error('There is already a pipeline called Join clips'));
     await ready();
@@ -119,17 +151,17 @@ describe('PipelineEditor', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('shows a stage that no longer exists as missing, read-only, and lets it be removed', async () => {
+  it('shows a stage that no longer exists as missing, read-only, and lets it be removed', { tags: ['full'] }, async () => {
     show({ existing: detail({ steps: [...steps(), { key: 'gone', settings: { x: 1 }, enabled: true }] }) });
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Select Missing stage 4' }));
     expect(screen.getByRole('heading', { name: 'Missing stage' })).toBeInTheDocument();
     expect(screen.getByText(/There is no stage called gone/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Missing stage 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Missing stage' }));
     expect(stageTitles()).toHaveLength(3);
   });
 
-  it('keeps a setting it cannot draw unchanged', async () => {
+  it('keeps a setting it cannot draw unchanged', { tags: ['full'] }, async () => {
     const odd = { ...library[0], settingsSchema: { properties: { weird: { default: {}, type: 'object' } } } };
     const { api } = show({ lib: [odd], existing: detail({ steps: [{ key: 'scan_folder', settings: { weird: { a: 1 } }, enabled: true }] }) });
     await ready();
@@ -143,7 +175,7 @@ describe('PipelineEditor', () => {
   it('starts a new pipeline from the template and creates it', async () => {
     const { api, onClose } = show({ id: null });
     await ready();
-    expect(screen.getByRole('heading', { name: 'New pipeline' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('');
     expect(screen.queryByRole('button', { name: 'Duplicate' })).toBeNull();
     expect(save()).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Mine' } });
@@ -154,7 +186,7 @@ describe('PipelineEditor', () => {
     expect(api.create.mock.calls[0][0]).toMatchObject({ name: 'Mine', description: '' });
   });
 
-  it('duplicates and opens the copy', async () => {
+  it('duplicates and opens the copy', { tags: ['full'] }, async () => {
     const { onOpen } = show();
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
@@ -174,7 +206,7 @@ describe('PipelineEditor', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it('lists what uses the pipeline', async () => {
+  it('lists what uses the pipeline', { tags: ['full'] }, async () => {
     show({ existing: detail({ usedBy: [{ kind: 'batch', id: 1, name: 'Coach Saturdays', status: 'approved', at: null }, { kind: 'watch', id: 2, name: 'Class folders', status: null, at: null }] }) });
     await ready();
     expect(screen.getByText('Batch Coach Saturdays')).toBeInTheDocument();

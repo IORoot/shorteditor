@@ -44,6 +44,8 @@ def test_filters_decide_what_is_collected_and_what_stays(collectors, clock, dirs
     assert plan.left_in_place == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_or_between_groups_and_unmatched_listing_with_relative_paths(collectors, clock, dirs):
     source, _ = dirs
     make_clip(source / "a" / "keep.mp4", MON)
@@ -55,6 +57,8 @@ def test_or_between_groups_and_unmatched_listing_with_relative_paths(collectors,
     assert plan.unmatched == ["b/drop.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_no_match_gets_its_own_note(collectors, clock, dirs):
     source, _ = dirs
     make_clip(source / "a.mp4", MON)
@@ -66,6 +70,8 @@ def sample(**overrides):
     return FilterRule(kind="random", random=RandomSelection(**{"enabled": True, "mode": "count", "value": 3, "scope": "overall", "seed": 5, **overrides}))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_is_seeded_and_lists_the_rest(collectors, clock, dirs):
     source, _ = dirs
     for i in range(10):
@@ -78,6 +84,8 @@ def test_random_rule_is_seeded_and_lists_the_rest(collectors, clock, dirs):
     assert names(other) != names(first)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_per_folder_picks_in_every_folder(collectors, clock, dirs):
     source, _ = dirs
     for i in range(6):
@@ -87,6 +95,8 @@ def test_random_rule_per_folder_picks_in_every_folder(collectors, clock, dirs):
     assert [g.count for g in plan.groups] == [2, 2] and len(plan.not_selected) == 8
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_samples_only_what_the_rules_before_it_matched(collectors, clock, dirs):
     source, _ = dirs
     for i in range(5):
@@ -97,6 +107,8 @@ def test_random_rule_samples_only_what_the_rules_before_it_matched(collectors, c
     assert len(plan.unmatched) == 5 and len(plan.not_selected) == 3
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_date_source_filename_changes_grouping_and_filter_dates(collectors, clock, dirs):
     source, _ = dirs
     make_clip(source / "GX_20261101_100000.mp4", SAT)
@@ -105,6 +117,8 @@ def test_date_source_filename_changes_grouping_and_filter_dates(collectors, cloc
     assert plan.notes[-1] == "Folder dates come from filename for 1."
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unreadable_filenames_fall_back_to_modified_time_and_are_reported(collectors, clock, dirs):
     source, _ = dirs
     make_clip(source / "GX_20261107_120000.mp4", SAT)
@@ -114,6 +128,8 @@ def test_unreadable_filenames_fall_back_to_modified_time_and_are_reported(collec
     assert plan.notes[-1] == "Folder dates come from filename for 1, modified time for 1 with no readable date."
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_invalid_filter_configuration_is_rejected_before_scanning(collectors, clock, dirs):
     record = collectors.add_with_config(config_for(*dirs, filters=[group(FilterRule(kind="regex", value="("))]))
     with pytest.raises(ValueError, match="Invalid regex"):

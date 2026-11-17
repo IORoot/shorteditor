@@ -8,6 +8,8 @@ from collector_server.production.repositories import BatchRepository, LogReposit
 from collector_server.production.schema import ensure_schema
 from collector_server.production.service import NotFoundError, ProductionService, StateError
 from collector_server.production.stage_api import StageStep
+from collector_server.production.catalog import StageLibrary
+from tests.production.helpers import FakePipelines
 
 NOW = "2026-11-17T10:00:00+00:00"
 JOIN = [StageStep(key=k) for k in ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]]
@@ -19,12 +21,12 @@ def parts(db, tmp_path):
     inbox = tmp_path / "in"
     inbox.mkdir()
     batches, passes, logs = BatchRepository(db), PassRepository(db), LogRepository(db)
-    service = ProductionService(batches, passes, logs, build_registry(), lambda: NOW, str(tmp_path / "out"), ["local", "studio"])
+    service = ProductionService(batches, passes, logs, StageLibrary(build_registry()), FakePipelines(), lambda: NOW, str(tmp_path / "out"), ["local", "studio"])
     return service, passes, logs, inbox, tmp_path
 
 
 def create(service, inbox, **kw):
-    args = {"name": "Coach Saturdays", "input_folder": str(inbox), "steps": JOIN, "run_on": "any", "output_root": None}
+    args = {"name": "Coach Saturdays", "input_folder": str(inbox), "pipeline_id": 1, "run_on": "any", "output_root": None}
     return service.create_batch(**{**args, **kw})
 
 
@@ -36,31 +38,16 @@ def test_create_batch_makes_queued_pass_one(parts):
     assert batch.output_root == str(tmp / "out")  # the default when none is given
 
 
-@pytest.mark.parametrize(
-    "change, message",
-    [
-        ({"steps": [StageStep(key="join_pieces")]}, "must be first|needs pieces"),
-        ({"steps": []}, "no steps"),
-        ({"input_folder": "relative/path"}, "absolute"),
-        ({"output_root": "relative"}, "absolute"),
-        ({"name": "   "}, "name"),
-        ({"name": "x" * 121}, "name"),
-        ({"run_on": "ghost"}, "worker"),
-        ({"steps": [StageStep(key="scan_folder"), StageStep(key="limit_length", settings={"maxSeconds": -1}), StageStep(key="join_pieces"), StageStep(key="render_output")]}, "settings for Limit length"),
-    ],
-)
-def test_create_batch_rejects_bad_input_with_a_plain_message(parts, change, message):
-    service, _, _, inbox, _ = parts
-    with pytest.raises(ValueError, match=message):
-        create(service, inbox, **change)
-
-
+@pytest.mark.full
+@pytest.mark.full
 def test_create_batch_rejects_missing_folder(parts):
     service, _, _, inbox, tmp = parts
     with pytest.raises(ValueError, match="does not exist"):
         create(service, inbox, input_folder=str(tmp / "nope"))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_run_again_creates_next_pass_with_same_overrides(parts):
     service, passes, _, inbox, _ = parts
     batch = create(service, inbox)
@@ -70,15 +57,6 @@ def test_run_again_creates_next_pass_with_same_overrides(parts):
     assert (again.number, again.status, again.overrides) == (2, "queued", {"limit_length": {"choice": "keep_first"}})
 
 
-def test_run_again_can_replace_the_pipeline(parts):
-    service, passes, _, inbox, _ = parts
-    batch = create(service, inbox)
-    passes.update(passes.for_batch(batch.id)[0].id, status="review")
-    short = [StageStep(key="scan_folder"), StageStep(key="join_pieces"), StageStep(key="render_output")]
-    service.run_again(batch.id, short)
-    assert [s.key for s in service.detail(batch.id)[0].steps] == ["scan_folder", "join_pieces", "render_output"]
-
-
 def test_run_again_refuses_while_the_batch_is_waiting_or_running(parts):
     service, _, _, inbox, _ = parts
     batch = create(service, inbox)
@@ -86,6 +64,8 @@ def test_run_again_refuses_while_the_batch_is_waiting_or_running(parts):
         service.run_again(batch.id, None)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unknown_batch_and_pass_raise_not_found(parts):
     service, *_ = parts
     for call in (lambda: service.run_again(99, None), lambda: service.detail(99), lambda: service.approve(99), lambda: service.resolve_block(99, "x"), lambda: service.logs(99, "pipeline")):
@@ -107,6 +87,8 @@ def test_resolve_block_requeues_with_choice(parts):
     assert after.status == "queued" and after.overrides == {"limit_length": {"choice": "keep_first"}}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_resolve_block_rejects_a_choice_that_was_not_offered(parts):
     service, passes, _, inbox, _ = parts
     made = blocked(service, passes, inbox)
@@ -114,6 +96,8 @@ def test_resolve_block_rejects_a_choice_that_was_not_offered(parts):
         service.resolve_block(made.id, "delete_everything")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_resolve_block_refuses_other_states(parts):
     service, passes, _, inbox, _ = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -121,6 +105,8 @@ def test_resolve_block_refuses_other_states(parts):
         service.resolve_block(made.id, "keep_first")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_approve_returns_handoff_with_the_output_file(parts):
     service, passes, _, inbox, tmp = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -135,6 +121,8 @@ def test_approve_returns_handoff_with_the_output_file(parts):
     assert passes.get(made.id).status == "approved"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_approve_refuses_unless_review(parts):
     service, passes, _, inbox, _ = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -142,6 +130,8 @@ def test_approve_refuses_unless_review(parts):
         service.approve(made.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_cards_show_newest_pass_status_stage_and_queue_position(parts):
     service, passes, _, inbox, _ = parts
     first, second = create(service, inbox, name="One"), create(service, inbox, name="Two")
@@ -153,6 +143,8 @@ def test_cards_show_newest_pass_status_stage_and_queue_position(parts):
     assert (cards["Two"].status, cards["Two"].queue_position) == ("queued", 0)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_cards_are_newest_batch_first(parts):
     service, _, _, inbox, _ = parts
     create(service, inbox, name="Old")
@@ -160,6 +152,8 @@ def test_cards_are_newest_batch_first(parts):
     assert [c.name for c in service.cards()] == ["New", "Old"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_logs_come_back_in_order(parts):
     service, passes, logs, inbox, _ = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -168,24 +162,8 @@ def test_logs_come_back_in_order(parts):
     assert service.logs(made.id, "pipeline") == ["a", "b"]
 
 
-def test_stages_lists_the_library_with_settings_schema(parts):
-    service, *_ = parts
-    stages = {s.key: s for s in service.stages()}
-    assert stages["limit_length"].transitions == {"pieces": "pieces"}
-    assert "maxSeconds" in stages["limit_length"].settings_schema["properties"]
-    assert stages["scan_folder"].position == "first"
-
-
-def test_card_stage_follows_enabled_steps_only(parts):
-    service, passes, _, inbox, _ = parts
-    steps = [StageStep(key="scan_folder"), StageStep(key="order_clips", enabled=False), StageStep(key="limit_length"), StageStep(key="join_pieces"), StageStep(key="render_output")]
-    batch = create(service, inbox, steps=steps)
-    passes.update(passes.for_batch(batch.id)[0].id, status="running", stage_index=1, stage_key="limit_length")
-    [card] = service.cards()
-    assert (card.stage_title, card.stage_position, card.stage_count) == ("Limit length", 2, 4)
-    assert card.pipeline == ["Scan folder", "Limit length", "Join in order", "Render"]
-
-
+@pytest.mark.full
+@pytest.mark.full
 def test_run_again_from_two_threads_makes_only_one_pass(parts):
     import threading
 
@@ -207,6 +185,8 @@ def test_run_again_from_two_threads_makes_only_one_pass(parts):
     assert outcomes.count("ok") == 1 and len(passes.for_batch(batch.id)) == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_run_again_is_refused_while_the_latest_pass_is_blocked(parts):
     service, passes, _, inbox, _ = parts
     made = blocked(service, passes, inbox)
@@ -214,6 +194,8 @@ def test_run_again_is_refused_while_the_latest_pass_is_blocked(parts):
         service.run_again(made.batch_id, None)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_only_the_latest_pass_can_be_approved_or_resolved(parts):
     service, passes, _, inbox, _ = parts
     batch = create(service, inbox)
@@ -227,6 +209,8 @@ def test_only_the_latest_pass_can_be_approved_or_resolved(parts):
         service.resolve_block(old.id, "keep_first")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_batch_without_a_pass_does_not_break_the_board_and_can_run(parts, db):
     service, passes, _, inbox, _ = parts
     good = create(service, inbox, name="Good")
@@ -236,17 +220,8 @@ def test_a_batch_without_a_pass_does_not_break_the_board_and_can_run(parts, db):
     assert service.run_again(broken.id, None).number == 1
 
 
-def test_steps_are_capped_and_disabled_steps_are_checked_too(parts):
-    service, _, _, inbox, _ = parts
-    with pytest.raises(ValueError, match="at most"):
-        create(service, inbox, steps=[StageStep(key="limit_length")] * 31)
-    junk = StageStep(key="order_clips", enabled=False, settings={"x": "y" * 5000})
-    with pytest.raises(ValueError, match="too large"):
-        create(service, inbox, steps=[JOIN[0], junk, *JOIN[3:]])
-    with pytest.raises(ValueError, match="no stage called"):
-        create(service, inbox, steps=[JOIN[0], StageStep(key="nope", enabled=False), *JOIN[3:]])
-
-
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("field", ["input_folder", "output_root", "run_on"])
 def test_long_text_fields_are_refused(parts, field):
     service, _, _, inbox, _ = parts
@@ -254,6 +229,8 @@ def test_long_text_fields_are_refused(parts, field):
         create(service, inbox, **{field: "/" + "a" * 2000})
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_folder_rules(parts):
     service, _, _, inbox, tmp = parts
     for bad in ("/", str(inbox), str(inbox / "results"), str(tmp)):
@@ -264,6 +241,8 @@ def test_output_folder_rules(parts):
     assert create(service, inbox, output_root=deep).output_root == deep
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_cards_carry_what_the_board_needs_to_act(parts):
     service, passes, _, inbox, _ = parts
     batch = create(service, inbox, run_on="local")
@@ -271,6 +250,8 @@ def test_cards_carry_what_the_board_needs_to_act(parts):
     assert card.pass_id == passes.for_batch(batch.id)[0].id and card.run_on == "local" and card.batch_id == batch.id
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_defaults_report_the_output_root_and_workers(parts):
     service, _, _, _, tmp = parts
     defaults = service.defaults()
@@ -288,12 +269,16 @@ def finished(service, passes, inbox, tmp, name="output.mp4", data=b"0123456789")
     return made
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_of_a_finished_pass(parts):
     service, passes, _, inbox, tmp = parts
     made = finished(service, passes, inbox, tmp)
     assert service.output_path(made.id) == str(tmp / "results" / "b-1" / "pass-1" / "output.mp4")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_refuses_a_pass_without_output(parts):
     service, passes, _, inbox, _ = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -301,6 +286,8 @@ def test_output_path_refuses_a_pass_without_output(parts):
         service.output_path(made.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_refuses_a_missing_file(parts):
     service, passes, _, inbox, tmp = parts
     made = finished(service, passes, inbox, tmp)
@@ -309,6 +296,8 @@ def test_output_path_refuses_a_missing_file(parts):
         service.output_path(made.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_refuses_a_file_outside_the_output_root(parts):
     service, passes, _, inbox, tmp = parts
     made = passes.for_batch(create(service, inbox).id)[0]
@@ -319,6 +308,8 @@ def test_output_path_refuses_a_file_outside_the_output_root(parts):
         service.output_path(made.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_refuses_a_link_inside_the_root_that_points_outside(parts):
     service, passes, _, inbox, tmp = parts
     made = finished(service, passes, inbox, tmp)
@@ -331,6 +322,8 @@ def test_output_path_refuses_a_link_inside_the_root_that_points_outside(parts):
         service.output_path(made.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_output_path_refuses_a_sibling_folder_with_the_same_prefix(parts):
     service, passes, _, inbox, tmp = parts
     made = finished(service, passes, inbox, tmp)

@@ -8,18 +8,18 @@ import { CollectorRow } from './CollectorRow';
 const base: Collector = makeCollector({ source: 'SSH coach-nas · Move' });
 
 describe('CollectorRow', () => {
-  it('shows the next run when the schedule is on', () => {
+  it('shows the next run when the schedule is on', { tags: ['full'] }, () => {
     render(<CollectorRow collector={base} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
     expect(screen.getByText('Next · Sun 02:00')).toBeInTheDocument();
   });
 
-  it('shows Schedule off when disabled', () => {
+  it('shows Schedule off when disabled', { tags: ['full'] }, () => {
     const collector = { ...base, schedule: { ...base.schedule, enabled: false } };
     render(<CollectorRow collector={collector} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
     expect(screen.getByText('Schedule off')).toBeInTheDocument();
   });
 
-  it('shows a status note when there is one', () => {
+  it('shows a status note when there is one', { tags: ['full'] }, () => {
     const collector = { ...base, statusNote: { tone: 'warn' as const, text: '1 skipped' } };
     render(<CollectorRow collector={collector} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
     expect(screen.getByText('1 skipped')).toBeInTheDocument();
@@ -39,12 +39,12 @@ describe('CollectorRow', () => {
 describe('CollectorList', () => {
   const noop = () => undefined;
 
-  it('shows loading', () => {
+  it('shows loading', { tags: ['full'] }, () => {
     render(<CollectorList onNew={() => undefined} state={{ status: 'loading' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading collectors');
   });
 
-  it('shows an error with retry', () => {
+  it('shows an error with retry', { tags: ['full'] }, () => {
     const onRetry = vi.fn();
     render(<CollectorList onNew={() => undefined} state={{ status: 'error', message: 'down' }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={onRetry} />);
     expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t reach the backend');
@@ -52,12 +52,12 @@ describe('CollectorList', () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
-  it('shows the empty state', () => {
+  it('shows the empty state', { tags: ['full'] }, () => {
     render(<CollectorList onNew={() => undefined} state={{ status: 'ready', data: [] }} selectedId={null} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByText('No collectors yet.')).toBeInTheDocument();
   });
 
-  it('renders each collector', () => {
+  it('renders each collector', { tags: ['full'] }, () => {
     render(<CollectorList onNew={() => undefined} state={{ status: 'ready', data: [base] }} selectedId={1} onSelect={noop} onToggle={noop} onRetry={noop} />);
     expect(screen.getByRole('button', { name: 'Coach Saturdays' })).toHaveAttribute('aria-pressed', 'true');
   });

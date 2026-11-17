@@ -12,13 +12,14 @@ const schema = {
     extensions: { default: ['mp4'], items: { type: 'string' }, type: 'array' },
     fileName: { default: 'output.mp4', type: 'string' },
     weird: { default: {}, type: 'object' },
+    script: { default: '', maxLength: 2000, type: 'string' },
   },
 };
 
 const field = (name: string) => fieldsOf(schema).find((f) => f.name === name)!;
 
 describe('fieldsOf', () => {
-  it('reads each kind from the schema', () => {
+  it('reads each kind from the schema', { tags: ['full'] }, () => {
     expect(field('maxSeconds')).toMatchObject({ kind: 'number', label: 'Max seconds', min: 1, nullable: false });
     expect(field('choice')).toMatchObject({ kind: 'choice', nullable: true, choices: ['drop_shortest', 'keep_first'] });
     expect(field('maxSizeMb')).toMatchObject({ kind: 'number', nullable: true, max: 100000 });
@@ -27,12 +28,14 @@ describe('fieldsOf', () => {
     expect(field('maxFiles')).toMatchObject({ kind: 'integer', min: 1, max: 100000 });
     expect(field('extensions').kind).toBe('list');
     expect(field('fileName').kind).toBe('text');
+    expect(field('script')).toMatchObject({ kind: 'text', multiline: true });
+    expect(field('fileName').multiline).toBe(false);
     expect(field('weird').kind).toBe('readonly');
   });
 });
 
 describe('fromText', () => {
-  it('parses numbers with plain messages', () => {
+  it('parses numbers with plain messages', { tags: ['full'] }, () => {
     expect(fromText(field('maxSeconds'), ' 45.5 ')).toEqual({ value: 45.5 });
     expect(fromText(field('maxSeconds'), 'abc')).toEqual({ error: 'Use a number like 45 or 30.5' });
     expect(fromText(field('maxSeconds'), '0')).toEqual({ error: 'At least 1' });
@@ -46,20 +49,20 @@ describe('fromText', () => {
     expect(fromText(field('choice'), '')).toEqual({ value: null });
   });
 
-  it('splits a list on commas', () => {
+  it('splits a list on commas', { tags: ['full'] }, () => {
     expect(fromText(field('extensions'), 'mp4, mov ,')).toEqual({ value: ['mp4', 'mov'] });
     expect(fromText(field('extensions'), '')).toEqual({ value: [] });
   });
 });
 
 describe('toText and defaultsOf', () => {
-  it('shows stored values as text', () => {
+  it('shows stored values as text', { tags: ['full'] }, () => {
     expect(toText(field('extensions'), ['mp4', 'mov'])).toBe('mp4, mov');
     expect(toText(field('maxSizeMb'), null)).toBe('');
     expect(toText(field('maxSeconds'), 45)).toBe('45');
   });
 
-  it('leaves null defaults out, like the server', () => {
+  it('leaves null defaults out, like the server', { tags: ['full'] }, () => {
     const defaults = defaultsOf(schema);
     expect(defaults.maxSeconds).toBe(900);
     expect('choice' in defaults).toBe(false);

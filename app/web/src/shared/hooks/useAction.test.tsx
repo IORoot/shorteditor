@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { useAction } from './useAction';
 
 describe('useAction', () => {
-  it('is busy while the action runs and reports success', async () => {
+  it('is busy while the action runs and reports success', { tags: ['full'] }, async () => {
     let finish: () => void = () => undefined;
     const action = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
     const { result } = renderHook(() => useAction());
@@ -16,7 +16,7 @@ describe('useAction', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('ignores a second call while the first is still running', async () => {
+  it('ignores a second call while the first is still running', { tags: ['full'] }, async () => {
     let finish: () => void = () => undefined;
     const action = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
     const { result } = renderHook(() => useAction());

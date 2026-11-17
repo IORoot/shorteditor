@@ -14,6 +14,8 @@ def client(collectors, runs, clock):
     return TestClient(create_app(CollectorService(collectors, runs, clock)))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_creating_a_collector_gives_it_a_name_and_defaults(client, collectors):
     response = client.post("/api/collectors", json={"name": "  Coach Saturdays  "})
     assert response.status_code == 201
@@ -22,6 +24,8 @@ def test_creating_a_collector_gives_it_a_name_and_defaults(client, collectors):
     assert collectors.get(body["id"]) is not None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_creating_without_a_name_is_rejected(client):
     response = client.post("/api/collectors", json={"name": "   "})
     assert response.status_code == 422 and "name" in response.json()["detail"]
@@ -36,10 +40,14 @@ def test_deleting_removes_the_collector_its_runs_and_their_moves(client, collect
     assert collectors.get(record.id) is None and runs.recent(record.id) == [] and moves.count(run.id) == 0
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_deleting_a_missing_collector_is_a_404(client):
     assert client.delete("/api/collectors/999").status_code == 404
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_deleting_while_a_run_is_in_progress_is_refused(client, collectors, runs, clock):
     record = collectors.add("Busy", "/src")
     runs.add(record.id, clock.now(), "manual", "running", "Moving…")
@@ -48,12 +56,16 @@ def test_deleting_while_a_run_is_in_progress_is_refused(client, collectors, runs
     assert collectors.get(record.id) is not None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_turning_a_collector_off_is_saved_and_reported(client, collectors):
     record = collectors.add("Off", "/src")
     assert client.put(f"/api/collectors/{record.id}/active", json={"active": False}).json()["active"] is False
     assert collectors.get(record.id).active is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_turning_a_collector_back_on_allows_runs(client, collectors):
     record = collectors.add("Toggle", "/src")
     client.put(f"/api/collectors/{record.id}/active", json={"active": False})
@@ -61,6 +73,8 @@ def test_turning_a_collector_back_on_allows_runs(client, collectors):
     assert collectors.get(record.id).active is True
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_turning_an_unknown_collector_on_or_off_is_a_404(client):
     assert client.put("/api/collectors/999/active", json={"active": True}).status_code == 404
 

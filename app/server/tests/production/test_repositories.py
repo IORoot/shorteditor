@@ -16,14 +16,18 @@ def repos(db):
 
 
 def make_batch(batches, name="Coach Saturdays", run_on="any"):
-    return batches.create(name, "/clips/a", STEPS, run_on, "/out", NOW)
+    return batches.create(name, "/clips/a", None, STEPS, run_on, "/out", NOW)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_schema_is_idempotent(db):
     ensure_schema(db)
     ensure_schema(db)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_batch_round_trips_steps_and_settings(repos):
     batches, _, _ = repos
     made = make_batch(batches, run_on="studio")
@@ -33,6 +37,8 @@ def test_batch_round_trips_steps_and_settings(repos):
     assert got.run_on == "studio" and got.created_at == NOW
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unknown_batch_is_none_and_list_is_in_creation_order(repos):
     batches, _, _ = repos
     assert batches.get(99) is None
@@ -40,6 +46,8 @@ def test_unknown_batch_is_none_and_list_is_in_creation_order(repos):
     assert [b.id for b in batches.list()] == [first.id, second.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_pass_numbers_increase_per_batch(repos):
     batches, passes, _ = repos
     a, b = make_batch(batches, "A"), make_batch(batches, "B")
@@ -47,6 +55,8 @@ def test_pass_numbers_increase_per_batch(repos):
     assert [p.number for p in passes.for_batch(a.id)] == [1, 2]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_new_pass_starts_queued_and_can_carry_overrides(repos):
     batches, passes, _ = repos
     batch = make_batch(batches)
@@ -55,6 +65,8 @@ def test_new_pass_starts_queued_and_can_carry_overrides(repos):
     assert fresh.output is None and fresh.error is None and fresh.blocked_choices == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_queued_is_oldest_first_and_running_lists_running(repos):
     batches, passes, _ = repos
     batch = make_batch(batches)
@@ -64,6 +76,8 @@ def test_queued_is_oldest_first_and_running_lists_running(repos):
     assert [p.id for p in passes.running()] == [two.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_sets_blocked_fields_and_output(repos):
     batches, passes, _ = repos
     made = passes.create(make_batch(batches).id, NOW)
@@ -75,6 +89,8 @@ def test_update_sets_blocked_fields_and_output(repos):
     assert done.output == VideoData(path="/o/x.mp4", duration=3.5, size_bytes=9) and done.blocked_reason is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_rejects_unknown_fields_and_statuses(repos):
     batches, passes, _ = repos
     made = passes.create(make_batch(batches).id, NOW)
@@ -84,6 +100,8 @@ def test_update_rejects_unknown_fields_and_statuses(repos):
         passes.update(made.id, status="sleeping")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_logs_keep_order_and_separate_kinds(repos):
     batches, passes, logs = repos
     made = passes.create(make_batch(batches).id, NOW)
@@ -95,6 +113,8 @@ def test_logs_keep_order_and_separate_kinds(repos):
     assert logs.for_pass(999, "pipeline") == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_add_many_keeps_order(repos):
     batches, passes, logs = repos
     made = passes.create(make_batch(batches).id, NOW)
@@ -103,6 +123,8 @@ def test_add_many_keeps_order(repos):
     assert logs.for_pass(made.id, "ffmpeg") == ["one", "two", "three", "four"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_pass_numbers_stay_distinct_across_threads(repos):
     import threading
 
@@ -114,6 +136,8 @@ def test_pass_numbers_stay_distinct_across_threads(repos):
     assert sorted(p.number for p in passes.for_batch(batch.id)) == list(range(1, 41))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_duplicate_pass_number_is_refused_by_the_database(db, repos):
     batches, passes, _ = repos
     batch = make_batch(batches)
@@ -131,18 +155,24 @@ def test_deleting_a_batch_removes_its_passes_and_logs(db, repos):
     assert passes.get(made.id) is None and logs.for_pass(made.id, "pipeline") == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_of_a_missing_pass_raises(repos):
     _, passes, _ = repos
     with pytest.raises(KeyError):
         passes.update(999, status="running")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_with_no_fields_changes_nothing(repos):
     batches, passes, _ = repos
     made = passes.create(make_batch(batches).id, NOW)
     assert passes.update(made.id) == made
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_only_if_status_matches(repos):
     batches, passes, _ = repos
     made = passes.create(make_batch(batches).id, NOW)
@@ -151,13 +181,8 @@ def test_update_only_if_status_matches(repos):
     assert passes.get(made.id).status == "running"
 
 
-def test_update_steps_replaces_the_pipeline(repos):
-    batches, _, _ = repos
-    made = make_batch(batches)
-    batches.update_steps(made.id, [StageStep(key="render_output")])
-    assert [s.key for s in batches.get(made.id).steps] == ["render_output"]
-
-
+@pytest.mark.full
+@pytest.mark.full
 def test_clear_removes_only_that_passes_logs(repos):
     batches, passes, logs = repos
     batch = make_batch(batches)

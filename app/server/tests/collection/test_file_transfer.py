@@ -16,6 +16,8 @@ def write(path, content=b"data"):
     return str(path)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_move_renames_on_the_same_device_and_creates_folders(files, tmp_path):
     source = write(tmp_path / "in" / "a.mp4")
     destination = str(tmp_path / "out" / "day" / "a.mp4")
@@ -24,6 +26,8 @@ def test_move_renames_on_the_same_device_and_creates_folders(files, tmp_path):
     assert open(destination, "rb").read() == b"data"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_move_refuses_to_overwrite(files, tmp_path):
     source = write(tmp_path / "a.mp4")
     destination = write(tmp_path / "out" / "a.mp4", b"other")
@@ -42,6 +46,8 @@ def test_cross_device_move_copies_verifies_then_deletes(files, tmp_path, monkeyp
     assert open(destination, "rb").read() == b"x" * 5000
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_copy_keeps_the_source(files, tmp_path):
     source = write(tmp_path / "a.mp4")
     destination = str(tmp_path / "out" / "a.mp4")
@@ -60,6 +66,8 @@ def test_failed_verification_removes_the_copy_and_raises(files, tmp_path, monkey
     assert os.path.exists(source)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_failed_cross_device_move_never_deletes_the_source(files, tmp_path, monkeypatch):
     monkeypatch.setattr(FileTransfer, "_same_device", staticmethod(lambda source, directory: False))
     source = write(tmp_path / "a.mp4")
@@ -70,6 +78,8 @@ def test_failed_cross_device_move_never_deletes_the_source(files, tmp_path, monk
     assert os.path.exists(source)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_link_creates_a_symlink(files, tmp_path):
     source = write(tmp_path / "a.mp4")
     destination = str(tmp_path / "out" / "a.mp4")
@@ -77,6 +87,8 @@ def test_link_creates_a_symlink(files, tmp_path):
     assert os.path.islink(destination) and os.path.realpath(destination) == os.path.realpath(source)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_checksum_is_stable_and_content_sensitive(files, tmp_path):
     first = write(tmp_path / "1", b"abc")
     second = write(tmp_path / "2", b"abc")

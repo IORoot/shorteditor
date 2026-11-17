@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { StageHandoff } from './handoff'
 
 describe('StageHandoff', () => {
-  it('survives a JSON round trip', () => {
+  it('survives a JSON round trip', { tags: ['full'] }, () => {
     const h: StageHandoff = {
       runId: 3,
       stage: 'collection',

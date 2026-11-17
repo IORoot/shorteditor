@@ -1,8 +1,11 @@
+import pytest
 from datetime import timedelta
 
 from collector_server.collection.models import ScheduleDraft
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_add_and_get_collector(collectors):
     record = collectors.add("Coach", "/Volumes/Coach")
     assert record.id == 1
@@ -12,6 +15,8 @@ def test_add_and_get_collector(collectors):
     assert collectors.get(99) is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_list_returns_collectors_in_id_order(collectors):
     collectors.add("A", "/a")
     collectors.add("B", "/b")
@@ -28,17 +33,23 @@ def test_save_schedule_round_trips_the_fields(collectors, clock):
     assert saved.draft().weekdays == [0, 6]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_save_schedule_for_missing_collector_returns_none(collectors, clock):
     draft = ScheduleDraft(enabled=True, kind="daily", time="02:00")
     assert collectors.save_schedule(42, draft, "0 2 * * *", clock.now()) is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_set_last_slot(collectors, clock):
     record = collectors.add("A", "/a")
     collectors.set_last_slot(record.id, clock.now())
     assert collectors.get(record.id).last_slot == clock.now()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_runs_are_returned_newest_first_and_limited(collectors, runs, clock):
     record = collectors.add("A", "/a")
     for i in range(7):
@@ -48,6 +59,8 @@ def test_runs_are_returned_newest_first_and_limited(collectors, runs, clock):
     assert recent[0].can_undo is True
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_runs_are_scoped_to_their_collector(collectors, runs, clock):
     first, second = collectors.add("A", "/a"), collectors.add("B", "/b")
     runs.add(first.id, clock.now(), "manual", "done", "a")

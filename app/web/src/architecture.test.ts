@@ -16,12 +16,12 @@ describe('architecture', () => {
     expect(violations(files.filter((f) => f.path.startsWith('shared/')))).toEqual([]);
   });
 
-  it('flags a collection file importing production', () => {
+  it('flags a collection file importing production', { tags: ['full'] }, () => {
     expect(violations([{ path: 'collection/a.ts', source: "import x from '../production/b'" }])).toHaveLength(1);
     expect(violations([{ path: 'collection/a.ts', source: "import x from '../shared/b'" }])).toHaveLength(0);
   });
 
-  it('scans real files', () => {
+  it('scans real files', { tags: ['full'] }, () => {
     expect(files.length).toBeGreaterThan(50);
     expect(files.filter((f) => f.path.startsWith('shared/')).length).toBeGreaterThan(5);
   });

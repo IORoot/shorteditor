@@ -22,22 +22,30 @@ def test_weekly_sorts_weekdays_and_names_them():
     assert rule.summary() == "Every Sunday, Saturday at 02:00"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_weekly_requires_a_weekday():
     with pytest.raises(ValueError, match="weekday"):
         ScheduleRule(draft(kind="weekly", weekdays=[]))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_weekly_rejects_invalid_weekday():
     with pytest.raises(ValueError, match="between 0"):
         ScheduleRule(draft(kind="weekly", weekdays=[7]))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_monthly_uses_the_day_of_month():
     rule = ScheduleRule(draft(kind="monthly", day_of_month=15, time="03:30"))
     assert rule.cron == "30 3 15 * *"
     assert rule.summary() == "On day 15 of each month at 03:30"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_cron_kind_normalises_whitespace_and_validates():
     rule = ScheduleRule(draft(kind="cron", cron="  0   */6 * * * "))
     assert rule.cron == "0 */6 * * *"
@@ -46,12 +54,16 @@ def test_cron_kind_normalises_whitespace_and_validates():
         ScheduleRule(draft(kind="cron", cron="nope"))
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("time", ["24:00", "12:60"])
 def test_invalid_time_is_rejected(time):
     with pytest.raises(ValueError, match="HH:MM"):
         ScheduleRule(draft(time=time))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_expression_matches_the_cron():
     rule = ScheduleRule(draft(kind="daily", time="05:10"))
     assert rule.expression().minutes == frozenset({10})

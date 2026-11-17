@@ -29,6 +29,8 @@ def batch(i, name="Coach Saturdays"):
     return UsageItem(kind="batch", id=i, name=f"{name} {i}" if i else name)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_list_summarises_stage_count_limits_and_usage(parts):
     service, _, usage = parts
     steps = service.template()
@@ -41,6 +43,8 @@ def test_list_summarises_stage_count_limits_and_usage(parts):
     assert row.max_seconds is None and row.max_size_mb == 80 and row.used_by == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_summary_falls_back_to_the_stage_default_and_dashes_when_the_stage_is_absent(parts):
     service, _, _ = parts
     bare = [StageStep(key=k) for k in ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]]
@@ -52,6 +56,8 @@ def test_summary_falls_back_to_the_stage_default_and_dashes_when_the_stage_is_ab
     assert service.list()[1].max_seconds is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_stored_pipeline_with_an_unknown_stage_still_lists_and_shows_detail(parts):
     service, repo, _ = parts
     p = repo.create("Old", "", [StageStep(key="gone"), StageStep(key="limit_length")], NOW)
@@ -60,6 +66,8 @@ def test_a_stored_pipeline_with_an_unknown_stage_still_lists_and_shows_detail(pa
     assert any("There is no stage called gone" in e for e in service.check(p.steps))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_detail_has_users_and_the_five_most_recent_batches(parts):
     service, _, usage = parts
     p = make(service)
@@ -69,6 +77,8 @@ def test_detail_has_users_and_the_five_most_recent_batches(parts):
     assert [u.id for u in d.recent_batches] == [1, 2, 3, 4, 5]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_off_impact_passes_through_the_usage_answer(parts):
     service, _, usage = parts
     p = make(service)
@@ -86,6 +96,8 @@ def test_delete_refuses_a_pipeline_in_use_and_names_what_uses_it(parts):
         service.delete(p.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_delete_removes_an_unused_pipeline(parts):
     service, repo, _ = parts
     p = make(service)
@@ -109,6 +121,8 @@ def test_seed_does_not_come_back_after_the_user_deletes_it(parts):
     assert service.list() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_seed_skips_and_sets_no_marker_when_the_template_is_invalid(db, tmp_path):
     ensure_schema(db)
 
@@ -125,6 +139,8 @@ def test_seed_skips_and_sets_no_marker_when_the_template_is_invalid(db, tmp_path
     assert repo.list() == [] and repo.get_meta("seeded") is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_pipeline_source_methods(parts):
     service, _, _ = parts
     a, b = make(service, "A"), make(service, "B")
@@ -137,6 +153,8 @@ def test_pipeline_source_methods(parts):
     assert [r.id for r in service.enabled_pipelines()] == [a.id]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_no_usage_reports_nothing():
     assert isinstance(NoUsage(), PipelineUsage)
     assert NoUsage().users_of(1) == []

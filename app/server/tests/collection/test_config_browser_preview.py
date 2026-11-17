@@ -14,10 +14,13 @@ def config(**overrides) -> CollectorConfig:
     return CollectorConfig(**base)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_valid_config_passes():
     validate_config(config())
 
 
+@pytest.mark.full
 @pytest.mark.parametrize(
     "overrides,message",
     [
@@ -34,6 +37,8 @@ def test_invalid_configs_raise(overrides, message):
         validate_config(config(**overrides))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_ssh_with_host_and_window_with_window_grouping_are_valid():
     validate_config(config(source_type="ssh", host="nas"))
     with pytest.raises(ValueError, match="aren't supported"):
@@ -51,14 +56,20 @@ def test_browser_lists_visible_directories_only_sorted(tmp_path):
     assert result.parent == os.path.dirname(str(tmp_path))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_browser_root_has_no_parent():
     assert FolderBrowser().list("/").parent is None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_browser_uses_the_default_when_no_path_is_given(tmp_path):
     assert FolderBrowser(default=str(tmp_path)).list(None).path == str(tmp_path)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_browser_rejects_relative_and_missing_paths(tmp_path):
     with pytest.raises(ValueError, match="absolute"):
         FolderBrowser().list("relative/path")
@@ -78,12 +89,16 @@ def test_previewer_renders_the_full_path(clock):
     assert result.full_path == "/Volumes/Edit/Collected/2026-11-14_Sat_coach"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_previewer_falls_back_to_the_clock_and_handles_empty_output(clock):
     result = FolderPreviewer().preview(FolderPreviewRequest(folder_template="{date}"), clock.now())
     assert result.relative_path == "2026-11-16"
     assert result.full_path == "2026-11-16"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_previewer_rejects_window_tokens(clock):
     with pytest.raises(ValueError, match="aren't supported"):
         FolderPreviewer().preview(FolderPreviewRequest(folder_template="{window:name}", group_by="day"), clock.now())

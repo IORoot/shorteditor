@@ -15,7 +15,7 @@ class WatchRepository:
     def create(self, data: WatchCreate, now: str) -> Watch:
         cursor = self._db.execute(
             "INSERT INTO production_watches (name, parent_folder, pattern, name_template, steps, run_on, output_root, "
-            "interval_minutes, settle_minutes, max_per_check, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "interval_minutes, settle_minutes, max_per_check, pipeline_id, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (*self._fields(data), int(data.enabled), now),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
@@ -31,7 +31,7 @@ class WatchRepository:
         """Change the settings; what the watch has already seen and done is kept."""
         self._db.execute(
             "UPDATE production_watches SET name = ?, parent_folder = ?, pattern = ?, name_template = ?, steps = ?, run_on = ?, "
-            "output_root = ?, interval_minutes = ?, settle_minutes = ?, max_per_check = ?, enabled = ? WHERE id = ?",
+            "output_root = ?, interval_minutes = ?, settle_minutes = ?, max_per_check = ?, pipeline_id = ?, enabled = ? WHERE id = ?",
             (*self._fields(data), int(data.enabled), watch_id),
         )
         return self._need(watch_id)
@@ -70,8 +70,8 @@ class WatchRepository:
     @staticmethod
     def _fields(data: WatchCreate) -> tuple:
         return (
-            data.name, data.parent_folder, data.pattern, data.name_template, json.dumps([step.model_dump() for step in data.steps]),
-            data.run_on, data.output_root, data.interval_minutes, data.settle_minutes, data.max_per_check,
+            data.name, data.parent_folder, data.pattern, data.name_template, "[]",  # steps stay with the pipeline now
+            data.run_on, data.output_root, data.interval_minutes, data.settle_minutes, data.max_per_check, data.pipeline_id,
         )
 
     @staticmethod
@@ -80,6 +80,7 @@ class WatchRepository:
             id=row["id"], name=row["name"], parent_folder=row["parent_folder"], pattern=row["pattern"], name_template=row["name_template"],
             steps=[StageStep(**step) for step in json.loads(row["steps"])], run_on=row["run_on"], output_root=row["output_root"],
             interval_minutes=row["interval_minutes"], settle_minutes=row["settle_minutes"], max_per_check=row["max_per_check"],
-            enabled=bool(row["enabled"]), created_at=row["created_at"], last_checked_at=row["last_checked_at"], last_error=row["last_error"],
+            pipeline_id=row["pipeline_id"], enabled=bool(row["enabled"]), created_at=row["created_at"],
+            last_checked_at=row["last_checked_at"], last_error=row["last_error"],
             waiting=json.loads(row["waiting"]), created_total=row["created_total"],
         )

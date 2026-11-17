@@ -8,6 +8,8 @@ export interface Field {
   choices: string[];
   /** Empty is allowed and stored as null: a choice reads "Ask each time", a number reads "No limit". */
   nullable: boolean;
+  /** Long text (over 200 characters) is drawn as a textarea. */
+  multiline: boolean;
   min?: number;
   max?: number;
   defaultValue: unknown;
@@ -23,7 +25,7 @@ const labelOf = (name: string): string => {
 const strings = (value: unknown): string[] | null => (Array.isArray(value) && value.every((v) => typeof v === 'string') ? (value as string[]) : null);
 
 function fieldOf(name: string, prop: Prop): Field {
-  const base: Field = { name, label: labelOf(name), kind: 'readonly', choices: [], nullable: false, defaultValue: prop.default };
+  const base: Field = { name, label: typeof prop.title === 'string' ? prop.title : labelOf(name), kind: 'readonly', choices: [], nullable: false, multiline: false, defaultValue: prop.default };
   let shape = prop;
   const options = Array.isArray(prop.anyOf) ? (prop.anyOf as Prop[]) : null;
   if (options) {
@@ -40,7 +42,7 @@ function fieldOf(name: string, prop: Prop): Field {
     const max = typeof shape.maximum === 'number' ? shape.maximum : undefined;
     return { ...base, kind: shape.type, min, max };
   }
-  if (shape.type === 'string' && !base.nullable) return { ...base, kind: 'text' };
+  if (shape.type === 'string' && !base.nullable) return { ...base, kind: 'text', multiline: typeof shape.maxLength === 'number' && shape.maxLength > 200 };
   if (shape.type === 'array' && strings([(shape.items as Prop | undefined)?.type === 'string' ? 'x' : 1]) && !base.nullable) return { ...base, kind: 'list' };
   return base;
 }
@@ -85,4 +87,14 @@ export function defaultsOf(schema: Record<string, unknown>): Record<string, unkn
   const out: Record<string, unknown> = {};
   for (const field of fieldsOf(schema)) if (field.defaultValue !== null && field.defaultValue !== undefined) out[field.name] = field.defaultValue;
   return out;
+}
+
+/** One line of what a step is set to, e.g. "Max length 900". Empty when nothing is set. */
+export function summaryOf(info: { settingsSchema: Record<string, unknown> }, step: { settings: Record<string, unknown> }): string {
+  return fieldsOf(info.settingsSchema).flatMap((field) => {
+    const value = step.settings[field.name];
+    if (value === undefined || value === null || field.kind === 'readonly') return [];
+    if (field.kind === 'boolean') return value === true ? [field.label] : [];
+    return [`${field.label} ${toText(field, value).replace(/_/g, ' ')}`];
+  }).join(' · ');
 }

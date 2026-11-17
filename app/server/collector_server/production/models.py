@@ -5,7 +5,7 @@ from typing import Literal
 from collector_server.shared.camel_model import CamelModel
 
 from .pieces import VideoData
-from collector_server.shared.pipeline import StageInfo, StageStep
+from collector_server.shared.pipeline import StageStep
 
 PassStatus = Literal["queued", "running", "review", "blocked", "failed", "approved"]
 LogKind = Literal["pipeline", "ffmpeg"]
@@ -15,7 +15,8 @@ class Batch(CamelModel):
     id: int
     name: str
     input_folder: str
-    steps: list[StageStep]
+    pipeline_id: int | None = None  # None only for batches made before pipelines; they keep their own steps
+    steps: list[StageStep] = []
     run_on: str = "any"
     output_root: str
     created_at: str
@@ -31,6 +32,7 @@ class Pass(CamelModel):
     blocked_reason: str | None = None
     blocked_choices: list[str] = []
     overrides: dict[str, dict] = {}
+    steps_used: list[StageStep] = []  # the steps this pass ran with, saved when it started
     error: str | None = None
     output: VideoData | None = None
     created_at: str
@@ -41,34 +43,28 @@ class Pass(CamelModel):
 class BatchCreate(CamelModel):
     name: str
     input_folder: str
-    steps: list[StageStep]
+    pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
 
 
 class RunAgain(CamelModel):
-    steps: list[StageStep] | None = None
+    pipeline_id: int | None = None  # switch the batch to another pipeline first
 
 
 class Resolve(CamelModel):
     choice: str
 
 
-class ValidateRequest(CamelModel):
-    steps: list[StageStep]
-
-
-class ValidateResult(CamelModel):
-    errors: list[str]
-
-
 class BatchCard(CamelModel):
     batch_id: int
     pass_id: int
+    pipeline_id: int | None
     run_on: str
     started_at: str | None
     name: str
     input_folder: str
+    pipeline_name: str | None
     pipeline: list[str]
     status: PassStatus
     stage_title: str
@@ -94,6 +90,12 @@ class LogLines(CamelModel):
 class WorkerInfo(CamelModel):
     id: str
     label: str
+
+
+class PipelineChoice(CamelModel):
+    id: int
+    name: str
+    stage_count: int
 
 
 class Defaults(CamelModel):
@@ -127,7 +129,7 @@ class BulkCreate(CamelModel):
     parent_folder: str
     pattern: str
     name_template: str = "{name}"
-    steps: list[StageStep]
+    pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
     include: list[str] = []  # folder names to batch again although they already have a batch

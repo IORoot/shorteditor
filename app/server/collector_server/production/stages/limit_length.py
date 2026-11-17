@@ -15,13 +15,15 @@ CHOICES = ["drop_shortest", "keep_first"]
 
 
 class LimitSettings(CamelModel):
-    max_seconds: float = Field(900.0, ge=1, allow_inf_nan=False)
-    choice: Literal["drop_shortest", "keep_first"] | None = None
+    max_seconds: float = Field(900.0, ge=1, allow_inf_nan=False, title="Max length (seconds)")
+    choice: Literal["drop_shortest", "keep_first"] | None = Field(None, title="When a batch is over the limit")
+    trim_from: Literal["end", "start"] = Field("end", title="Keep first trims from")
 
 
 class LimitLength:
     key = "limit_length"
     title = "Limit length"
+    description = "Stops the video going over a time limit. You choose what to drop when a batch runs long."
     settings_model = LimitSettings
     transitions = {"pieces": "pieces"}
     position = "any"
@@ -33,7 +35,7 @@ class LimitLength:
         if settings.choice is None:
             raise BlockedError(f"The video is {total:.0f} s, {max(1, round(total - limit))} s over the {limit:.0f} s limit", list(CHOICES))
         items = self._drop_shortest(data.items, limit) if settings.choice == "drop_shortest" else list(data.items)
-        result = self._keep_first(items, limit)
+        result = self._keep_first(items, limit, settings.trim_from)
         ctx.log(f"Cut {total:.0f} s down to {result.total:.0f} s ({settings.choice.replace('_', ' ')})")
         return result
 
@@ -46,7 +48,7 @@ class LimitLength:
         return items
 
     @staticmethod
-    def _keep_first(items: list[Piece], limit: float) -> PiecesData:
+    def _keep_first(items: list[Piece], limit: float, trim_from: str) -> PiecesData:
         kept: list[Piece] = []
         left = limit
         for piece in items:
@@ -54,7 +56,11 @@ class LimitLength:
                 kept.append(piece)
                 left -= piece.length
             elif left >= _SLIVER:
-                kept.append(piece.model_copy(update={"end": piece.start + left}))
+                if trim_from == "start":
+                    stop = piece.end if piece.end is not None else piece.clip_duration
+                    kept.append(piece.model_copy(update={"start": stop - left}))
+                else:
+                    kept.append(piece.model_copy(update={"end": piece.start + left}))
                 break
             else:
                 break

@@ -16,13 +16,13 @@ describe('ApiClient', () => {
     expect(fetchImpl).toHaveBeenCalledWith('/api/collectors', undefined);
   });
 
-  it('lists runs for one collector', async () => {
+  it('lists runs for one collector', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([]));
     await new ApiClient(fetchImpl).listRuns(7);
     expect(fetchImpl).toHaveBeenCalledWith('/api/collectors/7/runs', undefined);
   });
 
-  it('sends the schedule draft as a PUT body', async () => {
+  it('sends the schedule draft as a PUT body', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(makeCollector({ id: 2 })));
     const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '23:00', weekdays: [], dayOfMonth: 1, cron: '' };
     await new ApiClient(fetchImpl).saveSchedule(2, draft);
@@ -32,19 +32,19 @@ describe('ApiClient', () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ time: '23:00', enabled: true });
   });
 
-  it('throws an ApiError with the status when the response is not ok', async () => {
+  it('throws an ApiError with the status when the response is not ok', { tags: ['full'] }, async () => {
     const client = new ApiClient(vi.fn().mockResolvedValue(new Response('nope', { status: 503 })));
     const error = await client.listCollectors().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(503);
   });
 
-  it('uses the server detail as the error message', async () => {
+  it('uses the server detail as the error message', { tags: ['full'] }, async () => {
     const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse({ detail: 'Unknown token {bogus}' }, 422)));
     await expect(client.previewFolder({ folderTemplate: '{bogus}', outputFolder: '', groupBy: 'day', suffix: '', sampleDate: '2026-11-14T18:40:00' })).rejects.toThrow('Unknown token {bogus}');
   });
 
-  it('saves a collector config with PUT', async () => {
+  it('saves a collector config with PUT', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(makeCollector({ id: 3 })));
     await new ApiClient(fetchImpl).saveConfig(3, makeConfig());
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
@@ -53,13 +53,13 @@ describe('ApiClient', () => {
     expect(JSON.parse(String(init.body)).folderTemplate).toBe('{date:YYYY-MM-DD}_{weekday}_{suffix}');
   });
 
-  it('posts folder previews', async () => {
+  it('posts folder previews', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ relativePath: 'a', fullPath: '/o/a' }));
     await new ApiClient(fetchImpl).previewFolder({ folderTemplate: 'a', outputFolder: '/o', groupBy: 'day', suffix: '', sampleDate: '2026-11-14T18:40:00' });
     expect((fetchImpl.mock.calls[0] as [string, RequestInit])[1].method).toBe('POST');
   });
 
-  it('browses with an encoded path and without one', async () => {
+  it('browses with an encoded path and without one', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse({ path: '/', parent: null, entries: [] })));
     const client = new ApiClient(fetchImpl);
     await client.browse('/Volumes/My Drive');
@@ -68,7 +68,7 @@ describe('ApiClient', () => {
     expect(fetchImpl.mock.calls[1][0]).toBe('/api/fs/browse');
   });
 
-  it('falls back to a generic message when the error body is not JSON', async () => {
+  it('falls back to a generic message when the error body is not JSON', { tags: ['full'] }, async () => {
     const client = new ApiClient(vi.fn().mockResolvedValue(new Response('oops', { status: 500 })));
     await expect(client.listCollectors()).rejects.toThrow('failed with 500');
   });
@@ -87,7 +87,7 @@ describe('ApiClient', () => {
     ]);
   });
 
-  it('fills in missing filter settings when an older backend lists collectors', async () => {
+  it('fills in missing filter settings when an older backend lists collectors', { tags: ['full'] }, async () => {
     const { filters, dateSource, filenamePattern, ...oldConfig } = makeConfig();
     void filters; void dateSource; void filenamePattern;
     const old = { ...makeCollector(), config: oldConfig };
@@ -97,7 +97,7 @@ describe('ApiClient', () => {
     expect(collector.config.dateSource).toBe('modified');
   });
 
-  it('refuses to report a save as successful when an old backend dropped the filters', async () => {
+  it('refuses to report a save as successful when an old backend dropped the filters', { tags: ['full'] }, async () => {
     const { filters, ...oldConfig } = makeConfig();
     void filters;
     const client = new ApiClient(vi.fn().mockResolvedValue(jsonResponse({ ...makeCollector(), config: oldConfig })));

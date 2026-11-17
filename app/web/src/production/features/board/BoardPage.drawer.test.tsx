@@ -20,6 +20,7 @@ function setup(first: BatchCard[], ...rest: BatchCard[][]) {
     resolve: vi.fn().mockResolvedValue({}),
     defaults: vi.fn(() => (defaultsOverride ? defaultsOverride() : Promise.resolve({ outputRoot: '/out', workers: [] }))),
     createBatch: vi.fn().mockResolvedValue({}),
+    pipelines: vi.fn().mockResolvedValue([{ id: 1, name: 'Join clips', stageCount: 5 }]),
     outputUrl: (id: number) => `/api/production/passes/${id}/output`,
   };
   render(<BoardPage api={api as unknown as ProductionApi} />);
@@ -50,7 +51,7 @@ describe('BoardPage review drawer', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('sends only one request when Approve is clicked twice', async () => {
+  it('sends only one request when Approve is clicked twice', { tags: ['full'] }, async () => {
     const review = makeCard({ name: 'A', status: 'review', output, passId: 11 });
     const api = setup([review]);
     api.approve.mockImplementation(() => new Promise(() => undefined));
@@ -61,7 +62,7 @@ describe('BoardPage review drawer', () => {
     expect(api.approve).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the server message in the drawer and keeps it open', async () => {
+  it('shows the server message in the drawer and keeps it open', { tags: ['full'] }, async () => {
     const api = setup([makeCard({ name: 'A', status: 'review', output, passId: 11 })]);
     api.approve.mockRejectedValue(new Error('A newer pass exists for this batch.'));
     fireEvent.click(await screen.findByRole('button', { name: 'A, Ready' }));
@@ -78,7 +79,7 @@ describe('BoardPage review drawer', () => {
     expect(api.resolve).toHaveBeenCalledWith(21, 'keep_first');
   });
 
-  it('runs a batch again as a new pass', async () => {
+  it('runs a batch again as a new pass', { tags: ['full'] }, async () => {
     const api = setup([makeCard({ name: 'C', status: 'failed', error: 'Boom', batchId: 7, passId: 31 })]);
     fireEvent.click(await screen.findByRole('button', { name: 'C, Failed' }));
     fireEvent.click(screen.getByRole('button', { name: 'Run again' }));
@@ -86,7 +87,7 @@ describe('BoardPage review drawer', () => {
     expect(api.runAgain).toHaveBeenCalledWith(7);
   });
 
-  it('stays open and follows the batch when a refresh brings a new state', async () => {
+  it('stays open and follows the batch when a refresh brings a new state', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     const running = makeCard({ name: 'D', status: 'running', stageTitle: 'Render', stagePosition: 5, batchId: 4, passId: 41 });
     setup([running], [{ ...running, status: 'review', output }]);
@@ -98,7 +99,7 @@ describe('BoardPage review drawer', () => {
     expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
   });
 
-  it('closes with Escape and puts focus back on the card', async () => {
+  it('closes with Escape and puts focus back on the card', { tags: ['full'] }, async () => {
     setup([makeCard({ name: 'E', status: 'review', output, batchId: 5 })]);
     const card = await screen.findByRole('button', { name: 'E, Ready' });
     fireEvent.click(card);
@@ -107,7 +108,7 @@ describe('BoardPage review drawer', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'E, Ready' }));
   });
 
-  it('still puts focus on the card after a refresh moved it to another column', async () => {
+  it('still puts focus on the card after a refresh moved it to another column', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     const running = makeCard({ name: 'F', status: 'running', stageTitle: 'Render', stagePosition: 5, batchId: 6 });
     setup([running], [{ ...running, status: 'review', output }]);
@@ -118,7 +119,7 @@ describe('BoardPage review drawer', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'F, Ready' }));
   });
 
-  it('puts focus on the second card, not the first, after switching between two', async () => {
+  it('puts focus on the second card, not the first, after switching between two', { tags: ['full'] }, async () => {
     setup([makeCard({ name: 'A', status: 'review', output, batchId: 1 }), makeCard({ name: 'B', status: 'review', output, batchId: 2 })]);
     fireEvent.click(await screen.findByRole('button', { name: 'A, Ready' }));
     fireEvent.click(screen.getByRole('button', { name: 'B, Ready' }));
@@ -126,7 +127,7 @@ describe('BoardPage review drawer', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'B, Ready' }));
   });
 
-  it('closes by itself if the batch is gone', async () => {
+  it('closes by itself if the batch is gone', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     setup([makeCard({ name: 'E', status: 'review', output, batchId: 5 })], []);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
@@ -136,7 +137,7 @@ describe('BoardPage review drawer', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('drops an old action error when a refresh brings a different pass', async () => {
+  it('drops an old action error when a refresh brings a different pass', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     const review = makeCard({ name: 'G', status: 'review', output, batchId: 7, passId: 71 });
     const api = setup([review], [{ ...review, passId: 72, status: 'running', stageTitle: 'Scan folder', stagePosition: 1, output: null }]);
@@ -150,7 +151,7 @@ describe('BoardPage review drawer', () => {
     expect(screen.queryByText(/A newer pass exists/)).toBeNull();
   });
 
-  it('leaves a half-filled New batch form alone when a refresh arrives', async () => {
+  it('leaves a half-filled New batch form alone when a refresh arrives', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     setup([makeCard({ name: 'H', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 8 })]);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
@@ -160,7 +161,7 @@ describe('BoardPage review drawer', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('Half typed');
   });
 
-  it('asks the server for the defaults again if the first try failed', async () => {
+  it('asks the server for the defaults again if the first try failed', { tags: ['full'] }, async () => {
     let calls = 0;
     defaultsOverride = () => (++calls === 1 ? Promise.reject(new Error('restarting')) : Promise.resolve({ outputRoot: '/out', workers: [{ id: 'local', label: 'This computer' }] }));
     const api = setup([makeCard({ name: 'I', status: 'queued' })]);

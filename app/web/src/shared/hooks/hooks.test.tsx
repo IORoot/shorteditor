@@ -6,7 +6,7 @@ describe('useDebouncedValue', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('only updates after the delay', () => {
+  it('only updates after the delay', { tags: ['full'] }, () => {
     const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 200), { initialProps: { value: 'a' } });
     rerender({ value: 'b' });
     expect(result.current).toBe('a');

@@ -5,7 +5,7 @@ import type { WatchView } from '../../lib/types';
 import { WatchesPanel } from './WatchesPanel';
 
 const watch = (over: Partial<WatchView> = {}): WatchView => ({
-  id: 1, name: 'Coach', parentFolder: '/Volumes/Edit/Coach', pattern: '^\\d{4}-\\d{2}-\\d{2}_.+$', nameTemplate: '{name}', steps: [], runOn: 'any', outputRoot: null,
+  id: 1, name: 'Coach', parentFolder: '/Volumes/Edit/Coach', pattern: '^\\d{4}-\\d{2}-\\d{2}_.+$', nameTemplate: '{name}', steps: [], pipelineId: 1, pipelineName: 'Join clips', runOn: 'any', outputRoot: null,
   intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: '2026-11-17T10:00:00', lastCheckedAt: '2026-11-17T10:42:00', lastError: null,
   waiting: [], createdTotal: 2, status: 'watching', statusLine: 'Last checked 10:42 · created 2 batches in total · next check in 3 minutes', ...over,
 });
@@ -39,7 +39,7 @@ describe('WatchesPanel', () => {
     expect(within(item).getByText(/created 2 batches in total/)).toBeInTheDocument();
   });
 
-  it('shows each status with its own label', async () => {
+  it('shows each status with its own label', { tags: ['full'] }, async () => {
     show(fakeApi([
       watch({ id: 1, name: 'W1', status: 'waiting', statusLine: 'line waiting' }),
       watch({ id: 2, name: 'W2', status: 'paused', statusLine: 'line paused' }),
@@ -50,21 +50,21 @@ describe('WatchesPanel', () => {
     expect(row('W3')).toHaveTextContent('Problem');
   });
 
-  it('says so when there are no watches, and "Add watch" opens the form', async () => {
+  it('says so when there are no watches, and "Add watch" opens the form', { tags: ['full'] }, async () => {
     const { onAdd } = show(fakeApi([]));
     expect(await screen.findByText('No watches yet. Add one to batch new folders automatically.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add watch' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
 
-  it('pauses a watch, then refreshes the list', async () => {
+  it('pauses a watch, then refreshes the list', { tags: ['full'] }, async () => {
     const { api } = show();
     fireEvent.click(await screen.findByRole('switch', { name: 'Watching Coach' }));
     await waitFor(() => expect(api.watches).toHaveBeenCalledTimes(2));
     expect(api.setWatchEnabled).toHaveBeenCalledWith(1, false);
   });
 
-  it('checks a watch now, shows what it did, and tells the board when batches were made', async () => {
+  it('checks a watch now, shows what it did, and tells the board when batches were made', { tags: ['full'] }, async () => {
     const { api, onChanged } = show();
     fireEvent.click(within(await screen.findByRole('listitem', { name: 'Watch Coach' })).getByRole('button', { name: 'Check now' }));
     expect(within(row('Coach')).getByText('Checking…')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('WatchesPanel', () => {
     expect(onChanged).toHaveBeenCalled();
   });
 
-  it('a check that finds nothing says so and does not reload the board', async () => {
+  it('a check that finds nothing says so and does not reload the board', { tags: ['full'] }, async () => {
     const api = fakeApi();
     api.checkWatch.mockResolvedValue({ created: [], waiting: [], error: null });
     const { onChanged } = show(api);
@@ -82,7 +82,7 @@ describe('WatchesPanel', () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
-  it('edits a watch with its current settings', async () => {
+  it('edits a watch with its current settings', { tags: ['full'] }, async () => {
     const { onEdit } = show();
     fireEvent.click(within(await screen.findByRole('listitem', { name: 'Watch Coach' })).getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'Coach' }));
@@ -100,7 +100,7 @@ describe('WatchesPanel', () => {
     expect(api.deleteWatch).toHaveBeenCalledWith(1);
   });
 
-  it('shows a failed action as an alert and keeps the list', async () => {
+  it('shows a failed action as an alert and keeps the list', { tags: ['full'] }, async () => {
     const api = fakeApi();
     api.setWatchEnabled.mockRejectedValue(new Error('The watch is gone'));
     show(api);
@@ -109,7 +109,7 @@ describe('WatchesPanel', () => {
     expect(row('Coach')).toBeInTheDocument();
   });
 
-  it('closes on Escape', async () => {
+  it('closes on Escape', { tags: ['full'] }, async () => {
     const { onClose } = show();
     await screen.findByRole('listitem', { name: 'Watch Coach' });
     fireEvent.keyDown(document, { key: 'Escape' });

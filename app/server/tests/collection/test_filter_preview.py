@@ -45,6 +45,8 @@ def reasons(result) -> dict[str, str]:
     return {clip.name: clip.reason for clip in result.clips}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_is_video_checks_extension_case_insensitively_and_ignores_dotfiles():
     assert is_video("a.MP4") and is_video("my clip.mov")
     assert not is_video("notes.md") and not is_video(".hidden.mp4") and not is_video("noextension")
@@ -57,18 +59,24 @@ def test_lists_every_file_newest_first(previewer, source, tmp_path):
     assert [c.when for c in result.clips] == sorted((c.when for c in result.clips), reverse=True)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_no_filters_collects_every_file(previewer, source, tmp_path):
     result = run(previewer, source, tmp_path)
     assert selected(result) == set(FILES)
     assert result.selected_count == len(FILES)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_name_rule_matches_substring_including_spaces(previewer, source, tmp_path):
     result = run(previewer, source, tmp_path, [FilterRule(kind="name", value="raw clip")])
     assert selected(result) == {"my raw clip.mov"}
     assert reasons(result)["GX010412.MP4"] == NO_MATCH
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_rules_pick_non_video_files_too(previewer, source, tmp_path):
     result = run(previewer, source, tmp_path, [FilterRule(kind="glob", value="*.css")])
     assert selected(result) == {"styles.css"}
@@ -81,16 +89,22 @@ def test_groups_are_ored_and_rules_anded(previewer, source, tmp_path):
     assert selected(result) == {"GX010412.MP4", "GX010413.MP4", "my raw clip.mov", "edit v2.mp4", "DJI_0087.MP4", "IMG 2210.JPG"}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_exclude_rule_removes_matches(previewer, source, tmp_path):
     rules = [FilterRule(kind="weekday", days=[6]), FilterRule(kind="name", value="v2", exclude=True)]
     assert "edit v2.mp4" not in selected(run(previewer, source, tmp_path, rules))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_label_formats_day_date_and_time(previewer, source, tmp_path):
     clip = next(c for c in run(previewer, source, tmp_path).clips if c.name == "GX010412.MP4")
     assert clip.label == "Sat 14 Nov · 09:12" and clip.when.startswith("2026-11-14T09:12")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_dates_follow_the_configured_date_source(previewer, source, tmp_path):
     make_clip(source / "GX_20250102_030405.mp4", datetime(2026, 11, 1, 0, 0, tzinfo=LONDON))
     result = run(previewer, source, tmp_path, date_source="filename", filename_pattern="GX_YYYYMMDD_HHmmss")
@@ -102,6 +116,8 @@ def sample(**overrides) -> FilterRule:
     return FilterRule(kind="random", random=RandomSelection(**{"enabled": True, "mode": "count", "value": 2, "scope": "overall", "seed": 5, **overrides}))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_is_seeded_and_only_samples_what_the_rules_before_it_matched(previewer, source, tmp_path):
     rules = [FilterRule(kind="name", value="GX01"), sample()]
     first, again = run(previewer, source, tmp_path, rules), run(previewer, source, tmp_path, rules)
@@ -110,12 +126,16 @@ def test_random_rule_is_seeded_and_only_samples_what_the_rules_before_it_matched
     assert NOT_PICKED in reasons(first).values()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_random_rule_per_folder_picks_from_each_day(previewer, source, tmp_path):
     result = run(previewer, source, tmp_path, [sample(value=1, scope="folder", seed=1)])
     days = {c.when[:10] for c in result.clips if c.selected}
     assert result.selected_count == len(days) and days
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_subfolders_are_listed_and_the_output_folder_is_skipped(previewer, source, tmp_path):
     make_clip(source / "day 2" / "nested-clip.mp4", datetime(2026, 11, 3, 8, 0, tzinfo=LONDON))
     make_clip(source / "out" / "already.mp4", datetime(2026, 11, 3, 9, 0, tzinfo=LONDON))
@@ -134,6 +154,8 @@ def test_long_folders_are_capped_but_counted(previewer, tmp_path, monkeypatch):
     assert MAX_ROWS == 500
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize(
     "overrides,error,message",
     [
@@ -148,6 +170,8 @@ def test_unusable_sources_raise(previewer, tmp_path, overrides, error, message):
         previewer.preview(config)
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize("rule,message", [(FilterRule(kind="regex", value="("), "Invalid regex"), (FilterRule(kind="weekday", days=[]), "weekday")])
 def test_invalid_rules_raise(previewer, source, tmp_path, rule, message):
     with pytest.raises(ValueError, match=message):
@@ -159,18 +183,24 @@ def client(collectors, runs, clock):
     return TestClient(create_app(CollectorService(collectors, runs, clock)))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_endpoint_returns_verdicts(client, source, tmp_path):
     body = config_for(source, tmp_path / "out", filters=[FilterGroup(rules=[FilterRule(kind="name", value="raw clip")])]).model_dump(by_alias=True)
     data = client.post("/api/preview/filters", json=body).json()
     assert data["total"] == len(FILES) and data["selectedCount"] == 1 and data["truncated"] is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_endpoint_explains_a_missing_folder(client, tmp_path):
     body = config_for(tmp_path / "missing", tmp_path / "out").model_dump(by_alias=True)
     response = client.post("/api/preview/filters", json=body)
     assert response.status_code == 422 and "not found" in response.json()["detail"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_case_sensitive_rule_changes_what_is_collected(previewer, source, tmp_path):
     loose = run(previewer, source, tmp_path, [FilterRule(kind="name", value="raw CLIP")])
     strict = run(previewer, source, tmp_path, [FilterRule(kind="name", value="raw CLIP", case_sensitive=True)])

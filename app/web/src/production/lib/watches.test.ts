@@ -6,7 +6,7 @@ const batch = { id: 1, name: 'x', inputFolder: '/x', steps: [], runOn: 'any', ou
 const result = (over: Partial<CheckResult>): CheckResult => ({ created: [], waiting: [], error: null, ...over });
 
 describe('checkMessage', () => {
-  it('says what a check did, in the order the user cares about', () => {
+  it('says what a check did, in the order the user cares about', { tags: ['full'] }, () => {
     expect(checkMessage(result({ created: [batch, { ...batch, id: 2 }] }))).toBe('Created 2 batches');
     expect(checkMessage(result({ created: [batch] }))).toBe('Created 1 batch');
     expect(checkMessage(result({ waiting: ['2026-11-14_a'] }))).toBe('Waiting for 2026-11-14_a to settle');
@@ -16,7 +16,7 @@ describe('checkMessage', () => {
 });
 
 const view = (status: WatchView['status']): WatchView => ({
-  id: 1, name: 'Coach', parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', steps: [], runOn: 'any', outputRoot: null,
+  id: 1, name: 'Coach', parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', steps: [], pipelineId: 1, pipelineName: 'Join clips', runOn: 'any', outputRoot: null,
   intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: 'x', lastCheckedAt: null, lastError: null,
   waiting: [], createdTotal: 0, status, statusLine: '',
 });
@@ -32,7 +32,7 @@ describe('watch labels and tones', () => {
     expect(watchTone(view(status))).toBe(tone);
   });
 
-  it('shows an unknown status as it is, with a warning tone', () => {
+  it('shows an unknown status as it is, with a warning tone', { tags: ['full'] }, () => {
     expect(watchLabel(view('odd' as never))).toBe('odd');
     expect(watchTone(view('odd' as never))).toBe('warn');
   });

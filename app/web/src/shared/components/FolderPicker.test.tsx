@@ -23,14 +23,14 @@ describe('FolderPicker', () => {
     expect(onChoose).toHaveBeenCalledWith('/Volumes/Edit/Collected');
   });
 
-  it('can go up to the parent', async () => {
+  it('can go up to the parent', { tags: ['full'] }, async () => {
     const browse = vi.fn().mockResolvedValue(listing);
     render(<FolderPicker startPath="/Volumes/Edit" browse={browse} onChoose={() => undefined} onClose={() => undefined} />);
     fireEvent.click(await screen.findByRole('button', { name: '..' }));
     await waitFor(() => expect(browse).toHaveBeenLastCalledWith('/Volumes'));
   });
 
-  it('shows an error and keeps Choose disabled', async () => {
+  it('shows an error and keeps Choose disabled', { tags: ['full'] }, async () => {
     const browse = vi.fn().mockRejectedValue(new Error('Folder not found'));
     const onClose = vi.fn();
     render(<FolderPicker startPath="/nope" browse={browse} onChoose={() => undefined} onClose={onClose} />);
@@ -40,7 +40,7 @@ describe('FolderPicker', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('lets you climb out of a folder that does not exist yet', async () => {
+  it('lets you climb out of a folder that does not exist yet', { tags: ['full'] }, async () => {
     const browse = vi
       .fn()
       .mockRejectedValueOnce(new Error('Folder not found: /Volumes/Edit/Collected'))
@@ -51,7 +51,7 @@ describe('FolderPicker', () => {
     expect(browse).toHaveBeenLastCalledWith('/Volumes/Edit');
   });
 
-  it('closes on Escape', async () => {
+  it('closes on Escape', { tags: ['full'] }, async () => {
     const onClose = vi.fn();
     render(<FolderPicker startPath="/Volumes/Edit" browse={vi.fn().mockResolvedValue(listing)} onChoose={() => undefined} onClose={onClose} />);
     await screen.findByRole('button', { name: '..' });

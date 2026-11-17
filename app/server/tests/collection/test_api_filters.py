@@ -53,6 +53,8 @@ def test_filters_random_selection_and_date_sources_round_trip(stack):
     assert config["dateSource"] == "filename" and config["filenamePattern"] == "GX_YYYYMMDD"
 
 
+@pytest.mark.full
+@pytest.mark.full
 @pytest.mark.parametrize(
     "overrides,message",
     [
@@ -68,6 +70,8 @@ def test_invalid_filter_settings_are_rejected_with_a_message(stack, overrides, m
     assert response.status_code == 422 and message in response.json()["detail"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_dry_run_reports_what_stays_in_place(stack):
     client, record, source = stack
     make_clip(source / "a.mp4", SAT)
@@ -96,6 +100,8 @@ def test_a_run_only_moves_the_matching_clips(stack):
     assert (source / "b.mp4").exists() and not (source / "a.mp4").exists()
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_older_databases_get_default_filter_settings(collectors):
     record = collectors.add("Old", "/old")
     config = record.config()

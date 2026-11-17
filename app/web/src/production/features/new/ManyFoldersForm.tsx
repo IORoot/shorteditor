@@ -2,7 +2,7 @@ import { FormField } from '../../../shared/components/ui/FormField';
 import type { BrowseResult } from '../../../shared/lib/types';
 import type { PreviewState } from '../../hooks/useFolderPreview';
 import { PATTERN_PRESETS, type ManyForm } from '../../lib/presets';
-import type { Defaults } from '../../lib/types';
+import type { Defaults, PipelineChoice } from '../../lib/types';
 import { BatchSettingsFields } from './BatchSettingsFields';
 import { FolderField } from './FolderField';
 import { FolderPreviewList, type WatchReading } from './FolderPreviewList';
@@ -13,13 +13,15 @@ export interface ManyFoldersFormProps {
   form: ManyForm;
   onChange: (patch: Partial<ManyForm>) => void;
   defaults: Defaults;
+  pipelines: PipelineChoice[];
+  onManagePipelines?: () => void;
   browse: (path?: string) => Promise<BrowseResult>;
   preview: PreviewState;
   /** undefined: a one-off batch run. Otherwise the watch options are shown in this mode. */
   watch?: WatchOptionsMode;
 }
 
-export function ManyFoldersForm({ form, onChange, defaults, browse, preview, watch }: ManyFoldersFormProps) {
+export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManagePipelines, browse, preview, watch }: ManyFoldersFormProps) {
   const toggle = (name: string) => onChange({ include: form.include.includes(name) ? form.include.filter((n) => n !== name) : [...form.include, name] });
   // A watch that does not batch the folders already there reads them as "already there"; the edit form never does.
   const watching = watch !== undefined && (watch !== 'optional' || form.watching);
@@ -59,7 +61,7 @@ export function ManyFoldersForm({ form, onChange, defaults, browse, preview, wat
       </section>
       {watch !== undefined ? <WatchOptions value={form} onChange={onChange} mode={watch} folderCount={willCreate} /> : null}
       <p className="text-caption font-semibold tracking-wide text-text-3">Settings for every batch</p>
-      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} browse={browse} />
+      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} />
     </>
   );
 }

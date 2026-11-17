@@ -3,18 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { useLoad } from './useLoad';
 
 describe('useLoad', () => {
-  it('starts loading then becomes ready with the data', async () => {
+  it('starts loading then becomes ready with the data', { tags: ['full'] }, async () => {
     const { result } = renderHook(() => useLoad(() => Promise.resolve([1, 2]), []));
     expect(result.current.state.status).toBe('loading');
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: [1, 2] }));
   });
 
-  it('moves to error with the message when loading fails', async () => {
+  it('moves to error with the message when loading fails', { tags: ['full'] }, async () => {
     const { result } = renderHook(() => useLoad(() => Promise.reject(new Error('down')), []));
     await waitFor(() => expect(result.current.state).toEqual({ status: 'error', message: 'down' }));
   });
 
-  it('reloads when reload is called', async () => {
+  it('reloads when reload is called', { tags: ['full'] }, async () => {
     const load = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
     const { result } = renderHook(() => useLoad(load, []));
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'first' }));
@@ -22,12 +22,12 @@ describe('useLoad', () => {
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'second' }));
   });
 
-  it('does nothing when there is no loader', () => {
+  it('does nothing when there is no loader', { tags: ['full'] }, () => {
     const { result } = renderHook(() => useLoad(null, []));
     expect(result.current.state.status).toBe('loading');
   });
 
-  it('keeps showing the data while a reload is in flight', async () => {
+  it('keeps showing the data while a reload is in flight', { tags: ['full'] }, async () => {
     let resolveSecond: (value: string) => void = () => undefined;
     const load = vi
       .fn()

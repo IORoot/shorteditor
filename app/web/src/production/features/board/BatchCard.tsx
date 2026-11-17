@@ -44,7 +44,7 @@ export function BatchCard({ card, selected, onOpen }: BatchCardProps) {
       <span className="flex min-w-0 flex-col gap-2 p-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span title={card.name} className="truncate text-body font-semibold">{card.name}</span>
-          <span className="truncate text-caption text-text-2">{lastSegment(card.inputFolder)} · {card.pipeline.length} {card.pipeline.length === 1 ? 'stage' : 'stages'}</span>
+          <span className="truncate text-caption text-text-2">{lastSegment(card.inputFolder)} · {card.pipelineName ?? 'Own steps'} · {card.pipeline.length} {card.pipeline.length === 1 ? 'stage' : 'stages'}</span>
         </span>
         <StageStrip segments={stageSegments(card)} />
         <span className="flex min-w-0 items-center justify-between gap-2">

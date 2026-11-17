@@ -11,14 +11,14 @@ import { RuleInputs } from './RuleInputs';
 describe('RuleInputs', () => {
   const noop = () => undefined;
 
-  it('edits the value of name, glob and regex rules', () => {
+  it('edits the value of name, glob and regex rules', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={newRule('glob')} onChange={onChange} />);
     fireEvent.change(screen.getByLabelText('Rule value'), { target: { value: 'GX01*.MP4' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'glob', value: 'GX01*.MP4' }));
   });
 
-  it('edits both ends of a date range', () => {
+  it('edits both ends of a date range', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={newRule('date_range')} onChange={onChange} />);
     fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-11-01' } });
@@ -27,14 +27,14 @@ describe('RuleInputs', () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ dateTo: '2026-11-30' }));
   });
 
-  it('edits the days of a weekday rule', () => {
+  it('edits the days of a weekday rule', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={newRule('weekday')} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Sunday' }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ days: [0, 6] }));
   });
 
-  it('edits days and times of a window rule', () => {
+  it('edits days and times of a window rule', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={newRule('window')} onChange={onChange} />);
     fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '08:30' } });
@@ -45,7 +45,7 @@ describe('RuleInputs', () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ days: [1, 6] }));
   });
 
-  it('shows a helpful placeholder per text kind', () => {
+  it('shows a helpful placeholder per text kind', { tags: ['full'] }, () => {
     const { rerender } = render(<RuleInputs rule={newRule('regex')} onChange={noop} />);
     expect(screen.getByLabelText('Rule value')).toHaveAttribute('placeholder', '^GX\\d{4}');
     rerender(<RuleInputs rule={newRule('name')} onChange={noop} />);
@@ -54,14 +54,14 @@ describe('RuleInputs', () => {
 });
 
 describe('FilterRuleRow', () => {
-  it('switches between include and exclude', () => {
+  it('switches between include and exclude', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FilterRuleRow rule={newRule()} onChange={onChange} onRemove={() => undefined} />);
     fireEvent.change(screen.getByLabelText('Include or exclude'), { target: { value: 'exclude' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ exclude: true }));
   });
 
-  it('resets the fields when the kind changes but keeps include/exclude', () => {
+  it('resets the fields when the kind changes but keeps include/exclude', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     const rule: FilterRule = { ...newRule('name', true), value: 'proxy' };
     render(<FilterRuleRow rule={rule} onChange={onChange} onRemove={() => undefined} />);
@@ -69,36 +69,36 @@ describe('FilterRuleRow', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'window', exclude: true, value: '', start: '09:00' }));
   });
 
-  it('toggles match case on text rules', () => {
+  it('toggles match case on text rules', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FilterRuleRow rule={newRule('name')} onChange={onChange} onRemove={() => undefined} />);
     fireEvent.click(screen.getByRole('button', { name: 'Match case' }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ caseSensitive: true }));
   });
 
-  it('shows match case only for name, glob and regex rules', () => {
+  it('shows match case only for name, glob and regex rules', { tags: ['full'] }, () => {
     render(<FilterRuleRow rule={newRule('window')} onChange={() => undefined} onRemove={() => undefined} />);
     expect(screen.queryByRole('button', { name: 'Match case' })).not.toBeInTheDocument();
   });
 
-  it('keeps match case when switching between text rule kinds', () => {
+  it('keeps match case when switching between text rule kinds', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FilterRuleRow rule={{ ...newRule('name'), caseSensitive: true }} onChange={onChange} onRemove={() => undefined} />);
     fireEvent.change(screen.getByLabelText('Rule type'), { target: { value: 'glob' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ kind: 'glob', caseSensitive: true }));
   });
 
-  it('shows a date source select only on date rules', () => {
+  it('shows a date source select only on date rules', { tags: ['full'] }, () => {
     render(<FilterRuleRow rule={newRule('weekday')} onChange={() => undefined} onRemove={() => undefined} />);
     expect(screen.getByLabelText('Date from')).toHaveValue('modified');
   });
 
-  it('hides the date source select on text rules', () => {
+  it('hides the date source select on text rules', { tags: ['full'] }, () => {
     render(<FilterRuleRow rule={newRule('name')} onChange={() => undefined} onRemove={() => undefined} />);
     expect(screen.queryByLabelText('Date from')).not.toBeInTheDocument();
   });
 
-  it('shows a filename pattern box only when the rule reads dates from filenames', () => {
+  it('shows a filename pattern box only when the rule reads dates from filenames', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     const { rerender } = render(<FilterRuleRow rule={newRule('weekday')} onChange={onChange} onRemove={() => undefined} />);
     expect(screen.queryByLabelText('Filename pattern')).not.toBeInTheDocument();
@@ -106,14 +106,14 @@ describe('FilterRuleRow', () => {
     expect(screen.getByLabelText('Filename pattern')).toHaveValue('GX_YYYYMMDD');
   });
 
-  it('changes the date source on a date rule', () => {
+  it('changes the date source on a date rule', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FilterRuleRow rule={newRule('window')} onChange={onChange} onRemove={() => undefined} />);
     fireEvent.change(screen.getByLabelText('Date from'), { target: { value: 'created' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dateSource: 'created' }));
   });
 
-  it('removes the rule', () => {
+  it('removes the rule', { tags: ['full'] }, () => {
     const onRemove = vi.fn();
     render(<FilterRuleRow rule={newRule()} onChange={() => undefined} onRemove={onRemove} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove rule' }));
@@ -122,7 +122,7 @@ describe('FilterRuleRow', () => {
 });
 
 describe('FilterGroupCard', () => {
-  it('adds, edits and removes rules inside the group', () => {
+  it('adds, edits and removes rules inside the group', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     const group = { rules: [newRule(), newRule('glob')] };
     render(<FilterGroupCard index={1} group={group} onChange={onChange} onRemove={() => undefined} />);
@@ -135,7 +135,7 @@ describe('FilterGroupCard', () => {
     expect(onChange.mock.calls[2][0].rules[1].value).toBe('*.mp4');
   });
 
-  it('removes the group and explains an empty one', () => {
+  it('removes the group and explains an empty one', { tags: ['full'] }, () => {
     const onRemove = vi.fn();
     render(<FilterGroupCard index={0} group={{ rules: [] }} onChange={() => undefined} onRemove={onRemove} />);
     expect(screen.getByText(/An empty group is ignored/)).toBeInTheDocument();
@@ -145,19 +145,19 @@ describe('FilterGroupCard', () => {
 });
 
 describe('FiltersSection', () => {
-  it('explains that with no filters everything is collected', () => {
+  it('explains that with no filters everything is collected', { tags: ['full'] }, () => {
     render(<FiltersSection config={makeConfig()} onChange={() => undefined} />);
     expect(screen.getByText(/every video file in the input folder is collected/)).toBeInTheDocument();
   });
 
-  it('adds a group', () => {
+  it('adds a group', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FiltersSection config={makeConfig()} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add group' }));
     expect(onChange.mock.calls[0][0].filters).toHaveLength(1);
   });
 
-  it('shows OR between groups and removes one', () => {
+  it('shows OR between groups and removes one', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     const config = makeConfig({ filters: [{ rules: [newRule()] }, { rules: [newRule('glob')] }] });
     render(<FiltersSection config={config} onChange={onChange} />);
@@ -167,7 +167,7 @@ describe('FiltersSection', () => {
     expect(onChange.mock.calls[0][0].filters).toHaveLength(1);
   });
 
-  it('edits a rule inside a group', () => {
+  it('edits a rule inside a group', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<FiltersSection config={makeConfig({ filters: [{ rules: [newRule()] }] })} onChange={onChange} />);
     fireEvent.change(screen.getByLabelText('Rule value'), { target: { value: 'coach' } });
@@ -178,7 +178,7 @@ describe('FiltersSection', () => {
 describe('random rule inputs', () => {
   const base = { enabled: true, mode: 'percent' as const, value: 30, scope: 'overall' as const, seed: 42 };
 
-  it('edits amount, type, scope and seed', () => {
+  it('edits amount, type, scope and seed', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={{ ...newRule('random'), random: base }} onChange={(rule) => onChange(rule.random)} />);
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12' } });
@@ -191,7 +191,7 @@ describe('random rule inputs', () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ seed: 7 }));
   });
 
-  it('turns non-numeric or empty input into a safe number', () => {
+  it('turns non-numeric or empty input into a safe number', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<RuleInputs rule={{ ...newRule('random'), random: base }} onChange={(rule) => onChange(rule.random)} />);
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: 'abc' } });

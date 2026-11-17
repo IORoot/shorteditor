@@ -9,7 +9,16 @@ export function move<T>(steps: T[], index: number, direction: -1 | 1): T[] {
   return next;
 }
 
-export const setEnabled = (steps: StageStep[], index: number, enabled: boolean): StageStep[] =>
+/** The item at `from` placed at `to` (clamped), everything else keeping its order. */
+export function moveTo<T>(items: T[], from: number, to: number): T[] {
+  const target = Math.max(0, Math.min(items.length - 1, to));
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(target, 0, item);
+  return next;
+}
+
+export const setEnabled =(steps: StageStep[], index: number, enabled: boolean): StageStep[] =>
   steps.map((step, i) => (i === index ? { ...step, enabled } : step));
 
 export const setSetting = (steps: StageStep[], index: number, name: string, value: unknown): StageStep[] =>

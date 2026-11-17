@@ -24,7 +24,7 @@ class WatchCreate(CamelModel):
     parent_folder: str = Field(max_length=1000)
     pattern: str = Field(max_length=200)
     name_template: str = Field("{name}", max_length=200)
-    steps: list[StageStep] = Field(max_length=30)
+    pipeline_id: int
     run_on: str = Field("any", max_length=100)
     output_root: str | None = Field(None, max_length=1000)
     interval_minutes: int = Field(5, ge=1, le=1440)
@@ -40,7 +40,8 @@ class Watch(CamelModel):
     parent_folder: str
     pattern: str
     name_template: str
-    steps: list[StageStep]
+    pipeline_id: int | None = None  # None: a watch made before pipelines, still on its own steps
+    steps: list[StageStep] = []
     run_on: str
     output_root: str | None
     interval_minutes: int
@@ -60,6 +61,7 @@ WatchStatus = Literal["watching", "waiting", "paused", "problem"]
 class WatchView(Watch):
     status: WatchStatus
     status_line: str
+    pipeline_name: str | None = None
 
 
 class Enabled(CamelModel):

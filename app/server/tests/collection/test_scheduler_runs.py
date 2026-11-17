@@ -1,3 +1,4 @@
+import pytest
 import threading
 
 from collector_server.collection.models import ScheduleDraft
@@ -45,6 +46,8 @@ def test_background_run_is_visible_as_running_with_progress_then_done(collectors
     assert (final.status, final.outcome, final.can_undo) == ("done", "Moved 2 clips into 1 folder", True)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_second_start_while_running_is_skipped(collectors, runs, clock):
     mover = GatedMover()
     record, scheduler = make(collectors, runs, clock, mover)
@@ -56,17 +59,23 @@ def test_a_second_start_while_running_is_skipped(collectors, runs, clock):
     wait_until_done(runs, first.id)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_collector_can_run_again_after_a_failure(collectors, runs, clock):
     record, scheduler = make(collectors, runs, clock, FakeMover(error=RuntimeError("boom")))
     assert scheduler.run(record, "manual").status == "failed"
     assert scheduler.run(record, "manual").outcome == "Run failed: boom"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_can_undo_defaults_to_false_without_an_undoable_check(collectors, runs, clock):
     record, scheduler = make(collectors, runs, clock, FakeMover())
     assert scheduler.run(record, "manual").can_undo is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_run_repository_update_changes_only_the_given_fields(collectors, runs, clock):
     record = collectors.add("A", "/a")
     run = runs.add(record.id, clock.now(), "manual", "running", "Starting…")

@@ -18,6 +18,8 @@ def setup(collectors, runs, clock):
     return scheduler, checker, mover, record.id
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_nothing_runs_before_the_slot(setup, clock):
     scheduler, _, mover, _ = setup
     assert scheduler.tick() == []
@@ -62,6 +64,8 @@ def test_turned_off_collectors_never_run(setup, clock, collectors, runs):
     assert mover.calls == 0
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_turning_on_does_not_catch_up_missed_slots(setup, clock, collectors, runs):
     scheduler, _, mover, collector_id = setup
     service = CollectorService(collectors, runs, clock)
@@ -74,6 +78,8 @@ def test_turning_on_does_not_catch_up_missed_slots(setup, clock, collectors, run
     assert mover.calls == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_disabled_collectors_never_run(collectors, runs, clock):
     service = CollectorService(collectors, runs, clock)
     record = collectors.add("Off", "/off")
@@ -85,6 +91,8 @@ def test_disabled_collectors_never_run(collectors, runs, clock):
     assert mover.calls == 0
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unreachable_source_fails_without_moving_anything(setup, clock):
     scheduler, checker, mover, _ = setup
     checker.reachable = False
@@ -94,6 +102,8 @@ def test_unreachable_source_fails_without_moving_anything(setup, clock):
     assert mover.calls == 0
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_mover_errors_are_logged_as_failed_runs(collectors, runs, clock, setup):
     scheduler, checker, _, _ = setup
     failing = Scheduler(collectors, runs, checker, FakeMover(error=RuntimeError("disk full")), clock)
@@ -104,6 +114,8 @@ def test_mover_errors_are_logged_as_failed_runs(collectors, runs, clock, setup):
     assert result.can_undo is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_overlapping_runs_are_skipped_and_logged(collectors, runs, clock):
     service = CollectorService(collectors, runs, clock)
     record = collectors.add("Busy", "/busy")
@@ -124,6 +136,8 @@ def test_overlapping_runs_are_skipped_and_logged(collectors, runs, clock):
     assert scheduler.run(collectors.get(record.id), "manual").status == "done"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_checker_receives_the_collector_source(setup, clock):
     scheduler, checker, _, _ = setup
     clock.advance(hours=11)
@@ -131,6 +145,8 @@ def test_checker_receives_the_collector_source(setup, clock):
     assert checker.checked == ["/Volumes/Coach"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_due_slot_is_none_without_a_last_slot(collectors, runs, clock):
     record = collectors.add("New", "/new")
     scheduler = Scheduler(collectors, runs, FakeChecker(), FakeMover(), clock)

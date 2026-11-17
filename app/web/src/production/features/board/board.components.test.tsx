@@ -9,7 +9,7 @@ import { StageStrip } from './StageStrip';
 const output = { path: '/out/a.mp4', duration: 58.4, sizeBytes: 48_450_000 };
 
 describe('StageStrip', () => {
-  it('renders one segment per stage with its state', () => {
+  it('renders one segment per stage with its state', { tags: ['full'] }, () => {
     render(<StageStrip segments={['done', 'run', 'todo']} />);
     const states = within(screen.getByTestId('stage-strip')).getAllByTestId('stage-segment').map((el) => el.getAttribute('data-state'));
     expect(states).toEqual(['done', 'run', 'todo']);
@@ -17,21 +17,21 @@ describe('StageStrip', () => {
 });
 
 describe('BatchCard', () => {
-  it('shows the stage of a running batch with its strip and chip', () => {
+  it('shows the stage of a running batch with its strip and chip', { tags: ['full'] }, () => {
     render(<BatchCard card={makeCard({ name: 'Class Tuesdays', status: 'running', stageTitle: 'Join in order', stagePosition: 4 })} selected={false} onOpen={() => undefined} />);
     const card = screen.getByRole('button', { name: 'Class Tuesdays, Running' });
     expect(within(card).getByText('Join in order')).toBeInTheDocument();
     expect(within(card).getAllByTestId('stage-segment').map((el) => el.getAttribute('data-state'))).toEqual(['done', 'done', 'done', 'run', 'todo']);
   });
 
-  it('says when a queued batch will start', () => {
+  it('says when a queued batch will start', { tags: ['full'] }, () => {
     const { rerender } = render(<BatchCard card={makeCard({ status: 'queued', queuePosition: 0 })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText('Next')).toBeInTheDocument();
     rerender(<BatchCard card={makeCard({ status: 'queued', queuePosition: 2 })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText('Starts after 2 batches')).toBeInTheDocument();
   });
 
-  it('shows why a blocked batch is waiting and what went wrong with a failed one', () => {
+  it('shows why a blocked batch is waiting and what went wrong with a failed one', { tags: ['full'] }, () => {
     const { rerender } = render(<BatchCard card={makeCard({ status: 'blocked', blockedReason: 'The video is 75 s, 15 s over the 60 s limit' })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText('The video is 75 s, 15 s over the 60 s limit')).toBeInTheDocument();
     expect(screen.getByText('Blocked')).toBeInTheDocument();
@@ -40,14 +40,14 @@ describe('BatchCard', () => {
     expect(screen.getByText('Failed')).toBeInTheDocument();
   });
 
-  it('shows the size and length of a finished video, and nothing odd when there is no output', () => {
+  it('shows the size and length of a finished video, and nothing odd when there is no output', { tags: ['full'] }, () => {
     const { rerender, container } = render(<BatchCard card={makeCard({ status: 'review', output })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText('46.2 MB · 00:58')).toBeInTheDocument();
     rerender(<BatchCard card={makeCard({ status: 'review', output: null })} selected={false} onOpen={() => undefined} />);
     expect(container.textContent).not.toMatch(/NaN|undefined|null/);
   });
 
-  it('keeps a very long name and path from breaking the card but keeps them readable', () => {
+  it('keeps a very long name and path from breaking the card but keeps them readable', { tags: ['full'] }, () => {
     const name = 'N'.repeat(200);
     render(<BatchCard card={makeCard({ name, inputFolder: `/clips/${'p'.repeat(200)}` })} selected={false} onOpen={() => undefined} />);
     const title = screen.getByText(name);
@@ -55,22 +55,22 @@ describe('BatchCard', () => {
     expect(title.className).toMatch(/truncate/);
   });
 
-  it('says stage in the singular for a one-stage pipeline', () => {
+  it('says stage in the singular for a one-stage pipeline', { tags: ['full'] }, () => {
     render(<BatchCard card={makeCard({ pipeline: ['Render'], stageCount: 1 })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText(/· 1 stage$/)).toBeInTheDocument();
   });
 
-  it('keeps the stage strip out of block elements, which a button may not contain', () => {
+  it('keeps the stage strip out of block elements, which a button may not contain', { tags: ['full'] }, () => {
     render(<StageStrip segments={['done']} />);
     expect(screen.getByTestId('stage-strip').tagName).toBe('SPAN');
   });
 
-  it('shows the whole error as a tooltip when the line is cut short', () => {
+  it('shows the whole error as a tooltip when the line is cut short', { tags: ['full'] }, () => {
     render(<BatchCard card={makeCard({ status: 'failed', error: 'No clips found in /very/long/path' })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByTitle('No clips found in /very/long/path')).toBeInTheDocument();
   });
 
-  it('opens on click and shows the selected state', () => {
+  it('opens on click and shows the selected state', { tags: ['full'] }, () => {
     const onOpen = vi.fn();
     const card = makeCard({ name: 'A' });
     render(<BatchCard card={card} selected onOpen={onOpen} />);
@@ -102,25 +102,25 @@ describe('Board', () => {
     expect(within(column('Queued')).getByText('Queued one')).toBeInTheDocument();
   });
 
-  it('shows the columns left to right as Queued, Running, Needs attention, Ready to review', () => {
+  it('shows the columns left to right as Queued, Running, Needs attention, Ready to review', { tags: ['full'] }, () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
     const titles = screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'));
     expect(titles).toEqual(['Queued', 'Running', 'Needs attention', 'Ready to review', 'Approved']);
   });
 
-  it('keeps approved batches out of the columns and in the approved row', () => {
+  it('keeps approved batches out of the columns and in the approved row', { tags: ['full'] }, () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
     const columns = ['Ready to review', 'Needs attention', 'Running', 'Queued'].map((n) => screen.getByRole('region', { name: n }));
     columns.forEach((c) => expect(within(c).queryByText('Done one')).toBeNull());
     expect(within(screen.getByRole('region', { name: 'Approved' })).getByText('Done one')).toBeInTheDocument();
   });
 
-  it('says so in a column with nothing in it', () => {
+  it('says so in a column with nothing in it', { tags: ['full'] }, () => {
     render(<Board cards={[makeCard({ status: 'queued' })]} selectedBatchId={null} onOpen={() => undefined} />);
     expect(within(screen.getByRole('region', { name: 'Running' })).getByText('Nothing here')).toBeInTheDocument();
   });
 
-  it('marks only the selected batch and opens a clicked one', () => {
+  it('marks only the selected batch and opens a clicked one', { tags: ['full'] }, () => {
     const onOpen = vi.fn();
     render(<Board cards={cards} selectedBatchId={cards[0].batchId} onOpen={onOpen} />);
     expect(screen.getByRole('button', { name: /Ready one/ })).toHaveAttribute('aria-current', 'true');
@@ -129,7 +129,7 @@ describe('Board', () => {
     expect(onOpen).toHaveBeenCalledWith(cards[2]);
   });
 
-  it('copes with hundreds of batches', () => {
+  it('copes with hundreds of batches', { tags: ['full'] }, () => {
     const many = Array.from({ length: 300 }, (_, i) => makeCard({ name: `Batch ${i}`, status: i % 2 ? 'queued' : 'review', queuePosition: i, output }));
     render(<Board cards={many} selectedBatchId={null} onOpen={() => undefined} />);
     expect(screen.getAllByRole('button').length).toBe(300);
@@ -139,12 +139,12 @@ describe('Board', () => {
 describe('ApprovedRow', () => {
   const approved = Array.from({ length: 8 }, (_, i) => makeCard({ name: `Approved ${i}`, status: 'approved', batchId: 100 + i, output }));
 
-  it('shows nothing when there are no approved batches', () => {
+  it('shows nothing when there are no approved batches', { tags: ['full'] }, () => {
     const { container } = render(<ApprovedRow cards={[]} onOpen={() => undefined} />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('lists the newest five and reveals the rest on request', () => {
+  it('lists the newest five and reveals the rest on request', { tags: ['full'] }, () => {
     render(<ApprovedRow cards={approved} onOpen={() => undefined} />);
     expect(screen.getAllByRole('button', { name: /^Approved \d,/ })).toHaveLength(5);
     expect(screen.getByRole('button', { name: /^Approved 7,/ })).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe('ApprovedRow', () => {
     expect(screen.getByRole('button', { name: 'Show fewer' })).toBeInTheDocument();
   });
 
-  it('has no Show all button for five or fewer', () => {
+  it('has no Show all button for five or fewer', { tags: ['full'] }, () => {
     render(<ApprovedRow cards={approved.slice(0, 5)} onOpen={() => undefined} />);
     expect(screen.queryByRole('button', { name: /Show all/ })).toBeNull();
   });

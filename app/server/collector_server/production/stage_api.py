@@ -33,6 +33,7 @@ class StageContext:
     output_dir: str
     ffmpeg: FfmpegRunner
     log: Callable[[str], None]
+    cache_root: str | None = None  # where saved results of slow steps (Detect action) live; None turns saving off
 
 
 class Stage(Protocol):

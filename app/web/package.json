@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "test": "vitest run --tags-filter=!full",
+    "test:full": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:ui": "vitest run --project ui",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

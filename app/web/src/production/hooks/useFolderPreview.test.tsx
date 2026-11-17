@@ -11,7 +11,7 @@ afterEach(() => vi.useRealTimers());
 const wait = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 
 describe('useFolderPreview', () => {
-  it('stays idle and never calls the server without a parent folder or a pattern', async () => {
+  it('stays idle and never calls the server without a parent folder or a pattern', { tags: ['full'] }, async () => {
     const preview = vi.fn();
     const { result, rerender } = renderHook(({ parent, pattern }) => useFolderPreview(preview, parent, pattern, '', 400), { initialProps: { parent: '', pattern: '^.+$' } });
     await wait(1000);
@@ -36,21 +36,21 @@ describe('useFolderPreview', () => {
     expect(result.current).toEqual({ status: 'ready', data: answer(['a']), refreshing: false });
   });
 
-  it('passes the output folder along when there is one', async () => {
+  it('passes the output folder along when there is one', { tags: ['full'] }, async () => {
     const preview = vi.fn().mockResolvedValue(answer([]));
     renderHook(() => useFolderPreview(preview, '/c', '^.+$', '/out', 400));
     await wait(450);
     expect(preview).toHaveBeenCalledWith('/c', '^.+$', '/out');
   });
 
-  it('shows the server message when the pattern is refused', async () => {
+  it('shows the server message when the pattern is refused', { tags: ['full'] }, async () => {
     const preview = vi.fn().mockRejectedValue(new Error('The pattern could take far too long to match'));
     const { result } = renderHook(() => useFolderPreview(preview, '/c', '(a+)+', '', 400));
     await wait(450);
     expect(result.current).toEqual({ status: 'error', message: 'The pattern could take far too long to match' });
   });
 
-  it('keeps the last list on screen, marked refreshing, while the next one loads', async () => {
+  it('keeps the last list on screen, marked refreshing, while the next one loads', { tags: ['full'] }, async () => {
     let finish: (value: FolderPreview) => void = () => undefined;
     const preview = vi.fn().mockResolvedValueOnce(answer(['a'])).mockImplementationOnce(() => new Promise<FolderPreview>((resolve) => { finish = resolve; }));
     const { result, rerender } = renderHook(({ pattern }) => useFolderPreview(preview, '/c', pattern, '', 400), { initialProps: { pattern: '^a' } });
@@ -74,7 +74,7 @@ describe('useFolderPreview', () => {
     expect(result.current).toEqual({ status: 'ready', data: answer(['new']), refreshing: false });
   });
 
-  it('goes back to idle when the parent is cleared, and stops asking after unmount', async () => {
+  it('goes back to idle when the parent is cleared, and stops asking after unmount', { tags: ['full'] }, async () => {
     const preview = vi.fn().mockResolvedValue(answer(['a']));
     const { result, rerender, unmount } = renderHook(({ parent }) => useFolderPreview(preview, parent, '^.+$', '', 400), { initialProps: { parent: '/c' } });
     await wait(450);
@@ -86,7 +86,7 @@ describe('useFolderPreview', () => {
     expect(preview).toHaveBeenCalledTimes(1);
   });
 
-  it('can be switched off', async () => {
+  it('can be switched off', { tags: ['full'] }, async () => {
     const preview = vi.fn();
     renderHook(() => useFolderPreview(preview, '/c', '^.+$', '', 400, false));
     await wait(1000);

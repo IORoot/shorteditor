@@ -12,7 +12,7 @@ import { TokenRow } from './TokenRow';
 afterEach(() => vi.restoreAllMocks());
 
 describe('FolderField', () => {
-  it('reports typing and Browse clicks', () => {
+  it('reports typing and Browse clicks', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     const onBrowse = vi.fn();
     render(<FolderField label="Input folder" value="/a" onChange={onChange} onBrowse={onBrowse} />);
@@ -22,14 +22,14 @@ describe('FolderField', () => {
     expect(onBrowse).toHaveBeenCalled();
   });
 
-  it('can disable browsing', () => {
+  it('can disable browsing', { tags: ['full'] }, () => {
     render(<FolderField label="Input folder" value="" onChange={() => undefined} onBrowse={() => undefined} browseDisabled />);
     expect(screen.getByRole('button', { name: 'Browse for input folder' })).toBeDisabled();
   });
 });
 
 describe('SourceSection', () => {
-  it('shows the SSH fields for ssh sources and edits them', () => {
+  it('shows the SSH fields for ssh sources and edits them', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<SourceSection config={makeConfig()} onChange={onChange} onBrowseInput={() => undefined} />);
     fireEvent.change(screen.getByLabelText('Host'), { target: { value: 'other-nas' } });
@@ -39,7 +39,7 @@ describe('SourceSection', () => {
     expect(screen.getByText(/Browsing SSH folders is not available yet/)).toBeInTheDocument();
   });
 
-  it('hides the SSH fields for local sources and allows browsing', () => {
+  it('hides the SSH fields for local sources and allows browsing', { tags: ['full'] }, () => {
     const onBrowse = vi.fn();
     render(<SourceSection config={makeConfig({ sourceType: 'local' })} onChange={() => undefined} onBrowseInput={onBrowse} />);
     expect(screen.queryByLabelText('Host')).not.toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('SourceSection', () => {
     expect(onBrowse).toHaveBeenCalled();
   });
 
-  it('changes the source type', () => {
+  it('changes the source type', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<SourceSection config={makeConfig({ sourceType: 'local' })} onChange={onChange} onBrowseInput={() => undefined} />);
     expect(screen.queryByRole('radio', { name: 'Mount' })).not.toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('SourceSection', () => {
 });
 
 describe('TokenRow', () => {
-  it('inserts the clicked token', () => {
+  it('inserts the clicked token', { tags: ['full'] }, () => {
     const onInsert = vi.fn();
     render(<TokenRow onInsert={onInsert} />);
     fireEvent.click(screen.getByRole('button', { name: '{weekday}' }));
@@ -64,7 +64,7 @@ describe('TokenRow', () => {
 });
 
 describe('OutputSection', () => {
-  it('appends a token to the folder structure when the field has no selection', () => {
+  it('appends a token to the folder structure when the field has no selection', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<OutputSection config={makeConfig({ folderTemplate: 'a' })} onChange={onChange} onBrowseOutput={() => undefined} />);
     const field = screen.getByLabelText('Folder structure') as HTMLInputElement;
@@ -73,7 +73,7 @@ describe('OutputSection', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ folderTemplate: 'a{counter}' }));
   });
 
-  it('edits group by, transfer and suffix', () => {
+  it('edits group by, transfer and suffix', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<OutputSection config={makeConfig()} onChange={onChange} onBrowseOutput={() => undefined} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Week' }));
@@ -84,7 +84,7 @@ describe('OutputSection', () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ suffix: 'jam' }));
   });
 
-  it('opens the output browser', () => {
+  it('opens the output browser', { tags: ['full'] }, () => {
     const onBrowse = vi.fn();
     render(<OutputSection config={makeConfig()} onChange={() => undefined} onBrowseOutput={onBrowse} />);
     fireEvent.click(screen.getByRole('button', { name: 'Browse for output folder' }));
@@ -93,21 +93,21 @@ describe('OutputSection', () => {
 });
 
 describe('PreviewPanel', () => {
-  it('shows the rendered folder for the sample clip', () => {
+  it('shows the rendered folder for the sample clip', { tags: ['full'] }, () => {
     render(<PreviewPanel state={{ status: 'ready', data: { relativePath: '2026-11-14_Sat_coach', fullPath: '/o/2026-11-14_Sat_coach' } }} outputFolder="/Volumes/Edit/" />);
     expect(screen.getByTestId('preview-folder')).toHaveTextContent('2026-11-14_Sat_coach');
     expect(screen.getByText('/Volumes/Edit/')).toBeInTheDocument();
     expect(screen.getByText(/-2 suffix/)).toBeInTheDocument();
   });
 
-  it('shows a placeholder while loading and the error message on failure', () => {
+  it('shows a placeholder while loading and the error message on failure', { tags: ['full'] }, () => {
     const { rerender } = render(<PreviewPanel state={{ status: 'loading' }} outputFolder="" />);
     expect(screen.getByTestId('preview-folder')).toHaveTextContent('…');
     rerender(<PreviewPanel state={{ status: 'error', message: 'Unknown token {bogus}' }} outputFolder="" />);
     expect(screen.getByRole('alert')).toHaveTextContent('Unknown token {bogus}');
   });
 
-  it('lists the tokens with examples', () => {
+  it('lists the tokens with examples', { tags: ['full'] }, () => {
     render(<PreviewPanel state={{ status: 'loading' }} outputFolder="" />);
     expect(screen.getByText('{window:start}')).toBeInTheDocument();
   });
@@ -120,7 +120,7 @@ describe('EditCollectorScreen', () => {
     return vi.spyOn(api, 'previewFolder').mockResolvedValue({ relativePath: '2026-11-14_Sat_coach', fullPath: '/x' });
   }
 
-  it('shows the current config and a live preview', async () => {
+  it('shows the current config and a live preview', { tags: ['full'] }, async () => {
     mockPreview();
     render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
     expect(screen.getByLabelText('Name')).toHaveValue('Coach Saturdays');
@@ -128,7 +128,7 @@ describe('EditCollectorScreen', () => {
     expect(await screen.findByText('2026-11-14_Sat_coach')).toBeInTheDocument();
   });
 
-  it('opens the shared folder picker for the output folder, listing through the collection api', async () => {
+  it('opens the shared folder picker for the output folder, listing through the collection api', { tags: ['full'] }, async () => {
     mockPreview();
     const browse = vi.spyOn(api, 'browse').mockResolvedValue({ path: '/Volumes/Edit/Collected', parent: '/Volumes/Edit', entries: [] });
     render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
@@ -148,7 +148,7 @@ describe('EditCollectorScreen', () => {
     expect(save).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Coach Sundays', folderTemplate: '{date:YYYY-MM-DD}_{weekday}_{suffix}' }));
   });
 
-  it('shows the server validation message and does not leave the screen', async () => {
+  it('shows the server validation message and does not leave the screen', { tags: ['full'] }, async () => {
     mockPreview();
     vi.spyOn(api, 'saveConfig').mockRejectedValue(new Error('Output folder is required'));
     const onSaved = vi.fn();
@@ -158,7 +158,7 @@ describe('EditCollectorScreen', () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
-  it('cancels from the Cancel button and the breadcrumb', () => {
+  it('cancels from the Cancel button and the breadcrumb', { tags: ['full'] }, () => {
     mockPreview();
     const onCancel = vi.fn();
     render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={onCancel} onSaved={() => undefined} />);
@@ -167,7 +167,7 @@ describe('EditCollectorScreen', () => {
     expect(onCancel).toHaveBeenCalledTimes(2);
   });
 
-  it('fills the output folder from the folder picker', async () => {
+  it('fills the output folder from the folder picker', { tags: ['full'] }, async () => {
     mockPreview();
     vi.spyOn(api, 'browse').mockResolvedValue({ path: '/Volumes/Other', parent: '/Volumes', entries: [] });
     render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);
@@ -176,7 +176,7 @@ describe('EditCollectorScreen', () => {
     expect(screen.getByLabelText('Output folder')).toHaveValue('/Volumes/Other');
   });
 
-  it('shows the filters section between source and output and saves the filters', async () => {
+  it('shows the filters section between source and output and saves the filters', { tags: ['full'] }, async () => {
     mockPreview();
     const save = vi.spyOn(api, 'saveConfig').mockResolvedValue(collector);
     render(<EditCollectorScreen onDelete={() => undefined} collector={collector} onCancel={() => undefined} onSaved={() => undefined} />);

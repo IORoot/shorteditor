@@ -28,12 +28,16 @@ def test_matches_only_folders_that_fully_match(tmp_path):
     assert result.not_matching == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_candidate_path_is_under_the_parent(tmp_path):
     touch(tmp_path / "2026-11-07_Sat_coach" / "a.mp4")
     [c] = scan_parent(str(tmp_path), DATE).matches
     assert c.path == str(tmp_path / "2026-11-07_Sat_coach")
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_counts_clips_anywhere_inside_and_ignores_other_files(tmp_path):
     base = tmp_path / "2026-11-07_x"
     touch(base / "a.mp4")
@@ -44,18 +48,24 @@ def test_counts_clips_anywhere_inside_and_ignores_other_files(tmp_path):
     assert c.clip_count == 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_sorted_by_name(tmp_path):
     for name in ("2026-11-09_b", "2026-11-07_a", "2026-11-08_c"):
         touch(tmp_path / name / "a.mp4")
     assert [c.name for c in scan_parent(str(tmp_path), DATE).matches] == ["2026-11-07_a", "2026-11-08_c", "2026-11-09_b"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_files_in_the_parent_are_ignored(tmp_path):
     touch(tmp_path / "2026-11-07_file.mp4")
     result = scan_parent(str(tmp_path), DATE)
     assert result.matches == [] and result.not_matching == 0
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_hidden_and_symlinked_out_folders_are_skipped(tmp_path):
     parent = tmp_path / "parent"
     touch(parent / ".2026-11-07_hidden" / "a.mp4")
@@ -66,6 +76,8 @@ def test_hidden_and_symlinked_out_folders_are_skipped(tmp_path):
     assert [c.name for c in scan_parent(str(parent), DATE).matches] == ["2026-11-08_real"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_link_to_a_folder_inside_the_parent_is_allowed_to_resolve_but_files_outside_are_not_counted(tmp_path):
     base = tmp_path / "2026-11-07_x"
     touch(base / "a.mp4")
@@ -76,6 +88,8 @@ def test_a_link_to_a_folder_inside_the_parent_is_allowed_to_resolve_but_files_ou
     assert c.clip_count == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_newest_change_is_the_latest_modification_inside(tmp_path):
     base = tmp_path / "2026-11-07_x"
     touch(base / "a.mp4", when=1_000_000)
@@ -84,12 +98,16 @@ def test_newest_change_is_the_latest_modification_inside(tmp_path):
     assert c.newest_change >= 2_000_000
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_empty_folder_has_zero_clips(tmp_path):
     (tmp_path / "2026-11-07_empty").mkdir()
     [c] = scan_parent(str(tmp_path), DATE).matches
     assert c.clip_count == 0 and c.newest_change is not None
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_odd_names_work(tmp_path):
     pattern = compile_pattern(r"(?s)^.+$")
     for name in ("two words", "ünïcode", "-starts-with-dash", "line\nbreak"):
@@ -98,6 +116,8 @@ def test_odd_names_work(tmp_path):
     assert names == {"two words", "ünïcode", "-starts-with-dash", "line\nbreak"}
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_missing_parent_is_a_plain_error(tmp_path):
     with pytest.raises(InvalidInputError, match="does not exist"):
         scan_parent(str(tmp_path / "nope"), DATE)
@@ -106,6 +126,8 @@ def test_missing_parent_is_a_plain_error(tmp_path):
         scan_parent(str(tmp_path / "file"), DATE)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_caps_hold(tmp_path, monkeypatch):
     monkeypatch.setattr(folder_scan, "MAX_FOLDERS", 5)
     monkeypatch.setattr(folder_scan, "MAX_FILES", 3)
@@ -121,6 +143,8 @@ def test_caps_hold(tmp_path, monkeypatch):
     assert result.matches[0].clip_count == 3
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_big_folder_scans_quickly(tmp_path):
     base = tmp_path / "2026-11-07_x"
     for n in range(300):
@@ -130,6 +154,8 @@ def test_a_big_folder_scans_quickly(tmp_path):
     assert time.monotonic() - started < 2
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_an_unreadable_folder_is_reported_incomplete_not_empty(tmp_path):
     base = tmp_path / "2026-11-07_locked"
     touch(base / "sub" / "a.mp4")
@@ -141,6 +167,8 @@ def test_an_unreadable_folder_is_reported_incomplete_not_empty(tmp_path):
     assert c.incomplete is True
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_folder_that_hit_the_file_cap_is_reported_incomplete(tmp_path, monkeypatch):
     monkeypatch.setattr(folder_scan, "MAX_FILES", 3)
     for n in range(10):
@@ -149,17 +177,23 @@ def test_a_folder_that_hit_the_file_cap_is_reported_incomplete(tmp_path, monkeyp
     assert c.incomplete is True and c.clip_count == 3
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_normal_folder_is_complete(tmp_path):
     touch(tmp_path / "2026-11-07_ok" / "a.mp4")
     assert scan_parent(str(tmp_path), DATE).matches[0].incomplete is False
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_two_links_to_the_same_folder_give_one_candidate(tmp_path):
     touch(tmp_path / "2026-11-07_a" / "a.mp4")
     os.symlink(tmp_path / "2026-11-07_a", tmp_path / "2026-11-08_link")
     assert [c.name for c in scan_parent(str(tmp_path), DATE).matches] == ["2026-11-07_a"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_names_that_cannot_be_stored_are_skipped(tmp_path, monkeypatch):
     real = os.listdir
     monkeypatch.setattr(os, "listdir", lambda p: [*real(p), "2026-11-09_bad\udcff"])
@@ -167,6 +201,8 @@ def test_names_that_cannot_be_stored_are_skipped(tmp_path, monkeypatch):
     assert [c.name for c in scan_parent(str(tmp_path), DATE).matches] == ["2026-11-07_ok"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_accents_match_in_either_unicode_form(tmp_path):
     import unicodedata
 
@@ -175,6 +211,8 @@ def test_accents_match_in_either_unicode_form(tmp_path):
     assert c.name == "2026-11-07_café"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_dangling_link_is_not_a_clip(tmp_path):
     base = tmp_path / "2026-11-07_x"
     touch(base / "a.mp4")
@@ -182,16 +220,22 @@ def test_a_dangling_link_is_not_a_clip(tmp_path):
     assert scan_parent(str(tmp_path), DATE).matches[0].clip_count == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_the_top_of_the_disk_as_parent_does_not_crash():
     scan_parent("/", compile_pattern("^zzz-never$"))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_link_to_the_parent_itself_is_not_a_candidate(tmp_path):
     touch(tmp_path / "2026-11-07_a" / "a.mp4")
     os.symlink(tmp_path, tmp_path / "2026-11-08_loop")
     assert [c.name for c in scan_parent(str(tmp_path), DATE).matches] == ["2026-11-07_a"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_total_entry_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
     monkeypatch.setattr(folder_scan, "MAX_TOTAL_ENTRIES", 5)
     for n in range(4):
@@ -203,6 +247,8 @@ def test_a_total_entry_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
     assert [c.name for c in result.matches] == sorted(c.name for c in result.matches)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_time_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
     monkeypatch.setattr(folder_scan, "MAX_SECONDS", 0)
     for n in range(3):
@@ -211,6 +257,8 @@ def test_a_time_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
     assert result.truncated is True and all(c.incomplete for c in result.matches)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_within_the_budget_nothing_is_marked(tmp_path):
     touch(tmp_path / "2026-11-07_a" / "a.mp4")
     result = scan_parent(str(tmp_path), DATE)

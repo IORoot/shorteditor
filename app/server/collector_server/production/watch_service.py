@@ -6,6 +6,8 @@ import threading
 from collections.abc import Callable
 from datetime import datetime, timezone
 
+from collector_server.shared.pipeline import PipelineRef
+
 from .errors import InvalidInputError
 from .folder_scan import scan_parent
 from .models import Batch
@@ -88,6 +90,8 @@ class WatchService:
             return self._check(self._need(watch_id))
 
     def _check(self, watch: Watch) -> CheckResult:
+        if self._pipeline_off(watch):
+            return CheckResult(created=[], waiting=[])  # paused until its pipeline is switched on; nothing is recorded
         created: list[Batch] = []
         waiting: list[str] = []
         problems: list[str] = []
@@ -111,7 +115,8 @@ class WatchService:
                         waiting.append(c.name)
                     elif len(created) < watch.max_per_check:
                         try:
-                            batch = self._service.create_batch(render_name(watch.name_template, c.match, c.name), c.path, watch.steps, watch.run_on, watch.output_root)
+                            batch = self._service.create_batch(render_name(watch.name_template, c.match, c.name), c.path, watch.pipeline_id,
+                                                               watch.run_on, watch.output_root, steps=watch.steps)
                         except (InvalidInputError, OSError) as problem:  # one bad folder must not starve the rest
                             problems.append(f"{c.name}: {str(problem).rstrip('.')}")
                             continue
@@ -129,7 +134,11 @@ class WatchService:
 
     # ---- helpers
     def _validate(self, data: WatchCreate):  # noqa: ANN202
-        return self._service.check_folder_settings(data.parent_folder, data.pattern, data.name_template, data.steps, data.run_on, data.output_root)
+        return self._service.check_folder_settings(data.parent_folder, data.pattern, data.name_template, data.pipeline_id, data.run_on, data.output_root)
+
+    def _pipeline_off(self, watch: Watch) -> bool:
+        ref = self._service.pipeline_ref(watch.pipeline_id) if watch.pipeline_id is not None else None
+        return watch.pipeline_id is not None and (ref is None or not ref.enabled)
 
     def _need(self, watch_id: int) -> Watch:
         watch = self._watches.get(watch_id)
@@ -145,8 +154,17 @@ class WatchService:
         return datetime.fromtimestamp(self._clock(), tz=timezone.utc).isoformat()
 
     def _view(self, watch: Watch) -> WatchView:
-        status = "paused" if not watch.enabled else "problem" if watch.last_error else "waiting" if watch.waiting else "watching"
-        return WatchView(**watch.model_dump(), status=status, status_line=self._line(watch, status))
+        ref: PipelineRef | None = self._service.pipeline_ref(watch.pipeline_id)
+        off = self._pipeline_off(watch)
+        status = "paused" if not watch.enabled or off else "problem" if watch.last_error else "waiting" if watch.waiting else "watching"
+        line = self._pipeline_line(ref) if watch.enabled and off else self._line(watch, status)
+        return WatchView(**watch.model_dump(), status=status, status_line=line, pipeline_name=ref.name if ref else None)
+
+    @staticmethod
+    def _pipeline_line(ref: PipelineRef | None) -> str:
+        if ref is None:
+            return "Paused · its pipeline no longer exists"
+        return f"Paused · pipeline '{ref.name}' is off. Checks resume by themselves when it is switched on"
 
     def _line(self, watch: Watch, status: str) -> str:
         total = f"created {watch.created_total} {'batch' if watch.created_total == 1 else 'batches'} in total"

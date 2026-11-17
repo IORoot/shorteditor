@@ -1,6 +1,6 @@
 import { HttpClient } from '../../shared/lib/http';
 import type { StageHandoff } from '../../shared/contracts/handoff';
-import type { Batch, BatchCard, BatchCreate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, Pass, StageStep, ValidateResult, WatchCreate, WatchView } from './types';
+import type { Batch, BatchCard, BatchCreate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
 
 const BASE = '/api/production';
 
@@ -25,13 +25,14 @@ export class ProductionApi extends HttpClient {
     return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', { choice });
   }
 
-  /** A new pass from the original clips, optionally with a changed pipeline. */
-  runAgain(batchId: number, steps?: StageStep[]): Promise<Pass> {
-    return this.send<Pass>(`${BASE}/batches/${batchId}/passes`, 'POST', steps ? { steps } : {});
+  /** A new pass from the original clips, optionally switching the batch to another pipeline first. */
+  runAgain(batchId: number, pipelineId?: number): Promise<Pass> {
+    return this.send<Pass>(`${BASE}/batches/${batchId}/passes`, 'POST', pipelineId === undefined ? {} : { pipelineId });
   }
 
-  validate(steps: StageStep[]): Promise<ValidateResult> {
-    return this.send<ValidateResult>(`${BASE}/pipelines/validate`, 'POST', { steps });
+  /** The switched-on pipelines a batch or watch can use. */
+  pipelines(): Promise<PipelineChoice[]> {
+    return this.request<PipelineChoice[]>(`${BASE}/pipelines`);
   }
 
   previewFolders(parentFolder: string, pattern: string, outputRoot?: string): Promise<FolderPreview> {

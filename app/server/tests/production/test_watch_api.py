@@ -14,7 +14,7 @@ def client(world):
 
 
 def body(world, **over):
-    return {"name": "Coach", "parentFolder": str(world.parent), "pattern": DATE, "steps": [{"key": s.key} for s in STEPS], **over}
+    return {"name": "Coach", "parentFolder": str(world.parent), "pattern": DATE, "pipelineId": 1, **over}
 
 
 def test_create_list_and_shape(world, client):
@@ -27,6 +27,8 @@ def test_create_list_and_shape(world, client):
     assert [w["id"] for w in listed] == [watch["id"]]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_update_enabled_check_and_delete(world, client):
     watch = client.post("/api/production/watches", json=body(world)).json()
     wid = watch["id"]
@@ -42,12 +44,16 @@ def test_update_enabled_check_and_delete(world, client):
     assert client.get("/api/production/watches").json() == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_include_existing_creates_batches_on_the_spot(world, client):
     world.folder("2026-11-07_a")
     client.post("/api/production/watches", json=body(world, includeExisting=True))
     assert len(world.batches.list()) == 1
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unknown_watch_is_404(client):
     for call in (lambda: client.put("/api/production/watches/9", json={}), lambda: client.delete("/api/production/watches/9"), lambda: client.post("/api/production/watches/9/enabled", json={"enabled": True}), lambda: client.post("/api/production/watches/9/check")):
         assert call().status_code in (404, 422)
@@ -56,6 +62,8 @@ def test_unknown_watch_is_404(client):
     assert client.post("/api/production/watches/9/enabled", json={"enabled": True}).status_code == 404
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_invalid_input_is_422_with_a_readable_message(world, client):
     bad = client.post("/api/production/watches", json=body(world, pattern="(a+)+"))
     assert bad.status_code == 422 and "far too long" in bad.json()["detail"]
@@ -63,5 +71,7 @@ def test_invalid_input_is_422_with_a_readable_message(world, client):
     assert shape.status_code == 422
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_ids_are_bounded(client):
     assert client.post("/api/production/watches/99999999999999999999999/check").status_code == 422

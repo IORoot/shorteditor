@@ -10,7 +10,7 @@ from collector_server.production.runner import PassRunner
 from collector_server.production.schema import ensure_schema
 from collector_server.production.stage_api import StageError, StageStep
 from collector_server.production.worker import LocalWorker
-from tests.production.helpers import FakeStage, make_clip, requires_ffmpeg
+from tests.production.helpers import FakePipelines, FakeStage, make_clip, requires_ffmpeg
 
 NOW = "2026-11-17T10:00:00+00:00"
 JOIN = ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]
@@ -20,7 +20,7 @@ class Env:
     def __init__(self, db, tmp_path, registry=None):
         ensure_schema(db)
         self.batches, self.passes, self.logs = BatchRepository(db), PassRepository(db), LogRepository(db)
-        self.runner = PassRunner(self.batches, self.passes, self.logs, registry or build_registry(), lambda: NOW)
+        self.runner = PassRunner(self.batches, self.passes, self.logs, registry or build_registry(), FakePipelines(), lambda: NOW)
         self.root = tmp_path
         self.inbox = tmp_path / "in"
         self.inbox.mkdir()
@@ -28,7 +28,7 @@ class Env:
     def queue(self, keys=JOIN, settings=None, name="Coach Saturdays", overrides=None):
         settings = settings or {}
         steps = [StageStep(key=k, settings=settings.get(k, {})) for k in keys]
-        batch = self.batches.create(name, str(self.inbox), steps, "any", str(self.root / "out"), NOW)
+        batch = self.batches.create(name, str(self.inbox), None, steps, "any", str(self.root / "out"), NOW)
         return self.passes.create(batch.id, NOW, overrides=overrides)
 
     def run(self, queued):
@@ -59,6 +59,8 @@ def test_join_pipeline_ends_in_review_with_output_file(env):
     assert done.started_at == NOW and done.finished_at == NOW
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_pipeline_log_records_each_stage_and_ffmpeg_log_has_lines(env):
     two_clips(env)
@@ -82,12 +84,16 @@ def test_over_length_blocks_with_choices_then_override_resolves_it(env):
     assert abs(done.output.duration - 4.0) < 0.4
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_empty_folder_fails_plainly(env):
     failed = env.run(env.queue(settings=SMALL))
     assert failed.status == "failed" and failed.error.startswith("No clips found")
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_work_folder_is_removed_and_output_stays(env):
     two_clips(env)
@@ -96,6 +102,8 @@ def test_work_folder_is_removed_and_output_stays(env):
     assert os.listdir(folder) == ["output.mp4"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_work_folder_is_removed_after_a_failure(env):
     failed = env.run(env.queue())
     assert failed.status == "failed"
@@ -103,6 +111,8 @@ def test_work_folder_is_removed_after_a_failure(env):
     assert [p for p in out.rglob("work")] == []
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_batch_name_cannot_put_files_outside_the_output_root(env):
     env.run(env.queue(name="../../evil"))
     assert not (env.root.parent / "evil").exists()
@@ -136,6 +146,8 @@ def env_with(db, tmp_path, *stages):
     return Env(db, tmp_path, registry)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_status_is_running_and_stage_is_known_while_a_stage_runs(db, tmp_path):
     seen = {}
     env = env_with(db, tmp_path, Probe(seen))
@@ -146,6 +158,8 @@ def test_status_is_running_and_stage_is_known_while_a_stage_runs(db, tmp_path):
     assert done.status == "review"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unexpected_error_fails_without_a_traceback_in_the_status(db, tmp_path):
     env = env_with(db, tmp_path, Explodes(RuntimeError("secret detail")))
     failed = env.run(env.queue(keys=["boom"]))
@@ -155,11 +169,15 @@ def test_unexpected_error_fails_without_a_traceback_in_the_status(db, tmp_path):
     assert "about to fail" in log and "secret detail" in log and "Traceback" in log
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_stage_error_message_is_shown_as_it_is(db, tmp_path):
     env = env_with(db, tmp_path, Explodes(StageError("Plain words")))
     assert env.run(env.queue(keys=["boom"])).error == "Plain words"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_invalid_settings_fail_plainly(db, tmp_path):
     env = Env(db, tmp_path)
     failed = env.run(env.queue(settings={"limit_length": {"maxSeconds": -5}}))
@@ -167,6 +185,8 @@ def test_invalid_settings_fail_plainly(db, tmp_path):
     assert failed.stage_key == ""  # nothing ran
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_unknown_stage_fails_plainly(db, tmp_path):
     env = Env(db, tmp_path)
     failed = env.run(env.queue(keys=["scan_folder", "gone"]))
@@ -180,6 +200,8 @@ def test_pipeline_that_does_not_end_in_a_video_fails_plainly(db, tmp_path):
     assert failed.status == "failed" and "video" in failed.error
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_running_a_pass_again_starts_its_logs_afresh(env):
     two_clips(env, seconds=3)
@@ -191,6 +213,8 @@ def test_running_a_pass_again_starts_its_logs_afresh(env):
     assert log[0] == "Scan folder started" and not any("Blocked" in line for line in log)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_folder_that_already_holds_files_is_never_wiped(env):
     """A reset database starts its ids again, so the same folder name can belong to an old, approved video."""
     from collector_server.production.output_paths import claim_root, folder_name
@@ -205,6 +229,8 @@ def test_a_folder_that_already_holds_files_is_never_wiped(env):
     assert (old / "output.mp4").read_bytes() == b"old approved video"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_an_unusable_output_folder_gives_a_plain_message(db, tmp_path):
     env = Env(db, tmp_path)
     (tmp_path / "out").write_text("i am a file")
@@ -212,6 +238,8 @@ def test_an_unusable_output_folder_gives_a_plain_message(db, tmp_path):
     assert failed.status == "failed" and failed.error.startswith("Cannot write to the output folder")
 
 
+@pytest.mark.full
+@pytest.mark.full
 @requires_ffmpeg
 def test_blocked_run_cleans_up_after_itself(env):
     two_clips(env, seconds=3)
@@ -220,6 +248,8 @@ def test_blocked_run_cleans_up_after_itself(env):
     assert [p.name for p in (env.root / "out").rglob("*") if p.is_file()] == [".short-editor-output"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_pass_whose_batch_vanished_fails_instead_of_staying_running(db, tmp_path):
     env = Env(db, tmp_path)
     queued = env.queue()
@@ -230,6 +260,8 @@ def test_a_pass_whose_batch_vanished_fails_instead_of_staying_running(db, tmp_pa
     assert failed.status == "failed" and failed.error
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_pipeline_lines_are_stored_as_they_happen(db, tmp_path):
     seen = {}
 
@@ -247,6 +279,8 @@ def test_pipeline_lines_are_stored_as_they_happen(db, tmp_path):
     assert "halfway" in seen["lines"]
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_ffmpeg_failure_shows_a_short_message_and_logs_the_details(db, tmp_path):
     from collector_server.production.ffmpeg import FfmpegError
 
@@ -256,11 +290,13 @@ def test_a_ffmpeg_failure_shows_a_short_message_and_logs_the_details(db, tmp_pat
     assert any("/secret/path" in line for line in env.logs.for_pass(failed.id, "pipeline"))
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_stage_index_counts_enabled_stages_only(db, tmp_path):
     seen = {}
     env = env_with(db, tmp_path, FakeStage("a", "A", {"none": "pieces"}), Probe2(seen))
     steps = [StageStep(key="a"), StageStep(key="a", enabled=False), StageStep(key="probe2")]
-    batch = env.batches.create("B", str(env.inbox), steps, "any", str(env.root / "out"), NOW)
+    batch = env.batches.create("B", str(env.inbox), None, steps, "any", str(env.root / "out"), NOW)
     queued = env.passes.create(batch.id, NOW)
     seen.update(passes=env.passes, id=queued.id)
     env.run(queued)
@@ -277,6 +313,8 @@ class Probe2(Probe):
         return VideoData(path="/x.mp4", duration=1, size_bytes=1)
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_finish_that_lost_the_race_does_not_overwrite_the_newer_status(db, tmp_path):
     env = env_with(db, tmp_path, Probe({}))
     queued = env.queue(keys=["probe"])
@@ -292,6 +330,8 @@ def test_a_finish_that_lost_the_race_does_not_overwrite_the_newer_status(db, tmp
     assert env.passes.get(queued.id).error == "Stopped by the user"
 
 
+@pytest.mark.full
+@pytest.mark.full
 def test_a_run_never_deletes_files_it_did_not_make(db, tmp_path):
     env = Env(db, tmp_path)
     precious = tmp_path / "out" / "Coach-Saturdays-1" / "pass-1"
