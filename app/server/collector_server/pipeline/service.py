@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 
 from collector_server.shared.errors import InvalidInputError, NotFoundError, StateError
@@ -26,6 +27,7 @@ class PipelineService:
         self._catalog = catalog
         self._usage = usage
         self._now = now
+        self._write = threading.RLock()  # the name check and the write must be one step
 
     def template(self) -> list[StageStep]:
         known = {info.key: info for info in self._catalog.stages()}
@@ -38,26 +40,29 @@ class PipelineService:
         return self._catalog.check_pipeline(steps)
 
     def create(self, request: PipelineSave) -> Pipeline:
-        name, description = self._validate(request, None)
-        return self._repo.create(name, description, request.steps, self._now())
+        with self._write:
+            name, description = self._validate(request, None)
+            return self._repo.create(name, description, request.steps, self._now())
 
     def save(self, pipeline_id: int, request: PipelineSave) -> Pipeline:
-        self._need(pipeline_id)
-        name, description = self._validate(request, pipeline_id)
-        self._repo.update(pipeline_id, name, description, request.steps, self._now())
-        return self._need(pipeline_id)
+        with self._write:
+            self._need(pipeline_id)
+            name, description = self._validate(request, pipeline_id)
+            self._repo.update(pipeline_id, name, description, request.steps, self._now())
+            return self._need(pipeline_id)
 
     def duplicate(self, pipeline_id: int) -> Pipeline:
-        original = self._need(pipeline_id)
-        taken = self._taken_names(None)
-        number = 1
-        while True:
-            suffix = " copy" if number == 1 else f" copy {number}"
-            name = original.name[: MAX_NAME - len(suffix)].rstrip() + suffix
-            if name.casefold() not in taken:
-                break
-            number += 1
-        return self._repo.create(name, original.description, original.steps, self._now())
+        with self._write:
+            original = self._need(pipeline_id)
+            taken = self._taken_names(None)
+            number = 1
+            while True:
+                suffix = " copy" if number == 1 else f" copy {number}"
+                name = original.name[: MAX_NAME - len(suffix)].rstrip() + suffix
+                if name.casefold() not in taken:
+                    break
+                number += 1
+            return self._repo.create(name, original.description, original.steps, self._now())
 
     def set_enabled(self, pipeline_id: int, enabled: bool) -> Pipeline:
         self._need(pipeline_id)
