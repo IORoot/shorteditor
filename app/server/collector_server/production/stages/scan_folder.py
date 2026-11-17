@@ -15,6 +15,7 @@ from ..stage_api import StageContext, StageError
 class ScanSettings(CamelModel):
     include_subfolders: bool = True
     extensions: list[Annotated[str, StringConstraints(pattern=r"^\.?[A-Za-z0-9]{1,10}$")]] = Field(["mp4", "mov"], max_length=20)
+    max_files: int = Field(5000, ge=1, le=100_000)
     min_length: float = Field(1.0, ge=0, allow_inf_nan=False)
 
 
@@ -32,7 +33,7 @@ class ScanFolder:
         wanted = {"." + ext.lower().lstrip(".") for ext in settings.extensions}
         items: list[Piece] = []
         too_short: list[str] = []
-        for path in self._files(folder, settings.include_subfolders, ctx.log):
+        for path in self._files(folder, settings.include_subfolders, settings.max_files, ctx.log):
             if os.path.splitext(path)[1].lower() not in wanted:
                 continue
             try:
@@ -56,12 +57,14 @@ class ScanFolder:
         return PiecesData(items=items)
 
     @staticmethod
-    def _files(folder: str, recursive: bool, log) -> list[str]:
+    def _files(folder: str, recursive: bool, limit: int, log) -> list[str]:
         found: list[str] = []
         # shortcut: symlinked folders are not followed, symlinked files are; revisit if a library uses links
         for root, dirs, files in os.walk(folder, onerror=lambda e: log(f"Skipped folder {e.filename}: {e.strerror}")):
             dirs[:] = [d for d in dirs if not d.startswith(".")]
             found += [os.path.join(root, name) for name in files if not name.startswith(".")]
+            if len(found) > limit:
+                raise StageError(f"The folder holds more than {limit} files. Pick a smaller folder")
             if not recursive:
                 break
         return sorted(os.path.abspath(path) for path in found)

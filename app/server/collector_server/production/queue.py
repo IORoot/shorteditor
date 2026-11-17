@@ -4,9 +4,7 @@ import threading
 from collections.abc import Callable
 from typing import Protocol
 
-import shutil
-
-from .output_paths import output_paths
+from .output_paths import output_paths, remove_inside
 from .repositories import BatchRepository, PassRepository
 from .worker import Worker
 
@@ -28,6 +26,8 @@ class JobQueue:
         started: list[int] = []
         with self._lock:
             self._forget_finished()
+            if len(self._busy) >= len(self._workers):
+                return started  # every worker is busy, so there is nothing to look for
             active = {pass_id for pass_id, _ in self._busy.values()}
             for waiting in self._passes.queued():
                 if waiting.id in active:
@@ -55,8 +55,8 @@ class JobQueue:
             batch = self._batches.get(running.batch_id)
             if batch is not None:  # the dead run's half-made files
                 output_dir, work_dir = output_paths(batch, running.id, running.number)
-                shutil.rmtree(work_dir, ignore_errors=True)
-                shutil.rmtree(output_dir, ignore_errors=True)
+                remove_inside(batch.output_root, work_dir)
+                remove_inside(batch.output_root, output_dir)
         return len(stale)
 
     def _free_worker(self, run_on: str) -> str | None:

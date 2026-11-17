@@ -192,9 +192,10 @@ def test_running_a_pass_again_starts_its_logs_afresh(env):
 
 
 def test_a_failed_rerun_leaves_no_output_from_an_earlier_run(env):
-    from collector_server.production.output_paths import folder_name
+    from collector_server.production.output_paths import claim_root, folder_name
 
     queued = env.queue()
+    claim_root(str(env.root / "out"))
     old = env.root / "out" / folder_name(env.batches.get(queued.batch_id)) / "pass-1"
     old.mkdir(parents=True)
     (old / "output.mp4").write_bytes(b"old")
@@ -214,7 +215,7 @@ def test_blocked_run_cleans_up_after_itself(env):
     two_clips(env, seconds=3)
     blocked = env.run(env.queue(settings={**SMALL, "limit_length": {"maxSeconds": 4}}))
     assert blocked.status == "blocked"
-    assert not [p for p in (env.root / "out").rglob("*") if p.is_file()]
+    assert [p.name for p in (env.root / "out").rglob("*") if p.is_file()] == [".short-editor-output"]
 
 
 def test_a_pass_whose_batch_vanished_fails_instead_of_staying_running(db, tmp_path):
@@ -287,3 +288,15 @@ def test_a_finish_that_lost_the_race_does_not_overwrite_the_newer_status(db, tmp
     env.runner._registry.register(Cancelling({"passes": env.passes, "id": queued.id}))
     env.run(queued)
     assert env.passes.get(queued.id).error == "Stopped by the user"
+
+
+def test_a_run_never_deletes_files_it_did_not_make(db, tmp_path):
+    env = Env(db, tmp_path)
+    precious = tmp_path / "out" / "Coach-Saturdays-1" / "pass-1"
+    precious.mkdir(parents=True)
+    (precious / "precious.txt").write_text("mine")
+    (tmp_path / "out" / ".work" / "1").mkdir(parents=True)
+    (tmp_path / "out" / ".work" / "1" / "also-mine.txt").write_text("mine")
+    failed = env.run(env.queue())
+    assert failed.status == "failed" and "other files" in failed.error
+    assert (precious / "precious.txt").exists() and (tmp_path / "out" / ".work" / "1" / "also-mine.txt").exists()

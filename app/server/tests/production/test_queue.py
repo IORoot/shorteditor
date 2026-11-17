@@ -168,6 +168,9 @@ def test_recover_removes_the_leftovers_of_an_interrupted_run(env, tmp_path):
     queue = build("local")
     batch = queue._batches.create("B", "/in", [StageStep(key="scan_folder")], "any", str(tmp_path / "out"), NOW)
     stuck = passes.create(batch.id, NOW)
+    from collector_server.production.output_paths import claim_root
+
+    claim_root(str(tmp_path / "out"))
     out, work = output_paths(batch, stuck.id, stuck.number)
     for folder, name in ((work, "joined.mp4"), (out, "output.mp4")):
         os.makedirs(folder)
@@ -175,3 +178,18 @@ def test_recover_removes_the_leftovers_of_an_interrupted_run(env, tmp_path):
     passes.update(stuck.id, status="running")
     queue.recover()
     assert not os.path.exists(work) and not os.path.exists(out)
+
+
+def test_tick_does_not_look_at_the_queue_when_every_worker_is_busy(env):
+    build, add, runner, passes = env
+    queue = build("local")
+    first = add()
+    add()
+    queue.tick()
+    wait_started(runner, 1)
+    looked = []
+    real = passes.queued
+    passes.queued = lambda: looked.append(1) or real()
+    assert queue.tick() == [] and looked == []
+    runner.release(first)
+    queue.wait_idle()

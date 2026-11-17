@@ -240,3 +240,16 @@ def test_scan_rejects_odd_extension_lists(extensions):
 
 def test_scan_accepts_ordinary_extensions():
     assert SCAN.settings_model(extensions=["mp4", ".MOV", "m4v", "mkv"]).extensions[1] == ".MOV"
+
+
+def test_scan_refuses_a_folder_with_far_too_many_files(tmp_path, folder):
+    for n in range(5):
+        (folder / f"f{n}.txt").write_text("x")
+    with pytest.raises(StageError, match="more than 3 files"):
+        scan(tmp_path, max_files=3)
+
+
+def test_scan_file_limit_has_bounds():
+    for bad in (0, 100_001):
+        with pytest.raises(ValueError):
+            SCAN.settings_model(max_files=bad)

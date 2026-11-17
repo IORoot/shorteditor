@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import os
-import shutil
 import traceback
 from collections.abc import Callable
 
 from .ffmpeg import FfmpegError, FfmpegRunner
 from .log_sink import LogSink
 from .models import Batch, Pass
-from .output_paths import output_paths
+from .output_paths import OutputFolderError, claim_root, output_paths, remove_inside
 from .pieces import VideoData
 from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
@@ -35,52 +34,54 @@ class PassRunner:
         self._logs.clear(pass_id)  # a pass run again starts with a clean log
         pipeline = LogSink(self._logs, pass_id, "pipeline", self._now)  # every line at once: it is the live progress
         ffmpeg = LogSink(self._logs, pass_id, "ffmpeg", self._now, batch=_FFMPEG_BATCH, keep=_FFMPEG_LINES_KEPT)
-        output_dir = work_dir = None
+        root = output_dir = work_dir = None
         try:
             batch = self._batches.get(claimed.batch_id)
             if batch is None:
                 raise StageError("The batch no longer exists")
+            root = batch.output_root
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
-            self._prepare(output_dir, work_dir)
+            self._prepare(root, output_dir, work_dir)
             ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline)
             self._finish(pass_id, "review", pipeline, output=self._execute(claimed, batch, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
-            self._discard(output_dir)
+            self._discard(root, output_dir)
             self._finish(pass_id, "blocked", pipeline, blocked_reason=blocked.reason, blocked_choices=blocked.choices, finished_at=None)
         except FfmpegError as error:
             pipeline(f"Failed: {error}")
-            self._discard(output_dir)
+            self._discard(root, output_dir)
             self._finish(pass_id, "failed", pipeline, error=f"FFmpeg stopped (code {error.code}). The log has the details.")
         except StageError as error:
             pipeline(f"Failed: {error}")
-            self._discard(output_dir)
+            self._discard(root, output_dir)
             self._finish(pass_id, "failed", pipeline, error=str(error))
         except Exception as error:  # noqa: BLE001 - anything else is a bug; keep it in the log, not on screen
             for line in traceback.format_exc().splitlines():
                 pipeline(line)
-            self._discard(output_dir)
+            self._discard(root, output_dir)
             self._finish(pass_id, "failed", pipeline, error=f"Something went wrong: {type(error).__name__}")
         finally:
-            if work_dir:
-                shutil.rmtree(work_dir, ignore_errors=True)
+            if root:
+                remove_inside(root, work_dir)
             with contextlib.suppress(Exception):  # a log that cannot be written must not hide the result
                 pipeline.flush()
                 ffmpeg.flush()
 
     @staticmethod
-    def _prepare(output_dir: str, work_dir: str) -> None:
-        shutil.rmtree(output_dir, ignore_errors=True)  # nothing from an earlier run of this pass may linger
+    def _prepare(root: str, output_dir: str, work_dir: str) -> None:
         try:
+            claim_root(root)  # refuses a folder that holds someone else's files
+            remove_inside(root, output_dir)  # nothing from an earlier run of this pass may linger
             os.makedirs(work_dir, exist_ok=True)
-        except OSError as error:
-            raise StageError(f"Cannot write to the output folder: {error.strerror}") from error
+        except (OutputFolderError, OSError) as error:
+            raise StageError(f"Cannot write to the output folder: {getattr(error, 'strerror', None) or error}") from error
 
     @staticmethod
-    def _discard(output_dir: str | None) -> None:
+    def _discard(root: str | None, output_dir: str | None) -> None:
         """A pass that did not finish leaves no half-made files behind."""
-        if output_dir:
-            shutil.rmtree(output_dir, ignore_errors=True)
+        if root:
+            remove_inside(root, output_dir)
 
     def _finish(self, pass_id: int, status: str, pipeline: LogSink, **fields) -> None:  # noqa: ANN003
         saved = self._passes.update(pass_id, only_if_status="running", status=status, **{"finished_at": self._now(), **fields})
