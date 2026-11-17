@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from pydantic import ValidationError
+
+from collector_server.shared.camel_model import CamelModel
+
 from .pieces import Kind
 from .registry import StageRegistry
-from .stage_api import StageStep
+from .stage_api import Stage, StageError, StageStep
 
 _MAKES = {"video": "a video", "pieces": "pieces", "none": "nothing"}
 
@@ -32,3 +36,13 @@ def validate_pipeline(registry: StageRegistry, steps: list[StageStep]) -> list[s
     if kind != "video":
         errors.append("The pipeline must end with a video")
     return errors
+
+
+def build_settings(stage: Stage, values: dict) -> CamelModel:
+    """The stage's settings from raw values, or a StageError saying which setting is wrong."""
+    try:
+        return stage.settings_model(**values)
+    except ValidationError as error:
+        first = error.errors()[0]
+        where = ".".join(str(part) for part in first["loc"])
+        raise StageError(f"The settings for {stage.title} are not valid: {where} {first['msg']}") from error

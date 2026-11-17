@@ -52,3 +52,21 @@ def test_first_step_that_needs_pieces_says_nothing_comes_before_it():
 def test_one_typo_gives_one_chain_message():
     errors = check("scan", "nope", "join", "render")
     assert errors == ["There is no stage called nope"]
+
+
+def test_build_settings_returns_a_validated_model():
+    from collector_server.production.validation import build_settings
+
+    stage = fake_registry().get("scan")
+    assert build_settings(stage, {}).model_dump() == {}
+
+
+def test_build_settings_says_which_stage_and_field():
+    import pytest
+
+    from collector_server.production.builtin import build_registry
+    from collector_server.production.stage_api import StageError
+    from collector_server.production.validation import build_settings
+
+    with pytest.raises(StageError, match="settings for Limit length are not valid: maxSeconds|max_seconds"):
+        build_settings(build_registry().get("limit_length"), {"maxSeconds": -5})

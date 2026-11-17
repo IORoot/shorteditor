@@ -31,6 +31,9 @@ class BatchRepository:
         rows = self._db.query("SELECT * FROM production_batches WHERE id = ?", (batch_id,))
         return self._batch(rows[0]) if rows else None
 
+    def update_steps(self, batch_id: int, steps: list[StageStep]) -> None:
+        self._db.execute("UPDATE production_batches SET steps = ? WHERE id = ?", (json.dumps([step.model_dump() for step in steps]), batch_id))
+
     def list(self) -> list[Batch]:
         return [self._batch(row) for row in self._db.query("SELECT * FROM production_batches ORDER BY id")]
 
@@ -116,10 +119,14 @@ class LogRepository:
     def add(self, pass_id: int, kind: LogKind, at: str, text: str) -> None:
         self._db.execute("INSERT INTO production_logs (pass_id, kind, at, text) VALUES (?, ?, ?, ?)", (pass_id, kind, at, text))
 
-    def add_many(self, pass_id: int, kind: LogKind, at: str, lines: list[str]) -> None:
+    def add_many(self, pass_id: int, kind: LogKind, rows: list[tuple[str, str]]) -> None:
+        """rows are (time, text) pairs."""
         self._db.executemany(
-            "INSERT INTO production_logs (pass_id, kind, at, text) VALUES (?, ?, ?, ?)", [(pass_id, kind, at, line) for line in lines]
+            "INSERT INTO production_logs (pass_id, kind, at, text) VALUES (?, ?, ?, ?)", [(pass_id, kind, at, text) for at, text in rows]
         )
+
+    def clear(self, pass_id: int) -> None:
+        self._db.execute("DELETE FROM production_logs WHERE pass_id = ?", (pass_id,))
 
     def for_pass(self, pass_id: int, kind: LogKind) -> list[str]:
         rows = self._db.query("SELECT text FROM production_logs WHERE pass_id = ? AND kind = ? ORDER BY id", (pass_id, kind))

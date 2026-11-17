@@ -98,7 +98,7 @@ def test_logs_keep_order_and_separate_kinds(repos):
 def test_add_many_keeps_order(repos):
     batches, passes, logs = repos
     made = passes.create(make_batch(batches).id, NOW)
-    logs.add_many(made.id, "ffmpeg", NOW, ["one", "two", "three"])
+    logs.add_many(made.id, "ffmpeg", [(NOW, "one"), (NOW, "two"), (NOW, "three")])
     logs.add(made.id, "ffmpeg", NOW, "four")
     assert logs.for_pass(made.id, "ffmpeg") == ["one", "two", "three", "four"]
 
@@ -149,3 +149,20 @@ def test_update_only_if_status_matches(repos):
     assert passes.update(made.id, only_if_status="queued", status="running").status == "running"
     assert passes.update(made.id, only_if_status="queued", status="review") is None
     assert passes.get(made.id).status == "running"
+
+
+def test_update_steps_replaces_the_pipeline(repos):
+    batches, _, _ = repos
+    made = make_batch(batches)
+    batches.update_steps(made.id, [StageStep(key="render_output")])
+    assert [s.key for s in batches.get(made.id).steps] == ["render_output"]
+
+
+def test_clear_removes_only_that_passes_logs(repos):
+    batches, passes, logs = repos
+    batch = make_batch(batches)
+    one, two = passes.create(batch.id, NOW), passes.create(batch.id, NOW)
+    logs.add(one.id, "pipeline", NOW, "a")
+    logs.add(two.id, "pipeline", NOW, "b")
+    logs.clear(one.id)
+    assert logs.for_pass(one.id, "pipeline") == [] and logs.for_pass(two.id, "pipeline") == ["b"]
