@@ -41,11 +41,11 @@ FFMPEG = _binary("ffmpeg")
 requires_ffmpeg = pytest.mark.skipif(not os.path.exists(FFMPEG), reason="ffmpeg not installed")
 
 
-def make_clip(path, seconds=2.0, width=320, height=180, audio=True, creation_time=None):
+def make_clip(path, seconds=2.0, width=320, height=180, audio=True, creation_time=None, audio_seconds=None):
     """Write a small real test clip with FFmpeg."""
     args = [FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"testsrc2=size={width}x{height}:rate=30:duration={seconds}"]
     if audio:
-        args += ["-f", "lavfi", "-i", f"sine=frequency=440:duration={seconds}"]
+        args += ["-f", "lavfi", "-i", f"sine=frequency=440:duration={audio_seconds or seconds}"]
     args += ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
     if audio:
         args += ["-c:a", "aac"]
@@ -90,3 +90,18 @@ class FakeWorker:
         for line in self.lines:
             on_line(line)
         return self.code
+
+
+def probe(path, entries, stream=None):
+    """Read values with ffprobe, e.g. probe(p, 'stream=width,height', 'v:0')."""
+    args = [_binary("ffprobe"), "-v", "error"]
+    if stream:
+        args += ["-select_streams", stream]
+    args += ["-show_entries", entries, "-of", "csv=p=0", str(path)]
+    return subprocess.run(args, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def rotate_metadata(source, target, degrees=90):
+    """Copy a clip and tag it as rotated, as phones do."""
+    subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-display_rotation", str(degrees), "-i", str(source), "-c", "copy", str(target)], check=True)
+    return str(target)
