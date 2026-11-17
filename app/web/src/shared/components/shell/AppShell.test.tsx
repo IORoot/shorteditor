@@ -6,7 +6,6 @@ describe('AppShell', () => {
   it('renders every slot', () => {
     render(
       <AppShell
-        header={<header>head</header>}
         sidebar={<p>side</p>}
         title={<h1>title</h1>}
         actions={<button type="button">act</button>}
@@ -14,14 +13,14 @@ describe('AppShell', () => {
         panel={<p>panel</p>}
       />,
     );
-    for (const text of ['head', 'side', 'title', 'main', 'panel']) {
+    for (const text of ['side', 'title', 'main', 'panel']) {
       expect(screen.getByText(text)).toBeInTheDocument();
     }
     expect(screen.getByRole('button', { name: 'act' })).toBeInTheDocument();
   });
 
   it('puts the schedule section and the history in the same grid row', () => {
-    render(<AppShell header={null} sidebar={null} title={null} actions={null} main={<p>main</p>} panel={<p>panel</p>} />);
+    render(<AppShell sidebar={null} title={null} actions={null} main={<p>main</p>} panel={<p>panel</p>} />);
     const main = screen.getByRole('main');
     const schedule = screen.getByRole('region', { name: 'Schedule' });
     expect(main.className).toContain('row-start-2');

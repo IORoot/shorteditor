@@ -1,30 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from './collection/lib/api';
-import type { Collector, PlanResult, Run, ScheduleDraft } from './collection/lib/types';
-import { useLoad } from './shared/hooks/useLoad';
-import { AppHeader } from './shared/components/shell/AppHeader';
-import { AppShell } from './shared/components/shell/AppShell';
-import { CollectorList } from './collection/features/collectors/CollectorList';
-import { RunHistory } from './collection/features/runs/RunHistory';
-import { SchedulePanel } from './collection/features/schedule/SchedulePanel';
-import { CollectorActions } from './collection/features/collectors/CollectorActions';
-import { NewCollectorDialog } from './collection/features/collectors/NewCollectorDialog';
-import { DeleteCollectorDialog } from './collection/features/collectors/DeleteCollectorDialog';
-import { EditCollectorScreen } from './collection/features/editor/EditCollectorScreen';
-import { PlanDialog, type PlanMode } from './collection/features/transfer/PlanDialog';
+import { api } from './lib/api';
+import type { Collector, PlanResult, Run, ScheduleDraft } from './lib/types';
+import { useLoad } from '../shared/hooks/useLoad';
+import { AppShell } from '../shared/components/shell/AppShell';
+import { CollectorList } from './features/collectors/CollectorList';
+import { RunHistory } from './features/runs/RunHistory';
+import { SchedulePanel } from './features/schedule/SchedulePanel';
+import { CollectorActions } from './features/collectors/CollectorActions';
+import { NewCollectorDialog } from './features/collectors/NewCollectorDialog';
+import { DeleteCollectorDialog } from './features/collectors/DeleteCollectorDialog';
+import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
+import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
 
 function draftFrom(collector: Collector): ScheduleDraft {
   const { enabled, kind, time, weekdays, dayOfMonth, cron } = collector.schedule;
   return { enabled, kind, time, weekdays, dayOfMonth, cron };
 }
 
-const TABS = [
-  { id: 'collection', label: 'Collection', enabled: true },
-  { id: 'production', label: 'Production', enabled: false },
-  { id: 'output', label: 'Output', enabled: false },
-];
+export interface CollectionPageProps {
+  /** False while another section is on screen: the page stays mounted but stops refreshing. */
+  active?: boolean;
+}
 
-export default function App() {
+export function CollectionPage({ active = true }: CollectionPageProps) {
   const collectors = useLoad(() => api.listCollectors(), []);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -59,10 +57,10 @@ export default function App() {
   const anyRunning = runs.state.status === 'ready' && runs.state.data.some((run) => run.status === 'running');
 
   useEffect(() => {
-    if (!anyRunning) return;
+    if (!anyRunning || !active) return;
     const timer = setInterval(runs.reload, 1500);
     return () => clearInterval(timer);
-  }, [anyRunning, runs.reload]);
+  }, [anyRunning, active, runs.reload]);
 
   const openDialog = (mode: PlanMode) => {
     setDialogError(null);
@@ -165,18 +163,9 @@ export default function App() {
     }
   };
 
-  const header = (
-    <AppHeader
-      tabs={TABS}
-      activeTab="collection"
-      status={<span className="flex items-center gap-2"><span className="size-2 rounded-full bg-ok" />Backend online · Tailscale</span>}
-    />
-  );
-
   if (editing && selected) {
     return (
-      <div className="flex min-h-screen flex-col gap-4 p-4">
-        {header}
+      <div className="flex flex-1 flex-col gap-4">
         <EditCollectorScreen
           key={selected.id}
           collector={selected}
@@ -206,7 +195,6 @@ export default function App() {
 
   return (
     <AppShell
-      header={header}
       sidebar={
         <CollectorList
           state={collectors.state}

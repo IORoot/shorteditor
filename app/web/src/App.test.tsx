@@ -22,6 +22,123 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('App sections', () => {
+  const second = makeCollector({ id: 2, name: 'Class Tuesdays' });
+
+  function mockBoth(boardCalls: { count: number } = { count: 0 }) {
+    return mockBackend({
+      '/api/collectors': () => jsonResponse([collector, second]),
+      '/api/collectors/1/runs': () => jsonResponse([]),
+      '/api/collectors/2/runs': () => jsonResponse([]),
+      '/api/production/batches': () => {
+        boardCalls.count += 1;
+        return jsonResponse([]);
+      },
+    });
+  }
+
+  it('switches to the Production board and back to Collection from the tabs', async () => {
+    mockBoth();
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Production' }));
+    expect(await screen.findByRole('heading', { name: 'Production', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Production' })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(screen.getByRole('button', { name: 'Collection' }));
+    expect(await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 })).toBeInTheDocument();
+  });
+
+  it('keeps one header that does not remount on a tab click', async () => {
+    mockBoth();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 });
+    expect(screen.getAllByRole('banner')).toHaveLength(1);
+    const tab = screen.getByRole('button', { name: 'Production' });
+    tab.focus();
+    fireEvent.click(tab);
+    await screen.findByRole('heading', { name: 'Production', level: 1 });
+    expect(screen.getByRole('button', { name: 'Production' })).toBe(tab);
+    expect(document.activeElement).toBe(tab);
+  });
+
+  it('keeps the selected collector when the user visits Production and comes back', async () => {
+    mockBoth();
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /Class Tuesdays/ }));
+    expect(await screen.findByRole('heading', { name: 'Class Tuesdays', level: 1 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Production' }));
+    await screen.findByRole('heading', { name: 'Production', level: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'Collection' }));
+    expect(await screen.findByRole('heading', { name: 'Class Tuesdays', level: 1 })).toBeInTheDocument();
+  });
+
+  it('does not lose an unsaved collector edit when the user clicks another tab', async () => {
+    mockBackend({
+      '/api/collectors': () => jsonResponse([collector, second]),
+      '/api/collectors/1/runs': () => jsonResponse([]),
+      '/api/preview/folder': () => jsonResponse({ relativePath: '2026-11-14_Sat_coach', fullPath: '/x' }),
+      '/api/preview/filters': () => jsonResponse({ clips: [], selectedCount: 0, total: 0, truncated: false }),
+      '/api/production/batches': () => jsonResponse([]),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const name = await screen.findByLabelText('Name');
+    fireEvent.change(name, { target: { value: 'Typed but not saved' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Production' }));
+    await screen.findByRole('heading', { name: 'Production', level: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'Collection' }));
+    expect(await screen.findByLabelText('Name')).toHaveValue('Typed but not saved');
+  });
+
+  it('stops refreshing a running collector while the user is on Production', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const calls = { runs: 0 };
+      mockBackend({
+        '/api/collectors': () => jsonResponse([collector]),
+        '/api/collectors/1/runs': () => {
+          calls.runs += 1;
+          return jsonResponse([{ id: 1, collectorId: 1, startedAt: '2026-11-17T10:00:00+00:00', trigger: 'manual', status: 'running', outcome: '', canUndo: false }]);
+        },
+        '/api/production/batches': () => jsonResponse([]),
+      });
+      render(<App />);
+      await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 });
+      fireEvent.click(screen.getByRole('button', { name: 'Production' }));
+      await screen.findByRole('heading', { name: 'Production', level: 1 });
+      const seen = calls.runs;
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(calls.runs).toBe(seen);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops refreshing the board once the user leaves it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const calls = { count: 0 };
+      mockBackend({
+        '/api/collectors': () => jsonResponse([collector]),
+        '/api/collectors/1/runs': () => jsonResponse([]),
+        '/api/production/batches': () => {
+          calls.count += 1;
+          return jsonResponse([{ batchId: 1, passId: 1, name: 'Busy', inputFolder: '/in', pipeline: ['A'], status: 'running', stageTitle: 'A', stagePosition: 1, stageCount: 1, passNumber: 1, queuePosition: null, runOn: 'any', startedAt: null, blockedReason: null, blockedChoices: [], error: null, output: null }]);
+        },
+      });
+      render(<App />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Production' }));
+      await screen.findByText('Busy');
+      fireEvent.click(screen.getByRole('button', { name: 'Collection' }));
+      const seen = calls.count;
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(calls.count).toBe(seen);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('App', () => {
   it('shows the collector, history and schedule once data loads', async () => {
     mockBackend({

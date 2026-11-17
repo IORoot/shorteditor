@@ -14,8 +14,9 @@ const COLUMN_OF: Record<BatchCard['status'], Column> = {
   approved: 'approved',
 };
 
+/** A status this version does not know is shown under Needs attention rather than breaking the board. */
 export function columnOf(card: BatchCard): Column {
-  return COLUMN_OF[card.status];
+  return COLUMN_OF[card.status] ?? 'attention';
 }
 
 export function groupCards(cards: BatchCard[]): Record<Column, BatchCard[]> {
@@ -59,14 +60,21 @@ const TONE: Record<BatchCard['status'], Tone> = {
   approved: 'ok',
 };
 
-export const chipLabel = (card: BatchCard): string => LABEL[card.status];
-export const toneOf = (card: BatchCard): Tone => TONE[card.status];
+export const chipLabel = (card: BatchCard): string => LABEL[card.status] ?? card.status;
+export const toneOf = (card: BatchCard): Tone => TONE[card.status] ?? 'warn';
+
+/** The last path segment, for showing a folder or file by name. */
+export function lastSegment(path: string): string {
+  return path.split('/').filter(Boolean).pop() ?? path;
+}
+
+const MAX_SEGMENTS = 50;
 
 export type SegmentState = 'done' | 'run' | 'todo';
 
 /** One segment per stage: finished, the one it is at, or still to come. */
 export function stageSegments(card: BatchCard): SegmentState[] {
-  const count = Math.max(0, card.stageCount);
+  const count = Math.min(Math.max(0, card.stageCount), MAX_SEGMENTS);
   if (card.status === 'review' || card.status === 'approved') return Array.from({ length: count }, () => 'done');
   if (card.status === 'queued') return Array.from({ length: count }, () => 'todo');
   if (card.status === 'failed' && card.stagePosition <= 0) return Array.from({ length: count }, () => 'todo');

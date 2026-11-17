@@ -103,3 +103,25 @@ describe('clock', () => {
     expect(clock(Number.NaN)).toBe('00:00');
   });
 });
+
+describe('a status this version does not know', () => {
+  const odd = () => makeCard({ status: 'paused' as never });
+
+  it('lands in Needs attention instead of breaking the board', () => {
+    expect(columnOf(odd())).toBe('attention');
+    expect(groupCards([makeCard({ status: 'queued' }), odd()]).attention).toHaveLength(1);
+    expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 need attention · 1 queued');
+  });
+
+  it('shows the raw status as its label with a warning tone', () => {
+    expect(chipLabel(odd())).toBe('paused');
+    expect(toneOf(odd())).toBe('warn');
+    expect(stageSegments(odd())).toHaveLength(5);
+  });
+});
+
+describe('stageSegments limits', () => {
+  it('never builds more than 50 segments, however many stages the server claims', () => {
+    expect(stageSegments(makeCard({ status: 'queued', stageCount: 5_000_000 }))).toHaveLength(50);
+  });
+});
