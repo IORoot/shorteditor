@@ -56,12 +56,16 @@ def create_default_app() -> FastAPI:
                 await asyncio.to_thread(scheduler.tick)
                 await asyncio.sleep(TICK_SECONDS)
 
-        async def production_loop() -> None:
+        async def production_loop(tick) -> None:  # noqa: ANN001
             while True:
-                await asyncio.to_thread(production.tick)
+                await asyncio.to_thread(tick)
                 await asyncio.sleep(PRODUCTION_TICK_SECONDS)
 
-        tasks = [asyncio.create_task(loop()), asyncio.create_task(production_loop())]
+        tasks = [
+            asyncio.create_task(loop()),
+            asyncio.create_task(production_loop(production.tick_queue)),
+            asyncio.create_task(production_loop(production.tick_watches)),  # its own thread: a slow scan must not delay the queue
+        ]
         yield
         for task in tasks:
             task.cancel()

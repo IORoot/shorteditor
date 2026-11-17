@@ -19,7 +19,7 @@ def compile_pattern(text: str) -> re.Pattern[str]:
     except re.error as error:
         raise InvalidInputError(f"The pattern is not valid: {error}") from error
     if _can_run_away(text):
-        raise InvalidInputError("The pattern could take far too long to match. Avoid repeating a group that already repeats, like (a+)+")
+        raise InvalidInputError("The pattern could take far too long to match. Avoid nested repeats like (a+)+, many repeats in a row, and long lists of alternatives")
     return compiled
 
 
@@ -32,8 +32,8 @@ def _can_run_away(text: str) -> bool:
     """True for shapes that make Python's regex engine take far too long on a short name.
 
     Refused: a group that holds a repeat, an optional part or an alternation and is itself repeated
-    ((a+)+, (a|aa)*, (a?){30}); more than 3 open-ended repeats (a*a*a*a*b); more than 10 repeats of any
-    kind; comments and verbose mode, which can hide a repeat from this check.
+    ((a+)+, (a|aa)*, (a?){30}); more than 3 open-ended repeats (a*a*a*a*b); more than 10 repeats or
+    alternatives in all ((.|.)(.|.)...); comments and verbose mode, which can hide a repeat from this check.
 
     shortcut: a structural check on the text, not a proof (`re` has no timeout); it also refuses a few
     harmless patterns such as (a|b)+. Folder names are short and the pattern is at most 200 characters.
@@ -64,6 +64,9 @@ def _can_run_away(text: str) -> bool:
         elif char == "|":
             if stack:
                 stack[-1] = True
+            repeats += 1  # a long list of alternatives can be as slow as a repeat
+            if repeats > MAX_REPEATS:
+                return True
         elif char in "*+?{" and not (char == "?" and text[i - 1] in "(*+?}"):
             repeats += 1
             if stack:

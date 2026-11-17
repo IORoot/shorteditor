@@ -9,12 +9,14 @@ from collector_server.shared.handoff import StageHandoff
 
 from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
 from .service import InvalidInputError, NotFoundError, ProductionService, StateError
+from .watch_models import CheckResult, Enabled, WatchCreate, WatchView
+from .watch_service import WatchService
 
 
 Id = Annotated[int, Path(ge=1, le=2**63 - 1)]
 
 
-def build_router(service: ProductionService) -> APIRouter:
+def build_router(service: ProductionService, watch_service: WatchService | None = None) -> APIRouter:
     router = APIRouter(prefix="/api/production")
 
     def guarded(call):  # noqa: ANN001, ANN202 - turn the service's errors into HTTP answers
@@ -80,4 +82,32 @@ def build_router(service: ProductionService) -> APIRouter:
     def logs(pass_id: Id, kind: LogKind) -> LogLines:
         return LogLines(lines=guarded(lambda: service.logs(pass_id, kind)))
 
+    if watch_service is not None:
+        _watch_routes(router, watch_service, guarded)
     return router
+
+
+def _watch_routes(router: APIRouter, watches: WatchService, guarded) -> None:  # noqa: ANN001
+    @router.get("/watches", response_model=list[WatchView])
+    def list_watches() -> list[WatchView]:
+        return watches.list()
+
+    @router.post("/watches", response_model=WatchView, status_code=201)
+    def create_watch(request: WatchCreate) -> WatchView:
+        return guarded(lambda: watches.create(request))
+
+    @router.put("/watches/{watch_id}", response_model=WatchView)
+    def update_watch(watch_id: Id, request: WatchCreate) -> WatchView:
+        return guarded(lambda: watches.update(watch_id, request))
+
+    @router.delete("/watches/{watch_id}", status_code=204)
+    def delete_watch(watch_id: Id) -> None:
+        guarded(lambda: watches.delete(watch_id))
+
+    @router.post("/watches/{watch_id}/enabled", response_model=WatchView)
+    def set_enabled(watch_id: Id, request: Enabled) -> WatchView:
+        return guarded(lambda: watches.set_enabled(watch_id, request.enabled))
+
+    @router.post("/watches/{watch_id}/check", response_model=CheckResult)
+    def check_watch(watch_id: Id) -> CheckResult:
+        return guarded(lambda: watches.check(watch_id))

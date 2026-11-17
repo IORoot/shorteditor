@@ -24,10 +24,12 @@ def system(db, tmp_path):
     app.include_router(production.router)
     inbox = tmp_path / "in"
     inbox.mkdir()
+    built = production
 
     class System:
         client = TestClient(app)
-        queue = production.queue
+        production = built
+        queue = built.queue
         folder = inbox
 
         def go(self):
@@ -100,3 +102,35 @@ def test_an_empty_folder_fails_with_a_readable_message(system):
     system.go()
     [card] = system.board()
     assert card["status"] == "failed" and card["error"].startswith("No clips found")
+
+
+def test_a_new_folder_appears_is_batched_runs_and_reaches_review(system, tmp_path):
+    import os
+    import time
+
+    parent = tmp_path / "collected"
+    parent.mkdir()
+    watch = system.client.post("/api/production/watches", json={
+        "name": "Coach", "parentFolder": str(parent), "pattern": r"^\d{4}-\d{2}-\d{2}_.+$", "steps": steps(), "settleMinutes": 10,
+    })
+    assert watch.status_code == 201 and watch.json()["status"] == "watching"
+
+    new = parent / "2026-11-07_Sat_coach"
+    new.mkdir()
+    for n in range(2):
+        make_clip(new / f"c{n}.mp4", seconds=2)
+    system.production.tick()  # the folder was only just written, so the watch waits
+    assert system.board() == []
+    assert system.client.get("/api/production/watches").json()[0]["status"] == "waiting"
+
+    old = time.time() - 3600
+    for path in [new, *new.iterdir()]:
+        os.utime(path, (old, old))
+    system.client.post(f"/api/production/watches/{watch.json()['id']}/check")
+    [card] = system.board()
+    assert card["name"] == "2026-11-07_Sat_coach" and card["status"] == "queued"
+
+    system.go()
+    [card] = system.board()
+    assert card["status"] == "review"
+    assert system.client.get("/api/production/watches").json()[0]["createdTotal"] == 1

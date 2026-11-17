@@ -118,13 +118,29 @@ class ProductionService:
         if source == target or target.startswith(source + os.sep) or source.startswith(target + os.sep):
             raise InvalidInputError("The output folder and the input folder must not overlap")
 
+    @property
+    def lock(self) -> threading.RLock:  # type: ignore[valid-type]
+        """Held while deciding which folders get a batch, so two creators never batch the same folder."""
+        return self._lock
+
+    def check_folder_settings(self, parent: str, pattern: str, name_template: str, steps: list[StageStep], run_on: str, output_root: str | None):  # noqa: ANN201
+        """Everything a bulk create or a watch needs to be valid, checked before anything is saved. Returns the compiled pattern."""
+        self._check_parent(parent)
+        if not os.path.isdir(parent):
+            raise InvalidInputError(f"The folder {parent} does not exist")
+        compiled = compile_pattern(pattern)
+        check_template(name_template, compiled)
+        root = self._check_settings(steps, run_on, output_root, parent)
+        self._check_apart(parent, root)
+        return compiled
+
     def preview_folders(self, parent: str, pattern: str, output_root: str | None = None) -> FolderPreview:
         self._check_parent(parent)
         compiled = compile_pattern(pattern)
         if output_root:
             self._check_apart(parent, output_root)
         scan = scan_parent(parent, compiled)
-        taken = self._taken_folders()
+        taken = self.taken_folders()
         return FolderPreview(matches=[self._item(c, taken) for c in scan.matches], not_matching=scan.not_matching, truncated=scan.truncated)
 
     @staticmethod
@@ -133,14 +149,10 @@ class ProductionService:
             raise InvalidInputError("The parent folder must be an absolute path")
 
     def create_batches(self, request: BulkCreate) -> BulkResult:
-        self._check_parent(request.parent_folder)
-        compiled = compile_pattern(request.pattern)
-        check_template(request.name_template, compiled)
-        root = self._check_settings(request.steps, request.run_on, request.output_root, request.parent_folder)
-        self._check_apart(request.parent_folder, root)
+        compiled = self.check_folder_settings(request.parent_folder, request.pattern, request.name_template, request.steps, request.run_on, request.output_root)
         scan = scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
         with self._lock:  # the decision is made inside it, so two requests never create the same folder twice
-            taken = self._taken_folders()
+            taken = self.taken_folders()
             create: list[Candidate] = []
             skipped: list[PreviewItem] = []
             for candidate in scan.matches:
@@ -165,7 +177,7 @@ class ProductionService:
                 ) from error
         return BulkResult(created=created, skipped=skipped)
 
-    def _taken_folders(self) -> set[str]:
+    def taken_folders(self) -> set[str]:
         return {os.path.realpath(batch.input_folder) for batch in self._batches.list()}
 
     @staticmethod

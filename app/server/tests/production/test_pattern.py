@@ -111,3 +111,13 @@ def test_template_with_non_ascii_digits_is_a_plain_error():
     for bad in ("{²}", "{①}", "{" + "9" * 5000 + "}"):
         with pytest.raises(InvalidInputError):
             check_template(bad, compile_pattern(r"^(a)$"))
+
+
+@pytest.mark.parametrize("text", ["(.|.)" * 30 + "!", "(?:.|.)" * 28 + "!", "(a|a)" * 33 + "b", "(?:|a)" * 28 + "b", "(?:a|)" * 28 + "b", "(?:a|a)" * 28 + "b", "|".join(["a"] * 12)])
+def test_long_lists_of_alternatives_are_refused(text):
+    with pytest.raises(InvalidInputError):
+        compile_pattern(text)
+
+
+def test_a_few_alternatives_are_fine():
+    compile_pattern(r"^(cam|dslr|phone|drone)_(\d{8}|\d{6})$")

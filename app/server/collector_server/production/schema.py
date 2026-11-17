@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collector_server.shared.database import Database
 
+from .watch_schema import ensure_watch_schema
+
 _TABLES = """
 CREATE TABLE IF NOT EXISTS production_batches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,3 +48,4 @@ def ensure_schema(db: Database) -> None:
     for statement in _TABLES.split(";"):
         if statement.strip():
             db.execute(statement)
+    ensure_watch_schema(db)

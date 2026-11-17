@@ -184,3 +184,34 @@ def test_a_dangling_link_is_not_a_clip(tmp_path):
 
 def test_the_top_of_the_disk_as_parent_does_not_crash():
     scan_parent("/", compile_pattern("^zzz-never$"))
+
+
+def test_a_link_to_the_parent_itself_is_not_a_candidate(tmp_path):
+    touch(tmp_path / "2026-11-07_a" / "a.mp4")
+    os.symlink(tmp_path, tmp_path / "2026-11-08_loop")
+    assert [c.name for c in scan_parent(str(tmp_path), DATE).matches] == ["2026-11-07_a"]
+
+
+def test_a_total_entry_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
+    monkeypatch.setattr(folder_scan, "MAX_TOTAL_ENTRIES", 5)
+    for n in range(4):
+        for m in range(3):
+            touch(tmp_path / f"2026-11-0{n}_x" / f"{m}.mp4")
+    result = scan_parent(str(tmp_path), DATE)
+    assert result.truncated is True
+    assert any(c.incomplete for c in result.matches)
+    assert [c.name for c in result.matches] == sorted(c.name for c in result.matches)
+
+
+def test_a_time_budget_stops_the_scan_and_says_so(tmp_path, monkeypatch):
+    monkeypatch.setattr(folder_scan, "MAX_SECONDS", 0)
+    for n in range(3):
+        touch(tmp_path / f"2026-11-0{n}_x" / "a.mp4")
+    result = scan_parent(str(tmp_path), DATE)
+    assert result.truncated is True and all(c.incomplete for c in result.matches)
+
+
+def test_within_the_budget_nothing_is_marked(tmp_path):
+    touch(tmp_path / "2026-11-07_a" / "a.mp4")
+    result = scan_parent(str(tmp_path), DATE)
+    assert result.truncated is False and result.matches[0].incomplete is False
