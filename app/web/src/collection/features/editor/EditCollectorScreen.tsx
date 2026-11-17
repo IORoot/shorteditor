@@ -9,7 +9,7 @@ import { FormField } from '../../../shared/components/ui/FormField';
 import { SectionCard } from '../../../shared/components/ui/SectionCard';
 import { FilterPreviewCard } from './filterPreview/FilterPreviewCard';
 import { FiltersSection } from './filters/FiltersSection';
-import { FolderPicker } from './FolderPicker';
+import { FolderPicker } from '../../../shared/components/FolderPicker';
 import { OutputSection } from './OutputSection';
 import { PreviewPanel, SAMPLE_DATE } from './PreviewPanel';
 import { SourceSection } from './SourceSection';
@@ -83,6 +83,7 @@ export function EditCollectorScreen({ collector, onCancel, onSaved, onDelete }: 
       {picker ? (
         <FolderPicker
           startPath={picker === 'input' ? config.inputFolder : config.outputFolder}
+          browse={(path) => api.browse(path)}
           onChoose={choose}
           onClose={() => setPicker(null)}
         />

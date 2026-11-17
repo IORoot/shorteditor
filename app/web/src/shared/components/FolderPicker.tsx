@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Check, CornerLeftUp, Folder, X } from 'lucide-react';
-import { api } from '../../lib/api';
-import { useLoad } from '../../../shared/hooks/useLoad';
-import { Button } from '../../../shared/components/ui/Button';
+import { useLoad } from '../hooks/useLoad';
+import type { BrowseResult } from '../lib/types';
+import { Button } from './ui/Button';
 
 export interface FolderPickerProps {
   startPath: string;
+  browse: (path?: string) => Promise<BrowseResult>;
   onChoose: (path: string) => void;
   onClose: () => void;
 }
@@ -14,9 +15,9 @@ function parentOf(path: string): string {
   return path.replace(/\/[^/]*$/, '') || '/';
 }
 
-export function FolderPicker({ startPath, onChoose, onClose }: FolderPickerProps) {
+export function FolderPicker({ startPath, browse, onChoose, onClose }: FolderPickerProps) {
   const [path, setPath] = useState<string | undefined>(startPath || undefined);
-  const listing = useLoad(() => api.browse(path), [path]);
+  const listing = useLoad(() => browse(path), [path]);
   const current = listing.state.status === 'ready' ? listing.state.data : null;
 
   return (

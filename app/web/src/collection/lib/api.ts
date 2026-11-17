@@ -1,6 +1,7 @@
 import { ApiError, HttpClient } from '../../shared/lib/http';
 import { isOutdatedBackendConfig, normalizeCollector } from './normalize';
-import type { BrowseResult, Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft } from './types';
+import type { BrowseResult } from '../../shared/lib/types';
+import type { Collector, CollectorConfig, FilterPreviewResult, FolderPreview, FolderPreviewRequest, PlanResult, Run, ScheduleDraft } from './types';
 
 export class ApiClient extends HttpClient {
   async listCollectors(): Promise<Collector[]> {
