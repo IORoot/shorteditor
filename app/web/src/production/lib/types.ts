@@ -80,3 +80,78 @@ export interface Pass {
   startedAt: string | null;
   finishedAt: string | null;
 }
+
+export type PreviewStatus = 'will_create' | 'already_batched' | 'no_videos' | 'unreadable';
+
+export interface PreviewItem {
+  name: string;
+  path: string;
+  clipCount: number;
+  status: PreviewStatus;
+}
+
+export interface FolderPreview {
+  matches: PreviewItem[];
+  notMatching: number;
+  truncated: boolean;
+}
+
+export interface BulkCreate {
+  parentFolder: string;
+  pattern: string;
+  nameTemplate: string;
+  steps: StageStep[];
+  runOn: string;
+  outputRoot?: string;
+  include: string[];
+}
+
+export interface BulkResult {
+  created: Batch[];
+  skipped: PreviewItem[];
+}
+
+export type WatchStatus = 'watching' | 'waiting' | 'paused' | 'problem';
+
+export interface WatchCreate {
+  name: string;
+  parentFolder: string;
+  pattern: string;
+  nameTemplate: string;
+  steps: StageStep[];
+  runOn: string;
+  outputRoot?: string;
+  intervalMinutes: number;
+  settleMinutes: number;
+  maxPerCheck: number;
+  includeExisting: boolean;
+  enabled: boolean;
+}
+
+export interface WatchView {
+  id: number;
+  name: string;
+  parentFolder: string;
+  pattern: string;
+  nameTemplate: string;
+  steps: StageStep[];
+  runOn: string;
+  outputRoot: string | null;
+  intervalMinutes: number;
+  settleMinutes: number;
+  maxPerCheck: number;
+  enabled: boolean;
+  createdAt: string;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  waiting: string[];
+  createdTotal: number;
+  status: WatchStatus;
+  statusLine: string;
+}
+
+export interface CheckResult {
+  created: Batch[];
+  waiting: string[];
+  error: string | null;
+}

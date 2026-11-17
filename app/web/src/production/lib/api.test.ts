@@ -61,4 +61,39 @@ describe('ProductionApi', () => {
     const client = new ProductionApi(vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     await expect(client.cards()).rejects.toThrow('Failed to fetch');
   });
+
+  it('previews the folders inside a parent folder and creates batches from them', async () => {
+    const preview = api({ matches: [], notMatching: 0, truncated: false });
+    await preview.client.previewFolders('/c', '^.+$');
+    expect(sent(preview.fetchMock)).toEqual({ url: '/api/production/folders/preview', method: 'POST', body: { parentFolder: '/c', pattern: '^.+$' } });
+    const withRoot = api({ matches: [], notMatching: 0, truncated: false });
+    await withRoot.client.previewFolders('/c', '^.+$', '/out');
+    expect(sent(withRoot.fetchMock).body).toEqual({ parentFolder: '/c', pattern: '^.+$', outputRoot: '/out' });
+    const bulk = api({ created: [], skipped: [] });
+    const body = { parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', steps: [], runOn: 'any', include: ['x'] };
+    await bulk.client.createBatches(body);
+    expect(sent(bulk.fetchMock)).toEqual({ url: '/api/production/batches/bulk', method: 'POST', body });
+  });
+
+  it('lists, creates, edits, switches, checks and deletes watches', async () => {
+    const list = api([]);
+    await list.client.watches();
+    expect(sent(list.fetchMock)).toMatchObject({ url: '/api/production/watches', method: 'GET' });
+    const watch = { name: 'W', parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', steps: [], runOn: 'any', intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, includeExisting: false, enabled: true };
+    const create = api({ id: 3 });
+    await create.client.createWatch(watch);
+    expect(sent(create.fetchMock)).toEqual({ url: '/api/production/watches', method: 'POST', body: watch });
+    const update = api({ id: 3 });
+    await update.client.updateWatch(3, watch);
+    expect(sent(update.fetchMock)).toEqual({ url: '/api/production/watches/3', method: 'PUT', body: watch });
+    const enabled = api({});
+    await enabled.client.setWatchEnabled(3, false);
+    expect(sent(enabled.fetchMock)).toEqual({ url: '/api/production/watches/3/enabled', method: 'POST', body: { enabled: false } });
+    const check = api({ created: [], waiting: [], error: null });
+    await check.client.checkWatch(3);
+    expect(sent(check.fetchMock)).toMatchObject({ url: '/api/production/watches/3/check', method: 'POST' });
+    const remove = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await new ProductionApi(remove).deleteWatch(3);
+    expect(remove).toHaveBeenCalledWith('/api/production/watches/3', { method: 'DELETE' });
+  });
 });

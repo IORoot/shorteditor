@@ -13,7 +13,7 @@ describe('BoardPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading');
     expect(await screen.findByText('Coach Saturdays')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Production', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('2 batches · 1 ready to review · 1 queued')).toBeInTheDocument();
+    expect(screen.getByText('2 batches · 1 queued · 1 ready to review')).toBeInTheDocument();
   });
 
   it('shows the empty state', async () => {

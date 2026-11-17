@@ -102,6 +102,12 @@ describe('Board', () => {
     expect(within(column('Queued')).getByText('Queued one')).toBeInTheDocument();
   });
 
+  it('shows the columns left to right as Queued, Running, Needs attention, Ready to review', () => {
+    render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
+    const titles = screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'));
+    expect(titles).toEqual(['Queued', 'Running', 'Needs attention', 'Ready to review', 'Approved']);
+  });
+
   it('keeps approved batches out of the columns and in the approved row', () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
     const columns = ['Ready to review', 'Needs attention', 'Running', 'Queued'].map((n) => screen.getByRole('region', { name: n }));

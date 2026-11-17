@@ -53,7 +53,7 @@ describe('Production, end to end', () => {
       makeCard({ name: 'Camera A', status: 'queued', queuePosition: 0 }),
     ]);
     await openProduction();
-    expect(await screen.findByText('4 batches · 1 ready to review · 1 need attention · 1 running · 1 queued')).toBeInTheDocument();
+    expect(await screen.findByText('4 batches · 1 queued · 1 running · 1 need attention · 1 ready to review')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Ready to review' })).getByText('Coach Saturdays')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Needs attention' })).getByText('Jams')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Running' })).getByText('Tuesday')).toBeInTheDocument();

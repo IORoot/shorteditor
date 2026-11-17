@@ -3,7 +3,7 @@ import type { BatchCard } from './types';
 
 export type Column = 'review' | 'attention' | 'running' | 'queued' | 'approved';
 
-export const COLUMNS: Exclude<Column, 'approved'>[] = ['review', 'attention', 'running', 'queued'];
+export const COLUMNS: Exclude<Column, 'approved'>[] = ['queued', 'running', 'attention', 'review'];
 
 const COLUMN_OF: Record<BatchCard['status'], Column> = {
   review: 'review',
@@ -34,10 +34,10 @@ export function subtitle(cards: BatchCard[]): string {
   const groups = groupCards(cards);
   const parts = [
     `${cards.length} ${cards.length === 1 ? 'batch' : 'batches'}`,
-    groups.review.length ? `${groups.review.length} ready to review` : '',
-    groups.attention.length ? `${groups.attention.length} need attention` : '',
-    groups.running.length ? `${groups.running.length} running` : '',
     groups.queued.length ? `${groups.queued.length} queued` : '',
+    groups.running.length ? `${groups.running.length} running` : '',
+    groups.attention.length ? `${groups.attention.length} need attention` : '',
+    groups.review.length ? `${groups.review.length} ready to review` : '',
   ];
   return parts.filter(Boolean).join(' · ');
 }

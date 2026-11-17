@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '../test/fixtures';
-import { chipLabel, clock, columnOf, groupCards, queueCaption, stageSegments, subtitle, toneOf } from './board';
+import { COLUMNS, chipLabel, clock, columnOf, groupCards, queueCaption, stageSegments, subtitle, toneOf } from './board';
+
+describe('column order', () => {
+  it('lists the columns Queued, Running, Needs attention, Ready to review', () => {
+    expect(COLUMNS).toEqual(['queued', 'running', 'attention', 'review']);
+  });
+});
 
 describe('columnOf', () => {
   it.each([
@@ -39,7 +45,7 @@ describe('subtitle', () => {
       makeCard({ status: 'review' }), makeCard({ status: 'review' }), makeCard({ status: 'failed' }), makeCard({ status: 'blocked' }),
       makeCard({ status: 'running' }), makeCard({ status: 'queued' }), makeCard({ status: 'queued' }), makeCard({ status: 'approved' }),
     ];
-    expect(subtitle(cards)).toBe('8 batches · 2 ready to review · 2 need attention · 1 running · 2 queued');
+    expect(subtitle(cards)).toBe('8 batches · 2 queued · 1 running · 2 need attention · 2 ready to review');
   });
 
   it('leaves out zero parts, says batch for one, and handles an empty board', () => {
@@ -110,7 +116,7 @@ describe('a status this version does not know', () => {
   it('lands in Needs attention instead of breaking the board', () => {
     expect(columnOf(odd())).toBe('attention');
     expect(groupCards([makeCard({ status: 'queued' }), odd()]).attention).toHaveLength(1);
-    expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 need attention · 1 queued');
+    expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 queued · 1 need attention');
   });
 
   it('shows the raw status as its label with a warning tone', () => {
