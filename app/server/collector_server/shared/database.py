@@ -78,6 +78,11 @@ class Database:
             self._conn.commit()
             return cursor
 
+    def executemany(self, sql: str, rows: Iterable[Iterable[Any]]) -> None:
+        with self._lock:
+            self._conn.executemany(sql, [tuple(row) for row in rows])
+            self._conn.commit()
+
     def query(self, sql: str, params: Iterable[Any] = ()) -> list[sqlite3.Row]:
         with self._lock:
             return self._conn.execute(sql, tuple(params)).fetchall()
