@@ -4,7 +4,7 @@ import { Button } from '../../../shared/components/ui/Button';
 import { useLoad } from '../../../shared/hooks/useLoad';
 import { fsApi } from '../../../shared/lib/fsApi';
 import type { BrowseResult } from '../../../shared/lib/types';
-import { useAction } from '../../hooks/useAction';
+import { useAction } from '../../../shared/hooks/useAction';
 import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
 import { subtitle } from '../../lib/board';

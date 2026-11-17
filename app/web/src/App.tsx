@@ -3,14 +3,17 @@ import { AppHeader } from './shared/components/shell/AppHeader';
 import { CollectionPage } from './collection/CollectionPage';
 import { BoardPage } from './production/features/board/BoardPage';
 import { productionApi } from './production/lib/api';
+import { PipelinePage } from './pipeline/PipelinePage';
+import { pipelineApi } from './pipeline/lib/api';
 
 const TABS = [
   { id: 'collection', label: 'Collection', enabled: true },
+  { id: 'pipeline', label: 'Pipeline', enabled: true },
   { id: 'production', label: 'Production', enabled: true },
   { id: 'output', label: 'Output', enabled: false },
 ];
 
-type Section = 'collection' | 'production';
+type Section = 'collection' | 'pipeline' | 'production';
 
 export default function App() {
   const [section, setSection] = useState<Section>('collection');
@@ -29,6 +32,7 @@ export default function App() {
       <div className={section === 'collection' ? 'flex flex-1 flex-col' : 'hidden'}>
         <CollectionPage active={section === 'collection'} />
       </div>
+      {section === 'pipeline' ? <PipelinePage api={pipelineApi} /> : null}
       {section === 'production' ? <BoardPage api={productionApi} /> : null}
     </div>
   );

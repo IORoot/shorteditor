@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
-import { useAction } from '../../hooks/useAction';
+import { useAction } from '../../../shared/hooks/useAction';
 import { useWatches } from '../../hooks/useWatches';
 import type { ProductionApi } from '../../lib/api';
 import { checkMessage } from '../../lib/watches';

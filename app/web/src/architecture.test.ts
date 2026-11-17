@@ -5,7 +5,7 @@ const raw = import.meta.glob('/src/**/*.{ts,tsx}', { query: '?raw', import: 'def
 
 const files = Object.entries(raw)
   .map(([key, source]) => ({ path: key.replace('/src/', ''), source }))
-  .filter((f) => /^(collection|production|output|shared)\//.test(f.path));
+  .filter((f) => /^(collection|pipeline|production|output|shared)\//.test(f.path));
 
 describe('architecture', () => {
   it('no stage imports another stage', () => {

@@ -330,3 +330,17 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Edit Collector' })).toBeInTheDocument();
   });
 });
+
+describe('Pipeline tab', () => {
+  it('opens the Pipelines list from the tab', async () => {
+    mockBackend({
+      '/api/collectors': () => jsonResponse([collector]),
+      '/api/collectors/1/runs': () => jsonResponse([]),
+      '/api/pipeline/pipelines': () => jsonResponse([]),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Pipeline' }));
+    expect(await screen.findByRole('heading', { name: 'Pipelines', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pipeline' })).toHaveAttribute('aria-current', 'page');
+  });
+});

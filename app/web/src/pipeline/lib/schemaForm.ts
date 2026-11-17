@@ -1,0 +1,88 @@
+/** A settings form drawn from a stage's JSON schema, so a new stage needs no web change. */
+export type FieldKind = 'boolean' | 'number' | 'integer' | 'choice' | 'text' | 'list' | 'readonly';
+
+export interface Field {
+  name: string;
+  label: string;
+  kind: FieldKind;
+  choices: string[];
+  /** Empty is allowed and stored as null: a choice reads "Ask each time", a number reads "No limit". */
+  nullable: boolean;
+  min?: number;
+  max?: number;
+  defaultValue: unknown;
+}
+
+type Prop = Record<string, unknown>;
+
+const labelOf = (name: string): string => {
+  const words = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+const strings = (value: unknown): string[] | null => (Array.isArray(value) && value.every((v) => typeof v === 'string') ? (value as string[]) : null);
+
+function fieldOf(name: string, prop: Prop): Field {
+  const base: Field = { name, label: labelOf(name), kind: 'readonly', choices: [], nullable: false, defaultValue: prop.default };
+  let shape = prop;
+  const options = Array.isArray(prop.anyOf) ? (prop.anyOf as Prop[]) : null;
+  if (options) {
+    const rest = options.filter((o) => o.type !== 'null');
+    if (rest.length !== 1 || rest.length === options.length) return base;
+    shape = rest[0];
+    base.nullable = true;
+  }
+  const choices = strings(shape.enum);
+  if (choices) return { ...base, kind: 'choice', choices };
+  if (shape.type === 'boolean') return { ...base, kind: 'boolean' };
+  if (shape.type === 'integer' || shape.type === 'number') {
+    const min = typeof shape.minimum === 'number' ? shape.minimum : undefined;
+    const max = typeof shape.maximum === 'number' ? shape.maximum : undefined;
+    return { ...base, kind: shape.type, min, max };
+  }
+  if (shape.type === 'string' && !base.nullable) return { ...base, kind: 'text' };
+  if (shape.type === 'array' && strings([(shape.items as Prop | undefined)?.type === 'string' ? 'x' : 1]) && !base.nullable) return { ...base, kind: 'list' };
+  return base;
+}
+
+export function fieldsOf(schema: Record<string, unknown>): Field[] {
+  const props = (schema.properties ?? {}) as Record<string, Prop>;
+  return Object.entries(props).map(([name, prop]) => fieldOf(name, prop));
+}
+
+/** The text a field shows for a stored value. */
+export function toText(field: Field, value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (field.kind === 'list' && Array.isArray(value)) return value.join(', ');
+  return String(value);
+}
+
+export type Parsed = { value: unknown } | { error: string };
+
+const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
+
+/** The stored value for what the user typed, or a plain message saying what is wrong. */
+export function fromText(field: Field, text: string): Parsed {
+  const trimmed = text.trim();
+  if (field.kind === 'number' || field.kind === 'integer') {
+    if (trimmed === '') return field.nullable ? { value: null } : { error: 'Enter a number' };
+    if (!PLAIN_NUMBER.test(trimmed)) return { error: 'Use a number like 45 or 30.5' };
+    const value = Number(trimmed);
+    if (field.kind === 'integer' && !Number.isInteger(value)) return { error: 'Use a whole number' };
+    if (field.min !== undefined && value < field.min) return { error: `At least ${field.min}` };
+    if (field.max !== undefined && value > field.max) return { error: `At most ${field.max}` };
+    return { value };
+  }
+  if (field.kind === 'list') {
+    return { value: trimmed === '' ? [] : trimmed.split(',').map((part) => part.trim()).filter((part) => part !== '') };
+  }
+  if (field.kind === 'choice') return { value: trimmed === '' ? null : trimmed };
+  return { value: text };
+}
+
+/** Settings for a new step: each field's own default (null defaults are left out, as the server does). */
+export function defaultsOf(schema: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const field of fieldsOf(schema)) if (field.defaultValue !== null && field.defaultValue !== undefined) out[field.name] = field.defaultValue;
+  return out;
+}
