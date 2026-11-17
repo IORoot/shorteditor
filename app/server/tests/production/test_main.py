@@ -25,3 +25,20 @@ def test_a_pass_left_running_by_a_crash_is_failed_at_start_up(tmp_path, monkeypa
     with TestClient(create_default_app()) as restarted:  # start-up recovery runs when the app starts
         [card] = restarted.get("/api/production/batches").json()
     assert card["status"] == "failed" and card["error"] == "Interrupted by a restart"
+
+
+def test_the_app_serves_the_pipeline_stage(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHORT_EDITOR_DB", str(tmp_path / "app.db"))
+    client = TestClient(create_default_app())
+    [row] = client.get("/api/pipeline/pipelines").json()
+    assert row["name"] == "Join clips"
+    assert len(client.get("/api/pipeline/stages").json()) == 5
+    assert client.get("/api/production/batches").json() == []
+
+
+def test_a_deleted_seed_does_not_come_back_after_a_restart(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHORT_EDITOR_DB", str(tmp_path / "app.db"))
+    first = TestClient(create_default_app())
+    [row] = first.get("/api/pipeline/pipelines").json()
+    assert first.delete(f"/api/pipeline/pipelines/{row['id']}").status_code == 204
+    assert TestClient(create_default_app()).get("/api/pipeline/pipelines").json() == []
