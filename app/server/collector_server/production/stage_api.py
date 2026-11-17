@@ -5,17 +5,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Protocol
 
 from collector_server.shared.camel_model import CamelModel
+from collector_server.shared.pipeline import StageStep
 
 from .pieces import Kind, StageData
 
 if TYPE_CHECKING:
     from .ffmpeg import FfmpegRunner
-
-
-class StageStep(CamelModel):
-    key: str
-    settings: dict = {}
-    enabled: bool = True
 
 
 class BlockedError(Exception):

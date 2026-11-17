@@ -8,7 +8,9 @@ from fastapi.responses import FileResponse
 from collector_server.shared.handoff import StageHandoff
 
 from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, Resolve, RunAgain, StageInfo, ValidateRequest, ValidateResult
-from .service import InvalidInputError, NotFoundError, ProductionService, StateError
+from collector_server.shared.errors import guarded
+
+from .service import ProductionService
 from .watch_models import CheckResult, Enabled, WatchCreate, WatchView
 from .watch_service import WatchService
 
@@ -18,16 +20,6 @@ Id = Annotated[int, Path(ge=1, le=2**63 - 1)]
 
 def build_router(service: ProductionService, watch_service: WatchService | None = None) -> APIRouter:
     router = APIRouter(prefix="/api/production")
-
-    def guarded(call):  # noqa: ANN001, ANN202 - turn the service's errors into HTTP answers
-        try:
-            return call()
-        except NotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except StateError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        except InvalidInputError as error:
-            raise HTTPException(status_code=422, detail=str(error)) from error
 
     @router.get("/defaults", response_model=Defaults)
     def defaults() -> Defaults:

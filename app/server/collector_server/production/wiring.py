@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 
 from collector_server.shared.database import Database
+from collector_server.shared.pipeline import StageCatalog
 
 from .api import build_router
 from .builtin import build_registry
@@ -27,6 +28,7 @@ class Production:
     router: APIRouter
     queue: JobQueue
     scheduler: WatchScheduler | None = None
+    catalog: StageCatalog | None = None
 
     def tick(self) -> None:
         """Check the watches and start whatever can start."""
@@ -66,4 +68,4 @@ def build_production(db: Database, default_output_root: str) -> Production:
     service = ProductionService(batches, passes, logs, registry, _now, default_output_root, list(workers), labels)
     watches = WatchRepository(db)
     watch_service = WatchService(watches, service, time.time)
-    return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time))
+    return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time), service)

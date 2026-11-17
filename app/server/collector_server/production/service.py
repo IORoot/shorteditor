@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHandoff
 
-from .errors import InvalidInputError
+from collector_server.shared.errors import InvalidInputError, NotFoundError, StateError
 from .output_paths import OutputFolderError, check_root
 from .folder_scan import Candidate, scan_parent
 from .models import Batch, BatchCard, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PreviewItem, StageInfo, WorkerInfo
@@ -18,14 +18,6 @@ from .stage_api import StageError, StageStep
 from .validation import build_settings, validate_pipeline
 
 _WITH_STAGE = {"running", "blocked", "failed"}
-
-
-class NotFoundError(Exception):
-    pass
-
-
-class StateError(Exception):
-    """The action does not fit the pass's current status."""
 
 
 _MAX_STEPS = 30

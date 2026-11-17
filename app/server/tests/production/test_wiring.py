@@ -44,3 +44,10 @@ def test_a_failing_watch_check_does_not_stop_the_queue_tick(caplog):
     production = Production(router=None, queue=CountingPart(), scheduler=CountingPart(fail=True))
     production.tick()
     assert production.queue.calls == 1 and "production tick failed" in caplog.text
+
+
+def test_build_production_exposes_the_catalog(db, tmp_path):
+    from collector_server.production.wiring import build_production
+    from collector_server.shared.pipeline import StageCatalog
+
+    assert isinstance(build_production(db, str(tmp_path)).catalog, StageCatalog)

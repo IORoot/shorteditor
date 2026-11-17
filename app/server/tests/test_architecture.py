@@ -2,7 +2,7 @@ import ast
 from pathlib import Path
 
 PKG = Path(__file__).resolve().parent.parent / "collector_server"
-STAGES = ["collection", "production", "output", "shared"]
+STAGES = ["collection", "production", "output", "pipeline", "shared"]
 
 
 def violations(files):
@@ -57,6 +57,11 @@ def test_flags_a_collection_module_importing_production():
     assert len(violations([("collection/a.py", "from collector_server import production")])) == 1
     assert violations([("collection/a.py", "from collector_server import shared")]) == []
     assert violations([("collection/a.py", "from ..shared.x import y\nfrom .x import z\nimport os")]) == []
+
+
+def test_flags_a_pipeline_module_importing_production():
+    assert len(violations([("pipeline/a.py", "from ..production import x")])) == 1
+    assert len(violations([("pipeline/a.py", "from collector_server.production.x import y")])) == 1
 
 
 def test_scan_finds_files():

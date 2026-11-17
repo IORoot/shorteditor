@@ -1,2 +1,3 @@
-class InvalidInputError(ValueError):
-    """The request cannot be accepted, in words the user can act on."""
+from collector_server.shared.errors import InvalidInputError
+
+__all__ = ["InvalidInputError"]

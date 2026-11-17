@@ -5,7 +5,7 @@ from typing import Literal
 from collector_server.shared.camel_model import CamelModel
 
 from .pieces import VideoData
-from .stage_api import StageStep
+from collector_server.shared.pipeline import StageInfo, StageStep
 
 PassStatus = Literal["queued", "running", "review", "blocked", "failed", "approved"]
 LogKind = Literal["pipeline", "ffmpeg"]
@@ -60,14 +60,6 @@ class ValidateRequest(CamelModel):
 
 class ValidateResult(CamelModel):
     errors: list[str]
-
-
-class StageInfo(CamelModel):
-    key: str
-    title: str
-    transitions: dict[str, str]
-    position: str
-    settings_schema: dict
 
 
 class BatchCard(CamelModel):
