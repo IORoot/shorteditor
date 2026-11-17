@@ -45,6 +45,11 @@ export class HttpClient {
     try {
       const body = (await response.json()) as { detail?: unknown };
       if (typeof body.detail === 'string') return body.detail;
+      // FastAPI describes a badly shaped request as a list of problems
+      if (Array.isArray(body.detail)) {
+        const first = body.detail.find((item): item is { msg: string } => typeof item?.msg === 'string');
+        if (first) return `The request was not accepted: ${first.msg}`;
+      }
     } catch {
       // fall through to the generic message
     }
