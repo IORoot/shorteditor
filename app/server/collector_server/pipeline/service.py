@@ -14,7 +14,7 @@ MAX_NAME = 120
 MAX_DESCRIPTION = 300
 SEED_MARKER = "seeded"
 SEED_NAME = "Join clips"
-SEED_DESCRIPTION = "The five stages that join a folder of clips into one video"
+SEED_DESCRIPTION = ""
 
 
 def _plain(text: str) -> bool:

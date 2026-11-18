@@ -37,8 +37,10 @@ describe('PipelineEditor', () => {
   it('reorders, switches and removes stages', { tags: ['full'] }, async () => {
     show();
     await ready();
-    fireEvent.click(screen.getByRole('button', { name: 'Select Limit length 2' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Move Limit length up' }));
+    const grip = screen.getByRole('button', { name: 'Drag Limit length 2' });
+    fireEvent.pointerDown(grip);
+    fireEvent.pointerMove(grip, { clientY: -10 }); // above the first stage
+    fireEvent.pointerUp(grip);
     expect(stageTitles()).toEqual(['Stage 1 Limit length', 'Stage 2 Scan folder', 'Stage 3 Render']);
     fireEvent.click(screen.getByRole('button', { name: 'Select Render 3' }));
     fireEvent.click(screen.getByRole('switch', { name: 'Use Render' }));
