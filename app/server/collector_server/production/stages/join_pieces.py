@@ -22,11 +22,11 @@ _FIT = {
 
 
 class JoinSettings(CamelModel):
-    width: int = Field(1080, ge=16, le=7680, multiple_of=2)
-    height: int = Field(1920, ge=16, le=7680, multiple_of=2)
-    fps: int = Field(30, ge=1, le=120)
-    fit: Literal["crop", "blur"] = "crop"
-    loudness: bool = Field(True, title="Level the loudness across clips")
+    width: int = Field(1080, ge=16, le=7680, multiple_of=2, title="Width (pixels)", description="Every clip is shaped to this width.")
+    height: int = Field(1920, ge=16, le=7680, multiple_of=2, title="Height (pixels)", description="Every clip is shaped to this height.")
+    fps: int = Field(30, ge=1, le=120, title="Frame rate", description="Frames per second in the joined video.")
+    fit: Literal["crop", "blur"] = Field("crop", title="Fit", description="Crop cuts the edges off. Blur fills the spare space with a blurred copy.")
+    loudness: bool = Field(True, title="Level the loudness", description="Evens out the volume between clips.")
 
 
 class JoinPieces:

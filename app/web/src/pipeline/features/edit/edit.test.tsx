@@ -30,7 +30,7 @@ describe('PipelineEditor', () => {
     await ready();
     expect(screen.getByLabelText('Name')).toHaveValue('Join clips');
     expect(stageTitles()).toEqual(['Stage 1 Scan folder', 'Stage 2 Limit length', 'Stage 3 Render']);
-    expect(within(screen.getByRole('region', { name: 'Settings' })).getByLabelText('Max files')).toHaveValue('5000');
+    expect(within(screen.getByRole('region', { name: 'Settings' })).getByLabelText('Most files to look at')).toHaveValue('5000');
     expect(await screen.findByText('The order is valid')).toBeInTheDocument();
   });
 
@@ -84,7 +84,7 @@ describe('PipelineEditor', () => {
     fireEvent.click(within(within(dialog).getByText('Limit length').closest('li') as HTMLElement).getByRole('button', { name: 'Add' }));
     expect(stageTitles()).toHaveLength(4);
     expect(screen.getByLabelText('Max length (seconds)')).toHaveValue('900');
-    const choice = within(screen.getByRole('radiogroup', { name: 'When a batch is over the limit' }));
+    const choice = within(screen.getByRole('radiogroup', { name: 'When it is over the limit' }));
     expect(choice.getByRole('radio', { name: 'Ask me' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -108,7 +108,7 @@ describe('PipelineEditor', () => {
     const { api } = show();
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Select Render 3' }));
-    fireEvent.change(screen.getByLabelText('Max size mb'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Max file size (MB)'), { target: { value: '' } });
     await waitFor(() => expect(save()).toBeEnabled());
     fireEvent.click(save());
     await waitFor(() => expect(api.save).toHaveBeenCalled());

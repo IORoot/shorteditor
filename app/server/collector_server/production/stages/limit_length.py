@@ -15,9 +15,9 @@ CHOICES = ["drop_shortest", "keep_first"]
 
 
 class LimitSettings(CamelModel):
-    max_seconds: float = Field(900.0, ge=1, allow_inf_nan=False, title="Max length (seconds)")
-    choice: Literal["drop_shortest", "keep_first"] | None = Field(None, title="When a batch is over the limit")
-    trim_from: Literal["end", "start"] = Field("end", title="Keep first trims from")
+    max_seconds: float = Field(900.0, ge=1, allow_inf_nan=False, title="Max length (seconds)", description="The video is cut to this length.")
+    choice: Literal["drop_shortest", "keep_first"] | None = Field(None, title="When it is over the limit", description="What to drop when the batch is too long. Ask me stops the batch so you choose.")
+    trim_from: Literal["end", "start"] = Field("end", title="Keep first trims from", description="When the last clip is cut to fit, which end of it goes.")
 
 
 class LimitLength:

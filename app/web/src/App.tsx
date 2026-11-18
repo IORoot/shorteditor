@@ -13,7 +13,6 @@ const TABS = [
   { id: 'pipeline', label: 'Pipeline', enabled: true },
   { id: 'production', label: 'Production', enabled: true },
   { id: 'output', label: 'Output', enabled: false },
-  { id: 'settings', label: 'Settings', enabled: true },
 ];
 
 type Section = 'collection' | 'pipeline' | 'production' | 'settings';
@@ -25,6 +24,8 @@ export default function App() {
       tabs={TABS}
       activeTab={section}
       onSelect={(id) => setSection(id as Section)}
+      onSettings={() => setSection('settings')}
+      settingsActive={section === 'settings'}
       status={<span className="flex items-center gap-2"><span className="size-2 rounded-full bg-ok" />Backend online · Tailscale</span>}
     />
   );

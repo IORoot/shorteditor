@@ -22,12 +22,12 @@ _CRF = {"smaller": "23", "balanced": "20", "better": "17"}
 
 
 class RenderSettings(CamelModel):
-    preset: Literal["social", "custom"] = Field("social", title="Preset")
-    quality: Literal["smaller", "balanced", "better"] = Field("balanced", title="Quality")
-    fps: int = Field(30, ge=1, le=120, title="Frame rate")
-    audio_kbps: int = Field(128, ge=32, le=512, title="Audio (kbps)")
-    max_size_mb: float | None = Field(150.0, gt=0, le=100_000, allow_inf_nan=False, title="Max size (MB)")
-    file_name: str = Field("output.mp4", pattern=r"^[A-Za-z0-9_][A-Za-z0-9 ._-]{0,100}\.mp4$", title="File name")
+    preset: Literal["social", "custom"] = Field("social", title="Preset", description="Social uses 30 frames a second and 128 kbps audio. Custom uses the two values below.")
+    quality: Literal["smaller", "balanced", "better"] = Field("balanced", title="Quality", description="Smaller gives a smaller file. Better uses the whole size limit.")
+    fps: int = Field(30, ge=1, le=120, title="Frame rate", description="Used by the Custom preset.")
+    audio_kbps: int = Field(128, ge=32, le=512, title="Audio bitrate (kbps)", description="Used by the Custom preset.")
+    max_size_mb: float | None = Field(150.0, gt=0, le=100_000, allow_inf_nan=False, title="Max file size (MB)", description="Leave empty for no limit.")
+    file_name: str = Field("output.mp4", pattern=r"^[A-Za-z0-9_][A-Za-z0-9 ._-]{0,100}\.mp4$", title="File name", description="The name of the finished video. It must end in .mp4.")
 
 
 def target_video_bitrate(max_size_mb: float, duration: float, audio_kbps: int) -> int:

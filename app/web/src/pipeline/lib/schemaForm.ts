@@ -10,6 +10,8 @@ export interface Field {
   nullable: boolean;
   /** Long text (over 200 characters) is drawn as a textarea. */
   multiline: boolean;
+  /** One line under the label, from the server's description. */
+  help: string;
   min?: number;
   max?: number;
   defaultValue: unknown;
@@ -25,7 +27,7 @@ const labelOf = (name: string): string => {
 const strings = (value: unknown): string[] | null => (Array.isArray(value) && value.every((v) => typeof v === 'string') ? (value as string[]) : null);
 
 function fieldOf(name: string, prop: Prop): Field {
-  const base: Field = { name, label: typeof prop.title === 'string' ? prop.title : labelOf(name), kind: 'readonly', choices: [], nullable: false, multiline: false, defaultValue: prop.default };
+  const base: Field = { name, label: typeof prop.title === 'string' ? prop.title : labelOf(name), kind: 'readonly', choices: [], nullable: false, multiline: false, help: typeof prop.description === 'string' ? prop.description : '', defaultValue: prop.default };
   let shape = prop;
   const options = Array.isArray(prop.anyOf) ? (prop.anyOf as Prop[]) : null;
   if (options) {
@@ -49,7 +51,7 @@ function fieldOf(name: string, prop: Prop): Field {
 
 export function fieldsOf(schema: Record<string, unknown>): Field[] {
   const props = (schema.properties ?? {}) as Record<string, Prop>;
-  return Object.entries(props).map(([name, prop]) => fieldOf(name, prop));
+  return Object.entries(props).filter(([, prop]) => prop.hidden !== true).map(([name, prop]) => fieldOf(name, prop));
 }
 
 /** The text a field shows for a stored value. */

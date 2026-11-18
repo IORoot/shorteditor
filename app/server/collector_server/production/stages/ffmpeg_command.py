@@ -13,8 +13,8 @@ from ..stage_api import StageContext, StageError
 
 
 class FfmpegSettings(CamelModel):
-    run_on: Literal["each_clip", "joined_video"] = Field("each_clip", title="Run on")
-    options: str = Field("-c:a copy", max_length=1000, title="FFmpeg options")
+    run_on: Literal["each_clip", "joined_video"] = Field("each_clip", title="Run on", description="Each clip runs the options on its own. Joined video runs them once on the whole video.")
+    options: str = Field("-c:a copy", max_length=1000, title="FFmpeg options", description="Options such as -vf or -c:a. Use {input} and {output} for the files. Options that read or write other files are refused.")
 
 
 class FfmpegCommand:

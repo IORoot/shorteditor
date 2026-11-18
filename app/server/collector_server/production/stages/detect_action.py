@@ -22,20 +22,21 @@ MAX_FRAMES = 120  # shortcut: frames per piece are capped at this many, so long 
 
 
 class DetectSettings(CamelModel):
-    model: str = Field("nvidia/nemotron-nano-12b-v2-vl", min_length=1, max_length=200, title="Model")
+    model: str = Field("nvidia/nemotron-nano-12b-v2-vl", min_length=1, max_length=200, title="Model", description="The OpenRouter model that looks at the frames.")
     prompt: str = Field(
         'Find every time an action happens in these frames. Answer only with JSON like {"actions": [{"start": 3.5, "end": 9.0}]}. '
         "Times are seconds from the first frame. Answer {\"actions\": []} when nothing happens.",
         min_length=1,
         max_length=2000,
         title="Prompt",
+        description="What to look for, and the answer format the stage can read.",
     )
-    frames_per_second: float = Field(1.0, ge=0.1, le=2.0, title="Frames per second")
-    padding_before: float = Field(0.5, ge=0, le=10, title="Padding before (s)")
-    padding_after: float = Field(0.5, ge=0, le=10, title="Padding after (s)")
-    merge_gap: float = Field(2.0, ge=0, le=30, title="Merge actions closer than (s)")
-    min_action: float = Field(0.5, ge=0, le=30, title="Drop actions shorter than (s)")
-    reuse_results: bool = Field(True, title="Reuse saved results")
+    frames_per_second: float = Field(1.0, ge=0.1, le=2.0, title="Frames per second", description="How many frames a second are sent to the model.")
+    padding_before: float = Field(0.5, ge=0, le=10, title="Padding before (seconds)", description="Extra time kept before each action.")
+    padding_after: float = Field(0.5, ge=0, le=10, title="Padding after (seconds)", description="Extra time kept after each action.")
+    merge_gap: float = Field(2.0, ge=0, le=30, title="Join actions closer than (seconds)", description="Actions this close together become one part.")
+    min_action: float = Field(0.5, ge=0, le=30, title="Drop actions shorter than (seconds)", description="Very short parts are left out.")
+    reuse_results: bool = Field(True, title="Reuse saved results", description="Do not ask the model again about a clip it has already seen with these settings.")
 
 
 class DetectAction:

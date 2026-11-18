@@ -14,10 +14,10 @@ from ..stage_api import StageContext, StageError
 
 
 class OrderSettings(CamelModel):
-    order_by: Literal["capture_time", "created", "name", "duration", "random"] = "capture_time"
-    direction: Literal["oldest_first", "newest_first"] = "oldest_first"
-    seed: int = 0
-    fallback: Literal["modified", "name", "none"] = Field("modified", title="Fallback when there is no capture time")
+    order_by: Literal["capture_time", "created", "name", "duration", "random"] = Field("capture_time", title="Order by", description="What the clips are sorted by.")
+    direction: Literal["oldest_first", "newest_first"] = Field("oldest_first", title="Direction", description="Oldest first puts the earliest clip at the start.")
+    seed: int = Field(0, title="Random seed", description="The same seed gives the same random order every time.")
+    fallback: Literal["modified", "name", "none"] = Field("modified", title="When there is no capture time", description="Clips without a capture time go after the others, sorted by this.")
 
 
 class OrderClips:

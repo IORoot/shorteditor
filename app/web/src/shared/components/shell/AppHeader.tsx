@@ -1,4 +1,4 @@
-import { Scissors } from 'lucide-react';
+import { Scissors, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export interface HeaderTab {
@@ -12,9 +12,12 @@ export interface AppHeaderProps {
   activeTab: string;
   status: ReactNode;
   onSelect?: (id: string) => void;
+  /** The cog at the far right, opening Settings. */
+  onSettings?: () => void;
+  settingsActive?: boolean;
 }
 
-export function AppHeader({ tabs, activeTab, status, onSelect }: AppHeaderProps) {
+export function AppHeader({ tabs, activeTab, status, onSelect, onSettings, settingsActive = false }: AppHeaderProps) {
   return (
     <header className="sticky top-4 z-10 flex h-[52px] items-center justify-between rounded-full bg-surface pl-5 pr-2.5 shadow-[0_6px_28px_#0000001a]">
       <div className="flex w-64 items-center gap-2.5">
@@ -40,7 +43,19 @@ export function AppHeader({ tabs, activeTab, status, onSelect }: AppHeaderProps)
           </button>
         ))}
       </nav>
-      <div className="flex w-64 items-center justify-end gap-2 pr-3 text-caption font-medium text-text-2">{status}</div>
+      <div className="flex w-64 items-center justify-end gap-2 pr-1 text-caption font-medium text-text-2">
+        {status}
+        <button
+          type="button"
+          aria-label="Settings"
+          title="Settings"
+          onClick={onSettings}
+          aria-current={settingsActive ? 'page' : undefined}
+          className={`grid size-9 place-items-center rounded-full ${settingsActive ? 'bg-fill-2 text-base-content' : 'text-text-2 hover:bg-fill-2'}`}
+        >
+          <Settings size={18} aria-hidden="true" />
+        </button>
+      </div>
     </header>
   );
 }

@@ -5,12 +5,12 @@ export const summary = (over: Partial<PipelineSummary> = {}): PipelineSummary =>
 });
 
 export const library: StageInfo[] = [
-  { key: 'scan_folder', title: 'Scan folder', description: 'Test stage.', transitions: { none: 'pieces' }, position: 'first', settingsSchema: { properties: { maxFiles: { default: 5000, minimum: 1, type: 'integer' } } } },
+  { key: 'scan_folder', title: 'Scan folder', description: 'Test stage.', transitions: { none: 'pieces' }, position: 'first', settingsSchema: { properties: { maxFiles: { default: 5000, minimum: 1, title: 'Most files to look at', type: 'integer' } } } },
   { key: 'limit_length', title: 'Limit length', description: 'Test stage.', transitions: { pieces: 'pieces' }, position: 'any', settingsSchema: { properties: {
     maxSeconds: { default: 900, minimum: 1, title: 'Max length (seconds)', type: 'number' },
-    choice: { title: 'When a batch is over the limit', anyOf: [{ enum: ['drop_shortest', 'keep_first'], type: 'string' }, { type: 'null' }], default: null },
+    choice: { title: 'When it is over the limit', anyOf: [{ enum: ['drop_shortest', 'keep_first'], type: 'string' }, { type: 'null' }], default: null },
   } } },
-  { key: 'render_output', title: 'Render', description: 'Test stage.', transitions: { video: 'video' }, position: 'last', settingsSchema: { properties: { maxSizeMb: { anyOf: [{ type: 'number' }, { type: 'null' }], default: 150 } } } },
+  { key: 'render_output', title: 'Render', description: 'Test stage.', transitions: { video: 'video' }, position: 'last', settingsSchema: { properties: { maxSizeMb: { anyOf: [{ type: 'number' }, { type: 'null' }], default: 150, title: 'Max file size (MB)' } } } },
 ];
 
 export const steps = (): StageStep[] => [

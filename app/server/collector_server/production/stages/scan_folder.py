@@ -13,13 +13,13 @@ from ..stage_api import StageContext, StageError
 
 
 class ScanSettings(CamelModel):
-    include_subfolders: bool = Field(True, title="Include subfolders")
-    extensions: list[Annotated[str, StringConstraints(pattern=r"^\.?[A-Za-z0-9]{1,10}$")]] = Field(["mp4", "mov"], max_length=20, title="Extensions")
-    max_files: int = Field(5000, ge=1, le=100_000, title="Max files")
-    min_length: float = Field(1.0, ge=0, allow_inf_nan=False, title="Min length (seconds)")
-    name_contains: str = Field("", max_length=100, title="File name contains")
-    name_mode: Literal["contains", "not_contains"] = Field("contains", title="File name rule")
-    skip_hidden_and_duplicates: bool = Field(True, title="Skip hidden and duplicate names")
+    include_subfolders: bool = Field(True, title="Include subfolders", description="Also look inside the folders within the input folder.")
+    extensions: list[Annotated[str, StringConstraints(pattern=r"^\.?[A-Za-z0-9]{1,10}$")]] = Field(["mp4", "mov"], max_length=20, title="File types", description="Video file endings to look for, such as mp4 or mov.")
+    max_files: int = Field(5000, ge=1, le=100_000, title="Most files to look at", description="The scan stops with a message if the folder holds more files than this.")
+    min_length: float = Field(1.0, ge=0, allow_inf_nan=False, title="Shortest clip (seconds)", description="Clips shorter than this are skipped.")
+    name_contains: str = Field("", max_length=100, title="File name contains", description="Only clips whose name includes this text. Leave empty to keep every name.")
+    name_mode: Literal["contains", "not_contains"] = Field("contains", title="File name rule", description="Keep the clips whose name matches the text, or the ones whose name does not.")
+    skip_hidden_and_duplicates: bool = Field(True, title="Skip hidden and repeated names", description="Leaves out hidden files and a second clip with a name already used.")
 
 
 class ScanFolder:

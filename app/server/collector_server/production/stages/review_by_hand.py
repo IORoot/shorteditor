@@ -10,7 +10,7 @@ from ..stage_api import BlockedError, StageContext, StageError
 
 class ReviewSettings(CamelModel):
     # Set by the user from the blocked pass; None means the batch has not been reviewed yet.
-    picks: list[int] | None = Field(None, title="Clips picked")
+    picks: list[int] | None = Field(None, json_schema_extra={"hidden": True})  # set from the blocked batch, not by hand
 
 
 class ReviewByHand:
