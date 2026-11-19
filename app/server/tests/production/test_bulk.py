@@ -317,11 +317,11 @@ def test_a_failure_halfway_says_how_many_were_made_and_leaves_no_dead_card(world
     real = world.passes.create
     calls = {"n": 0}
 
-    def flaky(batch_id, now, overrides=None):
+    def flaky(batch_id, now, overrides=None, **kwargs):
         calls["n"] += 1
         if calls["n"] == 3:
             raise RuntimeError("disk is full")
-        return real(batch_id, now, overrides)
+        return real(batch_id, now, overrides, **kwargs)
 
     monkeypatch.setattr(world.passes, "create", flaky)
     with pytest.raises(InvalidInputError, match="Created 2 of 4.*disk is full"):

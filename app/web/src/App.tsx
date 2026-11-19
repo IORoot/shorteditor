@@ -7,7 +7,8 @@ import { PipelinePage } from './pipeline/PipelinePage';
 import { pipelineApi } from './pipeline/lib/api';
 import { SettingsPage } from './settings/SettingsPage';
 import { ReviewRoute } from './production/features/review/ReviewRoute';
-import { batchIdFromHash, goTo, useHash } from './shared/lib/route';
+import { batchHash, batchIdFromHash, cardIdFromHash, goTo, useHash } from './shared/lib/route';
+import { BatchBoardPage } from './production/features/batches/BatchBoardPage';
 import { settingsApi } from './settings/lib/api';
 
 const TABS = [
@@ -21,7 +22,9 @@ type Section = 'collection' | 'pipeline' | 'production' | 'settings';
 
 export default function App() {
   const [section, setSection] = useState<Section>('collection');
-  const reviewBatch = batchIdFromHash(useHash());
+  const hash = useHash();
+  const cardId = cardIdFromHash(hash);
+  const batchId = batchIdFromHash(hash);
   const header = (
     <AppHeader
       tabs={TABS}
@@ -44,8 +47,13 @@ export default function App() {
       </div>
       {section === 'pipeline' ? <PipelinePage api={pipelineApi} /> : null}
       {section === 'settings' ? <SettingsPage api={settingsApi} /> : null}
-      {section === 'production' && reviewBatch !== null ? <ReviewRoute api={productionApi} batchId={reviewBatch} onBack={() => goTo('')} /> : null}
-      {section === 'production' && reviewBatch === null ? <BoardPage api={productionApi} onManagePipelines={() => setSection('pipeline')} /> : null}
+      {section === 'production' && cardId !== null ? (
+        <ReviewRoute api={productionApi} cardId={cardId} onBack={(batch) => goTo(batch === null ? '' : batchHash(batch))} />
+      ) : null}
+      {section === 'production' && cardId === null && batchId !== null ? <BatchBoardPage api={productionApi} batchId={batchId} onBack={() => goTo('')} /> : null}
+      {section === 'production' && cardId === null && batchId === null ? (
+        <BoardPage api={productionApi} onManagePipelines={() => setSection('pipeline')} onOpenBatch={(id) => goTo(batchHash(id))} />
+      ) : null}
     </div>
   );
 }

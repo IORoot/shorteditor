@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProductionApi } from '../../lib/api';
 import type { BatchCard } from '../../lib/types';
-import { makeCard } from '../../test/fixtures';
+import { listRowsFor, makeCard } from '../../test/fixtures';
 import { BoardPage } from './BoardPage';
 
 const output = { path: '/out/a/pass-1/output.mp4', duration: 58, sizeBytes: 5_000_000 };
@@ -10,6 +10,7 @@ const output = { path: '/out/a/pass-1/output.mp4', duration: 58, sizeBytes: 5_00
 function setup(cards: BatchCard[]) {
   const api = {
     cards: vi.fn().mockResolvedValue(cards),
+    batchList: vi.fn().mockResolvedValue(listRowsFor(cards)),
     approve: vi.fn().mockResolvedValue({}),
     runAgain: vi.fn().mockResolvedValue({}),
     resolve: vi.fn().mockResolvedValue({}),
@@ -38,8 +39,8 @@ describe('BoardPage choosing batches to delete', () => {
   it('chooses cards on click instead of opening them, and leaves running ones alone', { tags: ['full'] }, async () => {
     setup(cards());
     fireEvent.click(await screen.findByRole('button', { name: 'Select' }));
-    fireEvent.click(screen.getByRole('button', { name: 'A, Ready' }));
-    expect(screen.getByRole('button', { name: 'A, Ready' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'A, Review' }));
+    expect(screen.getByRole('button', { name: 'A, Review' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('toolbar', { name: 'Chosen batches' })).toHaveTextContent('1 chosen');
     expect(screen.getByRole('button', { name: 'C, Running' })).toBeDisabled();
     expect(window.location.hash).toBe('');
@@ -48,7 +49,7 @@ describe('BoardPage choosing batches to delete', () => {
   it('deletes the chosen batches after a confirmation and leaves choosing mode', { tags: ['full'] }, async () => {
     const api = setup(cards());
     fireEvent.click(await screen.findByRole('button', { name: 'Select' }));
-    fireEvent.click(screen.getByRole('button', { name: 'A, Ready' }));
+    fireEvent.click(screen.getByRole('button', { name: 'A, Review' }));
     fireEvent.click(screen.getByRole('button', { name: 'B, Failed' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }));
     const dialog = screen.getByRole('dialog', { name: 'Delete batches' });
@@ -63,7 +64,7 @@ describe('BoardPage choosing batches to delete', () => {
     const api = setup(cards());
     api.deleteBatches.mockRejectedValue(new Error('A batch that is waiting or running cannot be deleted.'));
     fireEvent.click(await screen.findByRole('button', { name: 'Select' }));
-    fireEvent.click(screen.getByRole('button', { name: 'A, Ready' }));
+    fireEvent.click(screen.getByRole('button', { name: 'A, Review' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete batches' })).getByRole('button', { name: 'Delete batch' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('cannot be deleted');
@@ -73,8 +74,8 @@ describe('BoardPage choosing batches to delete', () => {
   it('clears the choice when Clear is pressed', { tags: ['full'] }, async () => {
     setup(cards());
     fireEvent.click(await screen.findByRole('button', { name: 'Select' }));
-    fireEvent.click(screen.getByRole('button', { name: 'A, Ready' }));
+    fireEvent.click(screen.getByRole('button', { name: 'A, Review' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    expect(screen.getByRole('button', { name: 'A, Ready' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'A, Review' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

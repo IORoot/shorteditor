@@ -1,12 +1,22 @@
 import { HttpClient } from '../../shared/lib/http';
 import type { StageHandoff } from '../../shared/contracts/handoff';
-import type { Batch, BatchCard, BatchCreate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
+import type { Batch, BatchCard, BatchCreate, BatchListItem, BatchUpdate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
 
 const BASE = '/api/production';
 
 export class ProductionApi extends HttpClient {
   cards(): Promise<BatchCard[]> {
     return this.request<BatchCard[]>(`${BASE}/batches`);
+  }
+
+  /** Every batch with the status of its newest run, for the batch list. */
+  batchList(): Promise<BatchListItem[]> {
+    return this.request<BatchListItem[]>(`${BASE}/batch-list`);
+  }
+
+  /** Renames a batch or changes its output folder. */
+  updateBatch(batchId: number, body: BatchUpdate): Promise<Batch> {
+    return this.send<Batch>(`${BASE}/batches/${batchId}`, 'PATCH', body);
   }
 
   defaults(): Promise<Defaults> {
@@ -26,9 +36,9 @@ export class ProductionApi extends HttpClient {
     return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', picks === undefined ? { choice } : { choice, picks });
   }
 
-  /** A new pass from the original clips, optionally switching the batch to another pipeline first. */
-  runAgain(batchId: number, pipelineId?: number): Promise<Pass> {
-    return this.send<Pass>(`${BASE}/batches/${batchId}/passes`, 'POST', pipelineId === undefined ? {} : { pipelineId });
+  /** A new run of the batch: one card per folder, from the original folders. Replaces the previous run. */
+  runAgain(batchId: number, pipelineId?: number): Promise<{ batch: Batch; passes: Pass[] }> {
+    return this.send<{ batch: Batch; passes: Pass[] }>(`${BASE}/batches/${batchId}/runs`, 'POST', pipelineId === undefined ? {} : { pipelineId });
   }
 
   /** The switched-on pipelines a batch or watch can use. */
@@ -73,7 +83,7 @@ export class ProductionApi extends HttpClient {
     return this.send<CheckResult>(`${BASE}/watches/${id}/check`, 'POST', {});
   }
 
-  /** The batch with all its passes, so the review screen can read the pass it is showing. */
+  /** The batch with the cards of its newest run. */
   batchDetail(batchId: number): Promise<{ batch: Batch; passes: Pass[] }> {
     return this.request<{ batch: Batch; passes: Pass[] }>(`${BASE}/batches/${batchId}`);
   }

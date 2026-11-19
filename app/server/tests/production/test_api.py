@@ -66,15 +66,15 @@ def test_batch_detail_lists_passes(api):
 @pytest.mark.full
 def test_unknown_batch_is_404(api):
     assert api.client.get("/api/production/batches/99").status_code == 404
-    assert api.client.post("/api/production/batches/99/passes", json={}).status_code == 404
+    assert api.client.post("/api/production/batches/99/runs", json={}).status_code == 404
 
 
 def test_run_again_returns_201_and_refuses_while_waiting(api):
     batch = api.create().json()
-    assert api.client.post(f"/api/production/batches/{batch['id']}/passes", json={}).status_code == 409
+    assert api.client.post(f"/api/production/batches/{batch['id']}/runs", json={}).status_code == 409
     api.repo_passes.update(1, status="review")
-    again = api.client.post(f"/api/production/batches/{batch['id']}/passes", json={})
-    assert again.status_code == 201 and again.json()["number"] == 2
+    again = api.client.post(f"/api/production/batches/{batch['id']}/runs", json={})
+    assert again.status_code == 201 and [c["status"] for c in again.json()["passes"]] == ["queued"]
 
 
 @pytest.mark.full

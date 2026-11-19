@@ -16,6 +16,8 @@ export interface VideoData {
 export interface BatchCard {
   batchId: number;
   passId: number;
+  /** The card's folder, absolute: one folder of work in the batch. */
+  folder: string;
   name: string;
   inputFolder: string;
   pipelineId: number | null;
@@ -68,6 +70,25 @@ export interface Batch {
   runOn: string;
   outputRoot: string;
   createdAt: string;
+}
+
+/** One row of the batch list: a batch with the status of its newest run. */
+export interface BatchListItem {
+  id: number;
+  name: string;
+  inputFolder: string;
+  pipelineName: string | null;
+  runNumber: number | null;
+  runAt: string | null;
+  folderCount: number;
+  approvedCount: number;
+  failedCount: number;
+  status: 'empty' | 'queued' | 'running' | 'review' | 'failed' | 'approved';
+}
+
+export interface BatchUpdate {
+  name?: string;
+  outputRoot?: string;
 }
 
 export type StageRunStatus = 'running' | 'done' | 'failed' | 'blocked';

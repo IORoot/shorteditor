@@ -53,8 +53,9 @@ def test_run_again_creates_next_pass_with_same_overrides(parts):
     batch = create(service, inbox)
     first = passes.for_batch(batch.id)[0]
     passes.update(first.id, status="review", overrides={"limit_length": {"choice": "keep_first"}})
-    again = service.run_again(batch.id, None)
-    assert (again.number, again.status, again.overrides) == (2, "queued", {"limit_length": {"choice": "keep_first"}})
+    run = service.run_again(batch.id, None)
+    [card] = passes.for_run(run.id)
+    assert (run.number, card.status, card.overrides) == (2, "queued", {"limit_length": {"choice": "keep_first"}})
 
 
 def test_run_again_refuses_while_the_batch_is_waiting_or_running(parts):
@@ -182,7 +183,7 @@ def test_run_again_from_two_threads_makes_only_one_pass(parts):
     threads = [threading.Thread(target=go) for _ in range(8)]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    assert outcomes.count("ok") == 1 and len(passes.for_batch(batch.id)) == 2
+    assert outcomes.count("ok") == 1 and len(passes.for_batch(batch.id)) == 1  # the re-run replaced the old card
 
 
 @pytest.mark.full
@@ -196,16 +197,15 @@ def test_run_again_is_refused_while_the_latest_pass_is_blocked(parts):
 
 @pytest.mark.full
 @pytest.mark.full
-def test_only_the_latest_pass_can_be_approved_or_resolved(parts):
+def test_a_card_of_an_earlier_run_cannot_be_approved_or_resolved(parts):
     service, passes, _, inbox, _ = parts
     batch = create(service, inbox)
     old = passes.for_batch(batch.id)[0]
     passes.update(old.id, status="review", output=VideoData(path="/o/x.mp4", duration=1, size_bytes=1))
-    service.run_again(batch.id, None)
-    with pytest.raises(StateError, match="newest"):
+    service.run_again(batch.id, None)  # the re-run replaces the old run and its cards
+    with pytest.raises(NotFoundError):
         service.approve(old.id)
-    passes.update(old.id, status="blocked", blocked_choices=["keep_first"], stage_key="limit_length")
-    with pytest.raises(StateError, match="newest"):
+    with pytest.raises(NotFoundError):
         service.resolve_block(old.id, "keep_first")
 
 
@@ -215,7 +215,7 @@ def test_a_batch_without_a_pass_does_not_break_the_board_and_can_run(parts, db):
     service, passes, _, inbox, _ = parts
     good = create(service, inbox, name="Good")
     broken = create(service, inbox, name="Broken")
-    db.execute("DELETE FROM production_passes WHERE batch_id = ?", (broken.id,))
+    db.execute("DELETE FROM production_runs WHERE batch_id = ?", (broken.id,))
     assert [c.name for c in service.cards()] == ["Good"]
     assert service.run_again(broken.id, None).number == 1
 
@@ -351,5 +351,6 @@ def test_picks_are_refused_when_empty_and_do_not_carry_into_the_next_pass(parts)
     with pytest.raises(ValueError):
         service.resolve_block(made.id, "Keep the picked clips", [])
     passes.update(made.id, status="failed", overrides={"review_by_hand": {"picks": [0]}})
-    again = service.run_again(made.batch_id, None)
-    assert again.overrides == {}
+    run = service.run_again(made.batch_id, None)
+    [card] = passes.for_run(run.id)
+    assert card.overrides == {}

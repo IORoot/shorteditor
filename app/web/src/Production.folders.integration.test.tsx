@@ -3,13 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { makeCollector } from './collection/test/fixtures';
 import type { BatchCard, FolderPreview, WatchView } from './production/lib/types';
-import { makeCard } from './production/test/fixtures';
+import { listRowsFor, makeCard } from './production/test/fixtures';
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
 const noContent = () => Promise.resolve(new Response(null, { status: 204 }));
 
 const DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}_.+$';
-const COLUMNS = ['Queued', 'Running', 'Review'];
 
 function watch(over: Partial<WatchView> = {}): WatchView {
   return {
@@ -39,6 +38,7 @@ function folderServer() {
     if (url === '/api/collectors') return json([makeCollector()]);
     if (url.startsWith('/api/collectors/')) return json([]);
     if (url === '/api/production/batches' && method === 'GET') return json(state.cards);
+    if (url === '/api/production/batch-list' && method === 'GET') return json(listRowsFor(state.cards));
     if (url === '/api/production/defaults') return json({ outputRoot: '/Volumes/Edit/production_output', workers: [{ id: 'local', label: 'This computer' }] });
     if (url === '/api/production/pipelines') return json([{ id: 1, name: 'Join clips', stageCount: 5 }]);
     if (url === '/api/production/folders/preview') return state.previewError ? json({ detail: state.previewError }, 422) : json(state.preview);
@@ -104,7 +104,7 @@ afterEach(() => {
 });
 
 describe('Production folders and watches, end to end', () => {
-  it('creates a batch for each new folder and the board shows them in the new column order', async () => {
+  it('creates a batch for each new folder and the list shows them as Queued', async () => {
     const backend = folderServer();
     backend.state.preview = settledPreview();
     await openProduction();
@@ -118,10 +118,7 @@ describe('Production folders and watches, end to end', () => {
     expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
       parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', include: [], pipelineId: 1,
     });
-    // the new column order: Queued first, Review last, with the new batch in Queued
-    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Queued' })).getByText('2026-11-07_b')).toBeInTheDocument());
-    const columns = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label')).filter((n): n is string => n !== null && COLUMNS.includes(n));
-    expect(columns).toEqual(COLUMNS);
+    await waitFor(() => expect(screen.getByRole('button', { name: '2026-11-07_b, Queued' })).toBeInTheDocument());
   });
 
   it('Add watch from the panel opens a watch-only form, and saving it returns to the panel with the new watch', { tags: ['full'] }, async () => {
@@ -200,7 +197,7 @@ describe('Production folders and watches, end to end', () => {
 
     fireEvent.click(within(screen.getByRole('listitem', { name: 'Watch Coach' })).getByRole('button', { name: 'Check now' }));
     expect(await within(screen.getByRole('listitem', { name: 'Watch Coach' })).findByText('Created 1 batch')).toBeInTheDocument();
-    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Queued' })).getByText('2026-11-07_b')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: '2026-11-07_b, Queued' })).toBeInTheDocument());
 
     fireEvent.click(within(screen.getByRole('listitem', { name: 'Watch Old' })).getByRole('button', { name: 'Delete' }));
     expect(within(screen.getByRole('listitem', { name: 'Watch Old' })).getByText('Delete this watch? Its batches stay.')).toBeInTheDocument();

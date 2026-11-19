@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { makeCollector } from './collection/test/fixtures';
 import type { BatchCard } from './production/lib/types';
-import { makeCard } from './production/test/fixtures';
+import { listRowsFor, makeCard } from './production/test/fixtures';
 
 const output = { path: '/out/Coach-1/pass-1/output.mp4', duration: 58.4, sizeBytes: 46_000_000 };
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
@@ -20,6 +20,12 @@ function server(initial: BatchCard[]) {
     if (url.startsWith('/api/collectors/')) return json([]);
     if (state.down) return Promise.resolve(new Response('down', { status: 503 }));
     if (url === '/api/production/batches' && method === 'GET') return json(state.cards);
+    if (url === '/api/production/batch-list' && method === 'GET') return json(listRowsFor(state.cards));
+    const batch = /^\/api\/production\/batches\/(\d+)$/.exec(url);
+    if (batch && method === 'GET') {
+      const name = state.cards.find((card) => card.batchId === Number(batch[1]))?.name ?? 'Batch';
+      return json({ batch: { id: Number(batch[1]), name, inputFolder: '/clips', steps: [], runOn: 'any', outputRoot: '/out', createdAt: '' }, passes: [] });
+    }
     if (url === '/api/production/defaults') return json({ outputRoot: '/Volumes/Edit/production_output', workers: [{ id: 'local', label: 'This computer' }] });
     if (url === '/api/production/pipelines') return json([{ id: 1, name: 'Join clips', stageCount: 5 }]);
     if (url === '/api/production/batches' && method === 'POST' && state.holdCreate) return new Promise(() => undefined);
@@ -30,7 +36,7 @@ function server(initial: BatchCard[]) {
   });
   vi.stubGlobal('fetch', fetchMock);
   const posted = (pattern: RegExp) => state.requests.filter((r) => r.method === 'POST' && pattern.test(r.url));
-  const boardLoads = () => state.requests.filter((r) => r.url === '/api/production/batches' && r.method === 'GET').length;
+  const boardLoads = () => state.requests.filter((r) => r.url === '/api/production/batch-list' && r.method === 'GET').length;
   return { state, posted, boardLoads };
 }
 
@@ -46,7 +52,7 @@ afterEach(() => {
 });
 
 describe('Production, end to end', () => {
-  it('shows each batch in the right column', { tags: ['full'] }, async () => {
+  it('lists each batch with its status', { tags: ['full'] }, async () => {
     server([
       makeCard({ name: 'Coach Saturdays', status: 'review', output }),
       makeCard({ name: 'Jams', status: 'failed', error: 'No clips found' }),
@@ -55,10 +61,10 @@ describe('Production, end to end', () => {
     ]);
     await openProduction();
     expect(await screen.findByText('4 batches · 1 queued · 1 running · 2 to review · 1 failed')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Review' })).getByText('Coach Saturdays')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Review' })).getByText('Jams')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Running' })).getByText('Tuesday')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Queued' })).getByText('Camera A')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Coach Saturdays, Review' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Jams, Failed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tuesday, Running' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Camera A, Queued' })).toBeInTheDocument();
   });
 
   it('creates a batch with the exact request and reloads the board', async () => {
@@ -124,9 +130,11 @@ describe('Production, end to end', () => {
   it('goes back from a review page to the board, and starts the New batch form empty each time', { tags: ['full'] }, async () => {
     server([makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     await openProduction();
+    fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Review' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
     expect(await screen.findByRole('heading', { name: 'Coach Saturdays' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Production' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'All batches' }));
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
     expect(screen.queryByRole('main', { name: 'Review' })).toBeNull();
     expect(screen.getByLabelText('Name')).toHaveFocus();
@@ -141,6 +149,7 @@ describe('Production, end to end', () => {
     const card = makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
     const backend = server([card]);
     await openProduction();
+    fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Review' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
     const approve = await screen.findByRole('button', { name: 'Approve' });
     backend.state.cards = [{ ...card, status: 'approved' }];
@@ -154,6 +163,7 @@ describe('Production, end to end', () => {
   it('sends the chosen way out of a blocked batch', { tags: ['full'] }, async () => {
     const backend = server([makeCard({ name: 'Long', status: 'blocked', blockedReason: 'Over the limit', blockedChoices: ['drop_shortest', 'keep_first'], passId: 21 })]);
     await openProduction();
+    fireEvent.click(await screen.findByRole('button', { name: 'Long, Review' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Long, Blocked' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Drop the shortest parts' }));
     await waitFor(() => expect(backend.posted(/passes\/21\/resolve$/)[0].body).toEqual({ choice: 'drop_shortest' }));
@@ -174,6 +184,8 @@ describe('Production, end to end', () => {
     const running = makeCard({ name: 'Tuesday', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 3, passId: 31 });
     const backend = server([running]);
     await openProduction();
+    fireEvent.click(await screen.findByRole('button', { name: 'Tuesday, Running' }));
+    expect(await screen.findByRole('heading', { name: 'Tuesday' })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Tuesday, Running' }));
     expect(await screen.findByText('Scan folder · stage 1 of 5')).toBeInTheDocument();
     backend.state.cards = [{ ...running, stageTitle: 'Join in order', stagePosition: 4 }];

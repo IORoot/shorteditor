@@ -24,6 +24,13 @@ class Batch(CamelModel):
     created_at: str
 
 
+class Run(CamelModel):
+    id: int
+    batch_id: int
+    number: int
+    created_at: str
+
+
 class StageRun(CamelModel):
     key: str
     title: str
@@ -33,8 +40,12 @@ class StageRun(CamelModel):
 
 
 class Pass(CamelModel):
+    """A card: one folder of work in one run of a batch."""
+
     id: int
     batch_id: int
+    run_id: int | None = None
+    folder: str = ""  # the card's folder, absolute
     number: int
     status: PassStatus = "queued"
     stage_index: int = 0
@@ -50,6 +61,11 @@ class Pass(CamelModel):
     created_at: str
     started_at: str | None = None
     finished_at: str | None = None
+
+
+class BatchUpdate(CamelModel):
+    name: str | None = None  # None leaves the name alone
+    output_root: str | None = None  # None leaves the output folder alone; allowed only while no card has a finished video
 
 
 class BatchesDelete(CamelModel):
@@ -77,9 +93,23 @@ class Resolve(CamelModel):
     picks: list[int] | None = None  # the clips kept, for a Review by hand stop
 
 
+class BatchListItem(CamelModel):
+    id: int
+    name: str
+    input_folder: str
+    pipeline_name: str | None
+    run_number: int | None
+    run_at: str | None
+    folder_count: int
+    approved_count: int
+    failed_count: int
+    status: str  # empty, queued, running, review, failed or approved, derived from the cards of the newest run
+
+
 class BatchCard(CamelModel):
     batch_id: int
     pass_id: int
+    folder: str = ""
     pipeline_id: int | None
     run_on: str
     started_at: str | None

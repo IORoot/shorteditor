@@ -7,7 +7,7 @@ import { ReviewRoute } from './ReviewRoute';
 
 const output = { path: '/out/a/pass-1/output.mp4', duration: 58, sizeBytes: 5_000_000 };
 
-function setup(batchId: number, first: BatchCard[], ...rest: BatchCard[][]) {
+function setup(cardId: number, first: BatchCard[], ...rest: BatchCard[][]) {
   const cards = vi.fn().mockResolvedValueOnce(first);
   rest.forEach((list) => cards.mockResolvedValueOnce(list));
   cards.mockResolvedValue(rest.length ? rest[rest.length - 1] : first);
@@ -22,7 +22,7 @@ function setup(batchId: number, first: BatchCard[], ...rest: BatchCard[][]) {
     passLog: vi.fn().mockResolvedValue({ lines: [], entries: [] }),
   };
   const onBack = vi.fn();
-  render(<ReviewRoute api={api as unknown as ProductionApi} batchId={batchId} onBack={onBack} />);
+  render(<ReviewRoute api={api as unknown as ProductionApi} cardId={cardId} onBack={onBack} />);
   return { api, onBack };
 }
 
@@ -34,7 +34,7 @@ const page = () => screen.getByRole('main', { name: 'Review' });
 
 describe('ReviewRoute', () => {
   it('shows the batch its address names, with a way back to the board', async () => {
-    const { onBack } = setup(1, [makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
+    const { onBack } = setup(11, [makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     expect(await screen.findByRole('heading', { name: 'Coach Saturdays' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Production' }));
     expect(onBack).toHaveBeenCalledTimes(1);
@@ -42,7 +42,7 @@ describe('ReviewRoute', () => {
 
   it('approves the newest pass, reloads the batch and shows the new state', async () => {
     const review = makeCard({ name: 'A', status: 'review', output, batchId: 1, passId: 11 });
-    const { api } = setup(1, [review], [{ ...review, status: 'approved' }]);
+    const { api } = setup(11, [review], [{ ...review, status: 'approved' }]);
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
     await waitFor(() => expect(within(page()).getByText('Approved')).toBeInTheDocument());
     expect(api.approve).toHaveBeenCalledWith(11);
@@ -50,7 +50,7 @@ describe('ReviewRoute', () => {
   });
 
   it('sends only one request when Approve is clicked twice', { tags: ['full'] }, async () => {
-    const { api } = setup(1, [makeCard({ name: 'A', status: 'review', output, batchId: 1, passId: 11 })]);
+    const { api } = setup(11, [makeCard({ name: 'A', status: 'review', output, batchId: 1, passId: 11 })]);
     api.approve.mockImplementation(() => new Promise(() => undefined));
     const approve = await screen.findByRole('button', { name: 'Approve' });
     fireEvent.click(approve);
@@ -59,7 +59,7 @@ describe('ReviewRoute', () => {
   });
 
   it('shows the server message on the page and keeps the page open', { tags: ['full'] }, async () => {
-    const { api } = setup(1, [makeCard({ name: 'A', status: 'review', output, batchId: 1, passId: 11 })]);
+    const { api } = setup(11, [makeCard({ name: 'A', status: 'review', output, batchId: 1, passId: 11 })]);
     api.approve.mockRejectedValue(new Error('A newer pass exists for this batch.'));
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('A newer pass exists for this batch.');
@@ -67,14 +67,14 @@ describe('ReviewRoute', () => {
   });
 
   it('sends the chosen way out of a blocked batch', async () => {
-    const { api } = setup(1, [makeCard({ name: 'B', status: 'blocked', blockedReason: 'Over', blockedChoices: ['keep_first'], batchId: 1, passId: 21 })]);
+    const { api } = setup(21, [makeCard({ name: 'B', status: 'blocked', blockedReason: 'Over', blockedChoices: ['keep_first'], batchId: 1, passId: 21 })]);
     fireEvent.click(await screen.findByRole('button', { name: 'Keep the first parts and trim the last' }));
     await act(async () => undefined);
     expect(api.resolve).toHaveBeenCalledWith(21, 'keep_first');
   });
 
   it('runs a batch again as a new pass', { tags: ['full'] }, async () => {
-    const { api } = setup(7, [makeCard({ name: 'C', status: 'failed', error: 'Boom', batchId: 7, passId: 31 })]);
+    const { api } = setup(31, [makeCard({ name: 'C', status: 'failed', error: 'Boom', batchId: 7, passId: 31 })]);
     fireEvent.click(await screen.findByRole('button', { name: 'Run again' }));
     await act(async () => undefined);
     expect(api.runAgain.mock.calls[0][0]).toBe(7);  // the pipeline id is sent too, as the batch's own
@@ -83,7 +83,7 @@ describe('ReviewRoute', () => {
   it('follows the batch when a refresh brings a new state', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     const running = makeCard({ name: 'D', status: 'running', stageTitle: 'Render', stagePosition: 5, batchId: 4, passId: 41 });
-    setup(4, [running], [{ ...running, status: 'review', output }]);
+    setup(41, [running], [{ ...running, status: 'review', output }]);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(screen.getByText('Render · stage 5 of 5')).toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
@@ -100,7 +100,7 @@ describe('ReviewRoute', () => {
   it('drops an old action error when a refresh brings a different pass', { tags: ['full'] }, async () => {
     vi.useFakeTimers();
     const review = makeCard({ name: 'G', status: 'review', output, batchId: 7, passId: 71 });
-    const { api } = setup(7, [review], [{ ...review, passId: 72, status: 'running', stageTitle: 'Scan folder', stagePosition: 1, output: null }]);
+    const { api } = setup(71, [review], [{ ...review, passId: 72, status: 'running', stageTitle: 'Scan folder', stagePosition: 1, output: null }]);
     api.approve.mockRejectedValue(new Error('A newer pass exists for this batch.'));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));

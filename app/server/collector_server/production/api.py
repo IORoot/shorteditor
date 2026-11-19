@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, BatchesDelete, BatchesDeleted, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
+from .models import Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -41,6 +41,14 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     def cards() -> list[BatchCard]:
         return service.cards()
 
+    @router.get("/batch-list", response_model=list[BatchListItem])
+    def batch_list() -> list[BatchListItem]:
+        return service.batch_list()
+
+    @router.patch("/batches/{batch_id}", response_model=Batch)
+    def update_batch(batch_id: Id, request: BatchUpdate) -> Batch:
+        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root))
+
     @router.post("/batches/delete", response_model=BatchesDeleted)
     def delete_batches(request: BatchesDelete) -> BatchesDeleted:
         return BatchesDeleted(deleted=guarded(lambda: service.delete_batches(request.batch_ids)))
@@ -62,9 +70,11 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
         batch, passes = guarded(lambda: service.detail(batch_id))
         return BatchDetail(batch=batch, passes=passes)
 
-    @router.post("/batches/{batch_id}/passes", response_model=Pass, status_code=201)
-    def run_again(batch_id: Id, request: RunAgain) -> Pass:
-        return guarded(lambda: service.run_again(batch_id, request.pipeline_id))
+    @router.post("/batches/{batch_id}/runs", response_model=BatchDetail, status_code=201)
+    def run_again(batch_id: Id, request: RunAgain) -> BatchDetail:
+        guarded(lambda: service.run_again(batch_id, request.pipeline_id))
+        batch, cards = guarded(lambda: service.detail(batch_id))
+        return BatchDetail(batch=batch, passes=cards)
 
     @router.post("/passes/{pass_id}/resolve", response_model=Pass)
     def resolve(pass_id: Id, request: Resolve) -> Pass:

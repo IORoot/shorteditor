@@ -51,7 +51,7 @@ class PassRunner:
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
-            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model())
+            ctx = StageContext(claimed.folder or batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model())
             self._finish(pass_id, "review", pipeline, output=self._execute(claimed, steps, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")

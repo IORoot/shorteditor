@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { makeCard } from '../../test/fixtures';
+import { makeCard, listRowsFor } from '../../test/fixtures';
 import { BoardPage } from './BoardPage';
 import type { ProductionApi } from '../../lib/api';
+import type { BatchCard } from '../../lib/types';
 
-const apiOf = (cards: ReturnType<typeof vi.fn>) => ({ cards, defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }), pipelines: vi.fn().mockResolvedValue([{ id: 1, name: 'Join clips', stageCount: 5 }]), createBatch: vi.fn() }) as unknown as ProductionApi;
+const apiOf = (cards: () => Promise<BatchCard[]>) => ({ batchList: vi.fn(async () => listRowsFor(await cards())), defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }), pipelines: vi.fn().mockResolvedValue([{ id: 1, name: 'Join clips', stageCount: 5 }]), createBatch: vi.fn() }) as unknown as ProductionApi;
 
 describe('BoardPage', () => {
   it('shows the title, the counts and the batch names once loaded', async () => {

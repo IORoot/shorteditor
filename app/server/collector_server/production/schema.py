@@ -14,9 +14,18 @@ CREATE TABLE IF NOT EXISTS production_batches (
     output_root TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS production_passes (
+CREATE TABLE IF NOT EXISTS production_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     batch_id INTEGER NOT NULL REFERENCES production_batches(id) ON DELETE CASCADE,
+    number INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (batch_id, number)
+);
+CREATE TABLE IF NOT EXISTS production_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id INTEGER NOT NULL REFERENCES production_batches(id) ON DELETE CASCADE,
+    run_id INTEGER REFERENCES production_runs(id) ON DELETE CASCADE,
+    folder TEXT NOT NULL DEFAULT '',
     number INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'queued',
     stage_index INTEGER NOT NULL DEFAULT 0,
@@ -33,32 +42,66 @@ CREATE TABLE IF NOT EXISTS production_passes (
 );
 CREATE TABLE IF NOT EXISTS production_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pass_id INTEGER NOT NULL REFERENCES production_passes(id) ON DELETE CASCADE,
+    card_id INTEGER NOT NULL REFERENCES production_cards(id) ON DELETE CASCADE,
     kind TEXT NOT NULL,
     at TEXT NOT NULL,
     text TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS production_passes_by_status ON production_passes (status, id);
-CREATE INDEX IF NOT EXISTS production_logs_by_pass ON production_logs (pass_id, kind, id);
+CREATE INDEX IF NOT EXISTS production_cards_by_status ON production_cards (status, id);
+CREATE INDEX IF NOT EXISTS production_logs_by_card ON production_logs (card_id, kind, id);
 """
 
 
 # Columns added after the tables first existed. CREATE TABLE IF NOT EXISTS never adds them to an old table.
 _NEW_COLUMNS = {
     "production_batches": {"pipeline_id": "INTEGER"},
-    "production_passes": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
+    "production_cards": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
     "production_watches": {"pipeline_id": "INTEGER"},
 }
 
 
+def _table_exists(db: Database, name: str) -> bool:
+    return bool(db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)))
+
+
+def _columns(db: Database, table: str) -> set[str]:
+    return {row["name"] for row in db.query(f"PRAGMA table_info({table})")}
+
+
 def ensure_schema(db: Database) -> None:
     # shortcut: statements are split on ';', so no default or comment above may contain one
+    renamed = False
+    if _table_exists(db, "production_passes") and not _table_exists(db, "production_cards"):
+        # Before runs and cards, every pass was a card. Keep the rows; the rename keeps their ids and logs.
+        db.execute("ALTER TABLE production_passes RENAME TO production_cards")
+        db.execute("ALTER TABLE production_logs RENAME COLUMN pass_id TO card_id")
+        renamed = True
     for statement in _TABLES.split(";"):
         if statement.strip():
             db.execute(statement)
     ensure_watch_schema(db)
     for table, columns in _NEW_COLUMNS.items():
-        present = {row["name"] for row in db.query(f"PRAGMA table_info({table})")}
+        present = _columns(db, table)
         for name, ddl in columns.items():
             if name not in present:
                 db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+    if "run_id" not in _columns(db, "production_cards"):
+        db.execute("ALTER TABLE production_cards ADD COLUMN run_id INTEGER REFERENCES production_runs(id) ON DELETE CASCADE")
+    if "folder" not in _columns(db, "production_cards"):
+        db.execute("ALTER TABLE production_cards ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
+    db.execute("CREATE INDEX IF NOT EXISTS production_cards_by_run ON production_cards (run_id, number)")
+    if renamed:
+        _give_each_card_a_run(db)
+
+
+def _give_each_card_a_run(db: Database) -> None:
+    """Each card that was a pass before runs existed gets its own run, numbered as the card was.
+
+    That keeps the board the same: a batch's newest run holds its newest card, as its newest pass did.
+    """
+    for card in db.query("SELECT id, batch_id, number, created_at FROM production_cards WHERE run_id IS NULL ORDER BY id"):
+        run = db.execute("INSERT INTO production_runs (batch_id, number, created_at) VALUES (?, ?, ?)", (card["batch_id"], card["number"], card["created_at"]))
+        db.execute(
+            "UPDATE production_cards SET run_id = ?, folder = (SELECT input_folder FROM production_batches WHERE id = production_cards.batch_id) WHERE id = ?",
+            (run.lastrowid, card["id"]),
+        )
