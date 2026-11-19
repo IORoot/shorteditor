@@ -15,6 +15,7 @@ from .models import Batch, BatchCard, BulkCreate, BulkResult, Defaults, FolderPr
 from .pattern import check_template, compile_pattern, render_name
 from .repositories import BatchRepository, LogRepository, PassRepository
 from .stage_api import StageStep
+from .thumbnail import first_clip, make_thumbnail
 
 _WITH_STAGE = {"running", "blocked", "failed"}
 
@@ -41,6 +42,17 @@ class ProductionService:
         if real and os.path.isfile(real) and real.startswith(os.path.realpath(batch.output_root) + os.sep):
             return real  # the checked path is the one that gets served
         raise NotFoundError("There is no video for this pass")
+
+    def thumbnail_path(self, batch_id: int) -> str:
+        """A still from the first clip of a batch, made once and kept in the batch's output folder."""
+        batch = self._need_batch(batch_id)
+        target = os.path.join(batch.output_root, ".thumbnails", f"batch-{batch.id}.jpg")
+        if os.path.isfile(target):
+            return target
+        clip = first_clip(batch.input_folder)
+        if clip is None or not make_thumbnail(clip, target):
+            raise NotFoundError("There is no picture for this batch yet")
+        return target
 
     def pipelines_for_choice(self) -> list[PipelineChoice]:
         """The switched-on pipelines a new batch or watch can use."""

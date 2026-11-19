@@ -40,6 +40,15 @@ describe('BatchCard', () => {
     expect(screen.getByText('Failed')).toBeInTheDocument();
   });
 
+  it('shows a still from the first clip, and the film icon when there is no picture', () => {
+    const { container } = render(<BatchCard card={makeCard({ batchId: 7, status: 'review', output })} selected={false} onOpen={() => undefined} />);
+    const img = container.querySelector('img');
+    expect(img).toHaveAttribute('src', '/api/production/batches/7/thumbnail');
+    fireEvent.error(img as HTMLImageElement);
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
   it('shows the size and length of a finished video, and nothing odd when there is no output', { tags: ['full'] }, () => {
     const { rerender, container } = render(<BatchCard card={makeCard({ status: 'review', output })} selected={false} onOpen={() => undefined} />);
     expect(screen.getByText('46.2 MB · 00:58')).toBeInTheDocument();

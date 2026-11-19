@@ -29,6 +29,10 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     def output(pass_id: Id) -> FileResponse:
         return FileResponse(guarded(lambda: service.output_path(pass_id)), media_type="video/mp4")
 
+    @router.get("/batches/{batch_id}/thumbnail")
+    def thumbnail(batch_id: Id) -> FileResponse:
+        return FileResponse(guarded(lambda: service.thumbnail_path(batch_id)), media_type="image/jpeg")
+
     @router.get("/pipelines", response_model=list[PipelineChoice])
     def pipelines() -> list[PipelineChoice]:
         return service.pipelines_for_choice()

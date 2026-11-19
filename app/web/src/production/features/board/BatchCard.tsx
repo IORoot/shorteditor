@@ -1,4 +1,5 @@
 import { Film } from 'lucide-react';
+import { useState } from 'react';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
 import { formatBytes } from '../../../shared/lib/format';
 import { chipLabel, clock, lastSegment, queueCaption, stageSegments, toneOf } from '../../lib/board';
@@ -26,6 +27,16 @@ function caption(card: Card): string {
   }
 }
 
+/** A still from the batch's first clip; the film icon stays when there is no picture. */
+function Picture({ batchId }: { batchId: number }) {
+  const [missing, setMissing] = useState(false);
+  return (
+    <span className="flex h-24 items-center justify-center overflow-hidden bg-fill-2 text-text-3">
+      {missing ? <Film size={22} aria-hidden="true" /> : <img src={`/api/production/batches/${batchId}/thumbnail`} alt="" onError={() => setMissing(true)} className="h-full w-full object-cover" />}
+    </span>
+  );
+}
+
 export function BatchCard({ card, selected, onOpen }: BatchCardProps) {
   const label = chipLabel(card);
   const text = caption(card);
@@ -38,9 +49,7 @@ export function BatchCard({ card, selected, onOpen }: BatchCardProps) {
       onClick={() => onOpen(card)}
       className={`flex w-full min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-left shadow-[0_2px_12px_#0000000f] ${selected ? 'ring-2 ring-primary' : ''}`}
     >
-      <span className="flex h-24 items-center justify-center bg-fill-2 text-text-3">
-        <Film size={22} aria-hidden="true" />
-      </span>
+      <Picture batchId={card.batchId} />
       <span className="flex min-w-0 flex-col gap-2 p-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span title={card.name} className="truncate text-body font-semibold">{card.name}</span>
