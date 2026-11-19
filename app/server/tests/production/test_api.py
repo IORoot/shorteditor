@@ -110,8 +110,8 @@ def test_logs_by_kind(api):
     api.create()
     api.repo_logs.add_many(1, "pipeline", [(NOW, "Scan folder started")])
     api.repo_logs.add_many(1, "ffmpeg", [(NOW, "frame=1")])
-    assert api.client.get("/api/production/passes/1/logs?kind=pipeline").json() == {"lines": ["Scan folder started"]}
-    assert api.client.get("/api/production/passes/1/logs?kind=ffmpeg").json() == {"lines": ["frame=1"]}
+    assert api.client.get("/api/production/passes/1/logs?kind=pipeline").json() == {"lines": ["Scan folder started"], "entries": [{"at": NOW, "text": "Scan folder started"}]}
+    assert api.client.get("/api/production/passes/1/logs?kind=ffmpeg").json()["lines"] == ["frame=1"]
     assert api.client.get("/api/production/passes/1/logs?kind=other").status_code == 422
     assert api.client.get("/api/production/passes/99/logs?kind=pipeline").status_code == 404
 
@@ -156,3 +156,31 @@ def test_output_route_404_without_video(api):
     api.create()
     assert api.client.get("/api/production/passes/1/output").status_code == 404
     assert api.client.get("/api/production/passes/99/output").status_code == 404
+
+
+@pytest.mark.full
+def test_selected_batches_are_deleted_together_with_their_passes(api):
+    api.create(runOn="local")
+    api.create(name="Second", runOn="local")
+    api.repo_passes.update(1, status="failed")
+    api.repo_passes.update(2, status="review")
+    response = api.client.post("/api/production/batches/delete", json={"batchIds": [1, 2]})
+    assert response.status_code == 200 and response.json() == {"deleted": 2}
+    assert api.client.get("/api/production/batches").json() == []
+    assert api.repo_passes.get(1) is None
+
+
+@pytest.mark.full
+def test_a_selection_with_a_running_batch_is_refused_and_nothing_is_deleted(api):
+    api.create(runOn="local")
+    api.create(name="Second", runOn="local")
+    api.repo_passes.update(2, status="running")
+    response = api.client.post("/api/production/batches/delete", json={"batchIds": [1, 2]})
+    assert response.status_code == 409
+    assert len(api.client.get("/api/production/batches").json()) == 2
+
+
+@pytest.mark.full
+def test_deleting_an_unknown_batch_is_a_404_and_an_empty_selection_is_refused(api):
+    assert api.client.post("/api/production/batches/delete", json={"batchIds": [99]}).status_code == 404
+    assert api.client.post("/api/production/batches/delete", json={"batchIds": []}).status_code == 422

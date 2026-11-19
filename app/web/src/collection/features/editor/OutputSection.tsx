@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { FolderTree, Tag } from 'lucide-react';
+import { FolderTree } from 'lucide-react';
 import type { CollectorConfig, GroupBy, Transfer } from '../../lib/types';
 import { insertToken } from '../../lib/tokens';
 import { FormField } from '../../../shared/components/ui/FormField';
@@ -77,7 +77,6 @@ export function OutputSection({ config, onChange, onBrowseOutput }: OutputSectio
           <SegmentedControl label="Transfer" options={TRANSFER_OPTIONS} value={config.transfer} onChange={(transfer) => set({ transfer })} />
         </div>
       </div>
-      <FormField label="Suffix" value={config.suffix} icon={<Tag size={14} aria-hidden="true" />} className="w-60" onChange={(event) => set({ suffix: event.target.value })} />
     </SectionCard>
   );
 }

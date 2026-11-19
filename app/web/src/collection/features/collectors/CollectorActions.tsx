@@ -1,18 +1,22 @@
-import { Eye, Play, SlidersHorizontal } from 'lucide-react';
+import { Copy, Eye, Play, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/Button';
 
 export interface CollectorActionsProps {
   onEdit: () => void;
+  onDuplicate?: () => void;
   onDryRun?: () => void;
   onRun?: () => void;
   runDisabled?: boolean;
 }
 
-export function CollectorActions({ onEdit, onDryRun, onRun, runDisabled = false }: CollectorActionsProps) {
+export function CollectorActions({ onEdit, onDuplicate, onDryRun, onRun, runDisabled = false }: CollectorActionsProps) {
   return (
-    <div role="group" aria-label="Collector actions" className="flex gap-2.5">
+    <div role="group" aria-label="Collector actions" className="flex justify-end gap-2.5 whitespace-nowrap">
       <Button icon={<SlidersHorizontal size={15} aria-hidden="true" />} onClick={onEdit}>
         Edit
+      </Button>
+      <Button icon={<Copy size={15} aria-hidden="true" />} onClick={onDuplicate}>
+        Duplicate
       </Button>
       <Button icon={<Eye size={15} aria-hidden="true" />} onClick={onDryRun}>
         Dry run

@@ -9,7 +9,7 @@ const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.
 const noContent = () => Promise.resolve(new Response(null, { status: 204 }));
 
 const DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}_.+$';
-const COLUMNS = ['Queued', 'Running', 'Needs attention', 'Ready to review'];
+const COLUMNS = ['Queued', 'Running', 'Review'];
 
 function watch(over: Partial<WatchView> = {}): WatchView {
   return {
@@ -118,7 +118,7 @@ describe('Production folders and watches, end to end', () => {
     expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
       parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', include: [], pipelineId: 1,
     });
-    // the new column order: Queued first, Ready to review last, with the new batch in Queued
+    // the new column order: Queued first, Review last, with the new batch in Queued
     await waitFor(() => expect(within(screen.getByRole('region', { name: 'Queued' })).getByText('2026-11-07_b')).toBeInTheDocument());
     const columns = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label')).filter((n): n is string => n !== null && COLUMNS.includes(n));
     expect(columns).toEqual(COLUMNS);
@@ -133,6 +133,7 @@ describe('Production folders and watches, end to end', () => {
     expect(await screen.findByRole('heading', { name: 'New watch' })).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'One folder' })).toBeNull();
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/Volumes/Edit/Sat' } });
+    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Start watching' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
     await waitFor(() => expect(backend.posted(/\/watches$/)).toHaveLength(1));

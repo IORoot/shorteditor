@@ -4,6 +4,7 @@ import { FormField } from '../../../shared/components/ui/FormField';
 import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl';
 import { Toggle } from '../../../shared/components/ui/Toggle';
 import { fieldsOf, toText, type Field } from '../../lib/schemaForm';
+import { PairsEditor } from './PairsEditor';
 import { iconOf } from '../../lib/stageMeta';
 import type { StageInfo, StageStep } from '../../lib/types';
 
@@ -113,6 +114,9 @@ function switchRow(field: Field, checked: boolean, onChange: (on: boolean) => vo
 
 function renderField(field: Field, step: StageStep, drafts: Record<string, string>, problems: Record<string, string>, onText: (field: Field, text: string) => void, onValue: (field: Field, value: unknown) => void): ReactNode {
   const value = step.settings[field.name];
+  if (field.kind === 'pairs') {
+    return <PairsEditor key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? {}) as Record<string, string>} onChange={(next) => onValue(field, next)} />;
+  }
   if (field.kind === 'boolean') {
     return switchRow(field, value === undefined ? field.defaultValue === true : value === true, (on) => onValue(field, on));
   }

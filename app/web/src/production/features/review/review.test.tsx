@@ -1,22 +1,22 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { makeCard } from '../../test/fixtures';
-import { ReviewDrawer, type ReviewDrawerProps } from './ReviewDrawer';
+import { ReviewPage, type ReviewPageProps } from './ReviewPage';
 
 const output = { path: '/out/Coach-1/pass-1/coach-sat.mp4', duration: 58.4, sizeBytes: 48_450_000 };
 
-function drawer(overrides: Partial<ReviewDrawerProps> = {}, card = makeCard({ status: 'review', output, name: 'Coach Saturdays' })) {
-  const props: ReviewDrawerProps = {
+function drawer(overrides: Partial<ReviewPageProps> = {}, card = makeCard({ status: 'review', output, name: 'Coach Saturdays' })) {
+  const props: ReviewPageProps = {
     card, outputUrl: '/api/production/passes/9/output', busy: false, error: null, pipelines: [{ id: 1, name: 'Join clips', stageCount: 5 }],
-    onApprove: vi.fn(), onRunAgain: vi.fn(), onResolve: vi.fn(), onClose: vi.fn(), ...overrides,
+    onApprove: vi.fn(), onRunAgain: vi.fn(), onResolve: vi.fn(), onBack: vi.fn(), ...overrides,
   };
-  return { props, ...render(<ReviewDrawer {...props} />) };
+  return { props, ...render(<ReviewPage {...props} />) };
 }
 
-describe('ReviewDrawer', () => {
+describe('ReviewPage', () => {
   it('lets the user play, approve or run again a finished batch', { tags: ['full'] }, () => {
     const { props, container } = drawer();
-    expect(screen.getByRole('dialog', { name: 'Review' })).toBeInTheDocument();
+    expect(screen.getByRole('main', { name: 'Review' })).toBeInTheDocument();
     expect(screen.getByText('Coach Saturdays')).toBeInTheDocument();
     expect(screen.getByText(/Pass 1/)).toBeInTheDocument();
     expect(container.querySelector('video')).toHaveAttribute('src', '/api/production/passes/9/output');
@@ -67,7 +67,7 @@ describe('ReviewDrawer', () => {
   it('only describes a running or queued batch', { tags: ['full'] }, () => {
     const { rerender, props } = drawer({}, makeCard({ status: 'running', stageTitle: 'Join in order', stagePosition: 4 }));
     expect(screen.getByText('Join in order · stage 4 of 5')).toBeInTheDocument();
-    rerender(<ReviewDrawer {...props} card={makeCard({ status: 'queued', queuePosition: 2 })} />);
+    rerender(<ReviewPage {...props} card={makeCard({ status: 'queued', queuePosition: 2 })} />);
     expect(screen.getByText('Starts after 2 batches')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Run again' })).toBeNull();
@@ -97,24 +97,10 @@ describe('ReviewDrawer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('The video is not available on the server any more');
   });
 
-  it('closes with the close button and with Escape', { tags: ['full'] }, () => {
+  it('goes back with the back button', { tags: ['full'] }, () => {
     const { props } = drawer();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(props.onClose).toHaveBeenCalledTimes(2);
-  });
-
-  it('takes focus when it opens', { tags: ['full'] }, () => {
-    drawer();
-    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
-  });
-
-  it('takes focus back when the button the user pressed goes away', { tags: ['full'] }, () => {
-    const { rerender, props } = drawer();
-    const approve = screen.getByRole('button', { name: 'Approve' });
-    approve.focus();
-    rerender(<ReviewDrawer {...props} card={makeCard({ ...props.card, status: 'approved' })} />);
-    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Production' }));
+    expect(props.onBack).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the full name readable through a tooltip', { tags: ['full'] }, () => {

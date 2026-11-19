@@ -70,6 +70,27 @@ export interface Batch {
   createdAt: string;
 }
 
+export type StageRunStatus = 'running' | 'done' | 'failed' | 'blocked';
+
+/** One stage a pass has reached: when it started and, once it is over, when it ended. */
+export interface StageRun {
+  key: string;
+  title: string;
+  status: StageRunStatus;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export interface LogEntry {
+  at: string;
+  text: string;
+}
+
+export interface LogLines {
+  lines: string[];
+  entries: LogEntry[];
+}
+
 export interface Pass {
   id: number;
   batchId: number;
@@ -82,6 +103,7 @@ export interface Pass {
   blockedItems: string[];
   error: string | null;
   output: VideoData | null;
+  stages: StageRun[];
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;

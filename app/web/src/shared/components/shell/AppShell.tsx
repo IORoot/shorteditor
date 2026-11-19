@@ -15,7 +15,7 @@ export function AppShell({ sidebar, title, actions, main, panel }: AppShellProps
           {sidebar}
         </aside>
         <div className="col-start-2 row-start-1 flex min-w-0 items-center px-2">{title}</div>
-        <div className="col-start-3 row-start-1 flex items-center justify-end max-[1200px]:col-start-2 max-[1200px]:row-start-2 max-[1200px]:justify-start max-[1200px]:px-2">
+        <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end max-[1200px]:col-start-2 max-[1200px]:row-start-2 max-[1200px]:justify-start max-[1200px]:px-2">
           {actions}
         </div>
         <main className="col-start-2 row-start-2 flex min-w-0 flex-col max-[1200px]:row-start-3">{main}</main>

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
+
+from pydantic import Field
 
 from collector_server.shared.camel_model import CamelModel
 
@@ -22,6 +24,14 @@ class Batch(CamelModel):
     created_at: str
 
 
+class StageRun(CamelModel):
+    key: str
+    title: str
+    status: Literal["running", "done", "failed", "blocked"]
+    started_at: str
+    finished_at: str | None = None
+
+
 class Pass(CamelModel):
     id: int
     batch_id: int
@@ -34,11 +44,20 @@ class Pass(CamelModel):
     blocked_items: list[str] = []  # the clips a review pass lets you pick from
     overrides: dict[str, dict] = {}
     steps_used: list[StageStep] = []  # the steps this pass ran with, saved when it started
+    stages: list[StageRun] = []  # each stage this pass has reached, with its start and end
     error: str | None = None
     output: VideoData | None = None
     created_at: str
     started_at: str | None = None
     finished_at: str | None = None
+
+
+class BatchesDelete(CamelModel):
+    batch_ids: Annotated[list[int], Field(min_length=1, max_length=500)]
+
+
+class BatchesDeleted(CamelModel):
+    deleted: int
 
 
 class BatchCreate(CamelModel):
@@ -86,8 +105,14 @@ class BatchDetail(CamelModel):
     passes: list[Pass]
 
 
+class LogEntry(CamelModel):
+    at: str
+    text: str
+
+
 class LogLines(CamelModel):
     lines: list[str]
+    entries: list[LogEntry] = []  # the same lines with the time each was written
 
 
 class WorkerInfo(CamelModel):

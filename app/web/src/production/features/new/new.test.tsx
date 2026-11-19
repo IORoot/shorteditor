@@ -61,24 +61,15 @@ describe('NewBatchDialog', () => {
     expect(create).toBeEnabled();
     fireEvent.click(create);
     expect(onCreate).toHaveBeenCalledTimes(1);
-    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Coach Saturdays', inputFolder: '/clips/coach', maxSeconds: '900', maxSizeMb: '150', fit: 'crop', runOn: 'any' });
+    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Coach Saturdays', inputFolder: '/clips/coach', runOn: 'any' });
   });
 
-  it('disables Create for a limit that is not a positive number', { tags: ['full'] }, () => {
-    open();
-    fill('A', '/x');
-    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '0' } });
-    expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
-  });
-
-  it('lets the user pick order, fit and where it runs', { tags: ['full'] }, () => {
+  it('lets the user pick where it runs', { tags: ['full'] }, () => {
     const { onCreate } = open();
     fill('A', '/x');
-    fireEvent.change(screen.getByLabelText('Order clips by'), { target: { value: 'random' } });
-    fireEvent.change(screen.getByLabelText('Fit different shapes'), { target: { value: 'blur' } });
     fireEvent.change(screen.getByLabelText('Run on'), { target: { value: 'studio' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
-    expect(onCreate.mock.calls[0][0]).toMatchObject({ orderBy: 'random', fit: 'blur', runOn: 'studio' });
+    expect(onCreate.mock.calls[0][0]).toMatchObject({ runOn: 'studio' });
   });
 
   it('offers Any worker plus the server workers', { tags: ['full'] }, () => {
@@ -87,11 +78,11 @@ describe('NewBatchDialog', () => {
     expect(options).toEqual(['Any worker', 'This computer', 'Studio Mac']);
   });
 
-  it('shows the default output folder as a hint and keeps Action clips for later', { tags: ['full'] }, () => {
+  it('shows the default output folder as a hint and lists the switched-on pipelines', { tags: ['full'] }, () => {
     open();
     expect(screen.getByLabelText('Output folder')).toHaveAttribute('placeholder', '/Volumes/Edit/production_output');
     const pipeline = screen.getByLabelText('Pipeline') as HTMLSelectElement;
-    expect(Array.from(pipeline.options).map((o) => [o.textContent, o.disabled])).toEqual([['Join clips', false], ['Action clips (coming with AI detect)', true]]);
+    expect(Array.from(pipeline.options).map((o) => [o.textContent, o.disabled])).toEqual([['Choose a pipeline', false], ['Join clips', false]]);
   });
 
   it('shows the server error and closes with Cancel', { tags: ['full'] }, () => {
@@ -105,16 +96,6 @@ describe('NewBatchDialog', () => {
     open({ busy: true });
     fill('A', '/x');
     expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled();
-  });
-
-  it('explains a limit it cannot use instead of just disabling Create', { tags: ['full'] }, () => {
-    open();
-    fill('A', '/x');
-    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '1,5' } });
-    expect(screen.getByText('Use a number like 45 or 30.5')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Max size (MB)'), { target: { value: '100001' } });
-    expect(screen.getByText('At most 100000 MB')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create batch' })).toBeDisabled();
   });
 
   it('puts the cursor in the Name field and closes on Escape', { tags: ['full'] }, () => {
@@ -208,7 +189,7 @@ describe('NewBatchDialog, subfolders', () => {
     expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', include: ['2026-10-17_old'], pipelineId: 1 });
   });
 
-  it('keeps Create disabled with nothing to create, a refused pattern, bad limits, or while busy', { tags: ['full'] }, async () => {
+  it('keeps Create disabled with nothing to create, a refused pattern, or while busy', { tags: ['full'] }, async () => {
     const none = { matches: [preview.matches[3]], notMatching: 0, truncated: false };
     const { previewFolders } = open({ previewFolders: vi.fn().mockResolvedValue(none) });
     expect(previewFolders).toBeDefined();
@@ -228,17 +209,6 @@ describe('NewBatchDialog, subfolders', () => {
     await settled();
     expect(await screen.findByRole('alert')).toHaveTextContent('far too long');
     expect(screen.getByRole('button', { name: /Create/ })).toBeDisabled();
-  });
-
-  it('disables Create for a limit the server would refuse', { tags: ['full'] }, async () => {
-    open();
-    many();
-    parent('/c');
-    pipeline();
-    await settled();
-    await screen.findByText('2026-11-14_a');
-    fireEvent.change(screen.getByLabelText('Max length (seconds)'), { target: { value: '0.5' } });
-    expect(screen.getByRole('button', { name: 'Create 2 batches' })).toBeDisabled();
   });
 
   it('shows Creating… and stays disabled while busy', { tags: ['full'] }, async () => {

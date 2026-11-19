@@ -27,6 +27,9 @@ class StageError(Exception):
     """A stage failed for a reason the user can read as it is."""
 
 
+DEFAULT_AI_MODEL = "nvidia/nemotron-3.5-super-vl"  # the OpenRouter model used when Settings names none
+
+
 @dataclass
 class StageContext:
     input_folder: str
@@ -36,6 +39,7 @@ class StageContext:
     log: Callable[[str], None]
     cache_root: str | None = None  # where saved results of slow steps (Detect action) live; None turns saving off
     ai_key: str | None = None  # the OpenRouter key from Settings, for the AI stages only
+    ai_model: str = DEFAULT_AI_MODEL  # the OpenRouter model from Settings, for the AI stages only
 
 
 class Stage(Protocol):

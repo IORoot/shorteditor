@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
+from .models import Batch, BatchesDelete, BatchesDeleted, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -41,6 +41,10 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     def cards() -> list[BatchCard]:
         return service.cards()
 
+    @router.post("/batches/delete", response_model=BatchesDeleted)
+    def delete_batches(request: BatchesDelete) -> BatchesDeleted:
+        return BatchesDeleted(deleted=guarded(lambda: service.delete_batches(request.batch_ids)))
+
     @router.post("/batches", response_model=Batch, status_code=201)
     def create(request: BatchCreate) -> Batch:
         return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root))
@@ -72,7 +76,8 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.get("/passes/{pass_id}/logs", response_model=LogLines)
     def logs(pass_id: Id, kind: LogKind) -> LogLines:
-        return LogLines(lines=guarded(lambda: service.logs(pass_id, kind)))
+        entries = guarded(lambda: service.log_entries(pass_id, kind))
+        return LogLines(lines=[text for _, text in entries], entries=[LogEntry(at=at, text=text) for at, text in entries])
 
     if watch_service is not None:
         _watch_routes(router, watch_service, guarded)

@@ -1,4 +1,4 @@
-import { Film } from 'lucide-react';
+import { Check, Film } from 'lucide-react';
 import { useState } from 'react';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
 import { formatBytes } from '../../../shared/lib/format';
@@ -6,10 +6,17 @@ import { chipLabel, clock, lastSegment, queueCaption, stageSegments, toneOf } fr
 import type { BatchCard as Card } from '../../lib/types';
 import { StageStrip } from './StageStrip';
 
+/** While the board is choosing batches: whether this one is chosen, and whether it cannot be chosen now. */
+export interface Picking {
+  checked: boolean;
+  blocked: boolean;
+}
+
 export interface BatchCardProps {
   card: Card;
   selected: boolean;
   onOpen: (card: Card) => void;
+  picking?: Picking;
 }
 
 function caption(card: Card): string {
@@ -37,18 +44,32 @@ function Picture({ batchId }: { batchId: number }) {
   );
 }
 
-export function BatchCard({ card, selected, onOpen }: BatchCardProps) {
+export function pickingOf(card: Card, chosen?: ReadonlySet<number>): Picking | undefined {
+  if (!chosen) return undefined;
+  return { checked: chosen.has(card.batchId), blocked: card.status === 'running' || card.status === 'queued' };
+}
+
+export function BatchCard({ card, selected, onOpen, picking }: BatchCardProps) {
   const label = chipLabel(card);
   const text = caption(card);
+  const ring = picking?.checked ? 'ring-2 ring-primary' : selected ? 'ring-2 ring-primary' : '';
   return (
     <button
       type="button"
       aria-label={`${card.name}, ${label}`}
       aria-current={selected ? 'true' : undefined}
+      aria-pressed={picking ? picking.checked : undefined}
+      disabled={picking?.blocked}
+      title={picking?.blocked ? 'Wait for this batch to finish before deleting it' : undefined}
       data-batch-id={card.batchId}
       onClick={() => onOpen(card)}
-      className={`flex w-full min-w-0 flex-col overflow-hidden rounded-2xl bg-surface text-left shadow-[0_2px_12px_#0000000f] ${selected ? 'ring-2 ring-primary' : ''}`}
+      className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl text-left shadow-[0_2px_12px_#0000000f] disabled:opacity-50 ${card.status === 'failed' ? 'bg-bad-soft' : 'bg-surface'} ${ring}`}
     >
+      {picking ? (
+        <span aria-hidden="true" className={`absolute right-3 top-3 z-10 grid size-6 place-items-center rounded-full border-2 border-surface ${picking.checked ? 'bg-primary text-on-accent' : 'bg-surface text-transparent'}`}>
+          <Check size={14} />
+        </span>
+      ) : null}
       <Picture batchId={card.batchId} />
       <span className="flex min-w-0 flex-col gap-2 p-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">

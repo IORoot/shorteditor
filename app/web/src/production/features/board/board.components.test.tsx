@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { makeCard } from '../../test/fixtures';
-import { ApprovedRow } from './ApprovedRow';
 import { BatchCard } from './BatchCard';
 import { Board } from './Board';
 import { StageStrip } from './StageStrip';
@@ -103,24 +102,31 @@ describe('Board', () => {
   it('puts each batch in its column with a count', () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
     const column = (name: string) => screen.getByRole('region', { name });
-    expect(within(column('Ready to review')).getByText('Ready one')).toBeInTheDocument();
-    expect(within(column('Needs attention')).getByText('Blocked one')).toBeInTheDocument();
-    expect(within(column('Needs attention')).getByText('Failed one')).toBeInTheDocument();
-    expect(within(column('Needs attention')).getByText('2')).toBeInTheDocument();
+    expect(within(column('Review')).getByText('Ready one')).toBeInTheDocument();
+    expect(within(column('Review')).getByText('Blocked one')).toBeInTheDocument();
+    expect(within(column('Review')).getByText('Failed one')).toBeInTheDocument();
+    expect(within(column('Review')).getByText('3')).toBeInTheDocument();
     expect(within(column('Running')).getByText('Running one')).toBeInTheDocument();
     expect(within(column('Queued')).getByText('Queued one')).toBeInTheDocument();
   });
 
-  it('shows the columns left to right as Queued, Running, Needs attention, Ready to review', { tags: ['full'] }, () => {
+  it('shows the flow left to right as Queued, Running, Review, then Approved', { tags: ['full'] }, () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
     const titles = screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'));
-    expect(titles).toEqual(['Queued', 'Running', 'Needs attention', 'Ready to review', 'Approved']);
+    expect(titles).toEqual(['Queued', 'Running', 'Review', 'Approved']);
   });
 
-  it('keeps approved batches out of the columns and in the approved row', { tags: ['full'] }, () => {
+  it('paints a failed batch red and keeps it in Review', { tags: ['full'] }, () => {
     render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
-    const columns = ['Ready to review', 'Needs attention', 'Running', 'Queued'].map((n) => screen.getByRole('region', { name: n }));
-    columns.forEach((c) => expect(within(c).queryByText('Done one')).toBeNull());
+    const review = screen.getByRole('region', { name: 'Review' });
+    expect(within(review).getByRole('button', { name: /Failed one/ }).className).toContain('bg-bad-soft');
+    expect(within(review).getByRole('button', { name: /Ready one/ }).className).toContain('bg-surface');
+  });
+
+  it('keeps approved batches out of the other columns and in the Approved column', { tags: ['full'] }, () => {
+    render(<Board cards={cards} selectedBatchId={null} onOpen={() => undefined} />);
+    const others = ['Queued', 'Running', 'Review'].map((n) => screen.getByRole('region', { name: n }));
+    others.forEach((c) => expect(within(c).queryByText('Done one')).toBeNull());
     expect(within(screen.getByRole('region', { name: 'Approved' })).getByText('Done one')).toBeInTheDocument();
   });
 
@@ -142,29 +148,5 @@ describe('Board', () => {
     const many = Array.from({ length: 300 }, (_, i) => makeCard({ name: `Batch ${i}`, status: i % 2 ? 'queued' : 'review', queuePosition: i, output }));
     render(<Board cards={many} selectedBatchId={null} onOpen={() => undefined} />);
     expect(screen.getAllByRole('button').length).toBe(300);
-  });
-});
-
-describe('ApprovedRow', () => {
-  const approved = Array.from({ length: 8 }, (_, i) => makeCard({ name: `Approved ${i}`, status: 'approved', batchId: 100 + i, output }));
-
-  it('shows nothing when there are no approved batches', { tags: ['full'] }, () => {
-    const { container } = render(<ApprovedRow cards={[]} onOpen={() => undefined} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('lists the newest five and reveals the rest on request', { tags: ['full'] }, () => {
-    render(<ApprovedRow cards={approved} onOpen={() => undefined} />);
-    expect(screen.getAllByRole('button', { name: /^Approved \d,/ })).toHaveLength(5);
-    expect(screen.getByRole('button', { name: /^Approved 7,/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Approved 0,/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Show all (8)' }));
-    expect(screen.getAllByRole('button', { name: /^Approved \d,/ })).toHaveLength(8);
-    expect(screen.getByRole('button', { name: 'Show fewer' })).toBeInTheDocument();
-  });
-
-  it('has no Show all button for five or fewer', { tags: ['full'] }, () => {
-    render(<ApprovedRow cards={approved.slice(0, 5)} onOpen={() => undefined} />);
-    expect(screen.queryByRole('button', { name: /Show all/ })).toBeNull();
   });
 });

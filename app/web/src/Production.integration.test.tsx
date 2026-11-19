@@ -54,9 +54,9 @@ describe('Production, end to end', () => {
       makeCard({ name: 'Camera A', status: 'queued', queuePosition: 0 }),
     ]);
     await openProduction();
-    expect(await screen.findByText('4 batches · 1 queued · 1 running · 1 need attention · 1 ready to review')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Ready to review' })).getByText('Coach Saturdays')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Needs attention' })).getByText('Jams')).toBeInTheDocument();
+    expect(await screen.findByText('4 batches · 1 queued · 1 running · 2 to review · 1 failed')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Review' })).getByText('Coach Saturdays')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Review' })).getByText('Jams')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Running' })).getByText('Tuesday')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Queued' })).getByText('Camera A')).toBeInTheDocument();
   });
@@ -121,15 +121,14 @@ describe('Production, end to end', () => {
     expect(backend.posted(/\/batches$/)).toHaveLength(1);
   });
 
-  it('closes the review drawer when the New batch dialog opens, and starts the form empty each time', { tags: ['full'] }, async () => {
+  it('goes back from a review page to the board, and starts the New batch form empty each time', { tags: ['full'] }, async () => {
     server([makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
-    expect(screen.getByRole('dialog', { name: 'Review' })).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    fireEvent.click(screen.getByRole('button', { name: 'Coach Saturdays, Ready' }));
-    fireEvent.click(screen.getByRole('button', { name: 'New batch' }));
-    expect(screen.queryByRole('dialog', { name: 'Review' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Coach Saturdays' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Production' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
+    expect(screen.queryByRole('main', { name: 'Review' })).toBeNull();
     expect(screen.getByLabelText('Name')).toHaveFocus();
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Half typed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -138,23 +137,25 @@ describe('Production, end to end', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('');
   });
 
-  it('approves a finished batch from the drawer and moves it to the approved row', { tags: ['full'] }, async () => {
+  it('approves a finished batch on its review page and moves it to the approved row', { tags: ['full'] }, async () => {
     const card = makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
     const backend = server([card]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Ready' }));
+    const approve = await screen.findByRole('button', { name: 'Approve' });
     backend.state.cards = [{ ...card, status: 'approved' }];
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    fireEvent.click(approve);
     await waitFor(() => expect(backend.posted(/passes\/11\/approve$/)).toHaveLength(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to Production' }));
     expect(within(await screen.findByRole('region', { name: 'Approved' })).getByText('Coach Saturdays')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Ready to review' })).getByText('Nothing here')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Review' })).getByText('Nothing here')).toBeInTheDocument();
   });
 
   it('sends the chosen way out of a blocked batch', { tags: ['full'] }, async () => {
     const backend = server([makeCard({ name: 'Long', status: 'blocked', blockedReason: 'Over the limit', blockedChoices: ['drop_shortest', 'keep_first'], passId: 21 })]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Long, Blocked' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Drop the shortest parts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Drop the shortest parts' }));
     await waitFor(() => expect(backend.posted(/passes\/21\/resolve$/)[0].body).toEqual({ choice: 'drop_shortest' }));
   });
 
@@ -168,15 +169,15 @@ describe('Production, end to end', () => {
     expect(await screen.findByText('Back again')).toBeInTheDocument();
   });
 
-  it('follows a running batch to the next stage without closing the open drawer', { tags: ['full'] }, async () => {
+  it('follows a running batch to the next stage on its review page', { tags: ['full'] }, async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const running = makeCard({ name: 'Tuesday', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 3, passId: 31 });
     const backend = server([running]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Tuesday, Running' }));
-    expect(screen.getByText('Scan folder · stage 1 of 5')).toBeInTheDocument();
+    expect(await screen.findByText('Scan folder · stage 1 of 5')).toBeInTheDocument();
     backend.state.cards = [{ ...running, stageTitle: 'Join in order', stagePosition: 4 }];
     await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
-    expect(screen.getByRole('dialog')).toHaveTextContent('Join in order · stage 4 of 5');
+    expect(await screen.findByText('Join in order · stage 4 of 5')).toBeInTheDocument();
   });
 });

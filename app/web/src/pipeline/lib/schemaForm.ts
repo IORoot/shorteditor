@@ -1,5 +1,5 @@
 /** A settings form drawn from a stage's JSON schema, so a new stage needs no web change. */
-export type FieldKind = 'boolean' | 'number' | 'integer' | 'choice' | 'text' | 'list' | 'readonly';
+export type FieldKind = 'boolean' | 'number' | 'integer' | 'choice' | 'text' | 'list' | 'pairs' | 'readonly';
 
 export interface Field {
   name: string;
@@ -45,6 +45,7 @@ function fieldOf(name: string, prop: Prop): Field {
     return { ...base, kind: shape.type, min, max };
   }
   if (shape.type === 'string' && !base.nullable) return { ...base, kind: 'text', multiline: typeof shape.maxLength === 'number' && shape.maxLength > 200 };
+  if (shape.type === 'object' && !base.nullable && (shape.additionalProperties as Prop | undefined)?.type === 'string') return { ...base, kind: 'pairs' };
   if (shape.type === 'array' && strings([(shape.items as Prop | undefined)?.type === 'string' ? 'x' : 1]) && !base.nullable) return { ...base, kind: 'list' };
   return base;
 }
@@ -55,10 +56,12 @@ export function fieldsOf(schema: Record<string, unknown>): Field[] {
 }
 
 /** The text a field shows for a stored value. */
+/** Shows the saved value, or the field's default when the step was saved without one. A cleared (null) value stays empty. */
 export function toText(field: Field, value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (field.kind === 'list' && Array.isArray(value)) return value.join(', ');
-  return String(value);
+  const shown = value === undefined ? field.defaultValue : value;
+  if (shown === null || shown === undefined) return '';
+  if (field.kind === 'list' && Array.isArray(shown)) return shown.join(', ');
+  return String(shown);
 }
 
 export type Parsed = { value: unknown } | { error: string };

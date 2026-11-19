@@ -3,16 +3,16 @@ import { makeCard } from '../test/fixtures';
 import { COLUMNS, chipLabel, clock, columnOf, groupCards, queueCaption, stageSegments, subtitle, toneOf } from './board';
 
 describe('column order', () => {
-  it('lists the columns Queued, Running, Needs attention, Ready to review', { tags: ['full'] }, () => {
-    expect(COLUMNS).toEqual(['queued', 'running', 'attention', 'review']);
+  it('lists the columns Queued, Running, Review', { tags: ['full'] }, () => {
+    expect(COLUMNS).toEqual(['queued', 'running', 'review']);
   });
 });
 
 describe('columnOf', () => {
   it.each([
     ['review', 'review'],
-    ['blocked', 'attention'],
-    ['failed', 'attention'],
+    ['blocked', 'review'],
+    ['failed', 'review'],
     ['running', 'running'],
     ['queued', 'queued'],
     ['approved', 'approved'],
@@ -34,7 +34,6 @@ describe('groupCards', () => {
     expect(groups.queued).toEqual([q0, q2, lost]);
     expect(groups.running).toEqual([r1, r2]);
     expect(groups.review).toEqual([fresh, old]);
-    expect(groups.attention).toEqual([]);
     expect(groups.approved).toEqual([]);
   });
 });
@@ -45,7 +44,7 @@ describe('subtitle', () => {
       makeCard({ status: 'review' }), makeCard({ status: 'review' }), makeCard({ status: 'failed' }), makeCard({ status: 'blocked' }),
       makeCard({ status: 'running' }), makeCard({ status: 'queued' }), makeCard({ status: 'queued' }), makeCard({ status: 'approved' }),
     ];
-    expect(subtitle(cards)).toBe('8 batches · 2 queued · 1 running · 2 need attention · 2 ready to review');
+    expect(subtitle(cards)).toBe('8 batches · 2 queued · 1 running · 4 to review · 1 failed');
   });
 
   it('leaves out zero parts, says batch for one, and handles an empty board', { tags: ['full'] }, () => {
@@ -113,10 +112,10 @@ describe('clock', () => {
 describe('a status this version does not know', () => {
   const odd = () => makeCard({ status: 'paused' as never });
 
-  it('lands in Needs attention instead of breaking the board', { tags: ['full'] }, () => {
-    expect(columnOf(odd())).toBe('attention');
-    expect(groupCards([makeCard({ status: 'queued' }), odd()]).attention).toHaveLength(1);
-    expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 queued · 1 need attention');
+  it('lands in Review instead of breaking the board', { tags: ['full'] }, () => {
+    expect(columnOf(odd())).toBe('review');
+    expect(groupCards([makeCard({ status: 'queued' }), odd()]).review).toHaveLength(1);
+    expect(subtitle([makeCard({ status: 'queued' }), odd()])).toBe('2 batches · 1 queued · 1 to review');
   });
 
   it('shows the raw status as its label with a warning tone', { tags: ['full'] }, () => {

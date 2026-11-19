@@ -88,3 +88,21 @@ def test_a_turned_off_collector_refuses_run_now_in_the_run_service(collectors, r
     service = RunService(collectors, TransferPlanner(clock), scheduler=None, undo=UndoService(None, runs, None))
     with pytest.raises(ValueError, match="turned off"):
         service.start_run(record.id)
+
+
+@pytest.mark.full
+def test_duplicating_copies_the_settings_and_schedule_times_but_leaves_the_schedule_off(client, collectors):
+    original = collectors.add("Coach", "/src/in", "copy")
+    client.put(f"/api/collectors/{original.id}/schedule", json={"enabled": True, "kind": "daily", "time": "09:30", "weekdays": [], "dayOfMonth": 1, "cron": ""})
+    response = client.post(f"/api/collectors/{original.id}/duplicate")
+    assert response.status_code == 201
+    copy = response.json()
+    assert copy["id"] != original.id and copy["name"] == "Coach copy"
+    assert copy["config"]["inputFolder"] == "/src/in" and copy["config"]["transfer"] == "copy"
+    assert copy["schedule"]["time"] == "09:30" and copy["schedule"]["enabled"] is False
+    assert client.get(f"/api/collectors/{original.id}").json()["schedule"]["enabled"] is True
+
+
+@pytest.mark.full
+def test_duplicating_a_missing_collector_is_a_404(client):
+    assert client.post("/api/collectors/999/duplicate").status_code == 404

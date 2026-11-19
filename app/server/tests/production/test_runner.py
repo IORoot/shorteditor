@@ -342,3 +342,15 @@ def test_a_run_never_deletes_files_it_did_not_make(db, tmp_path):
     failed = env.run(env.queue())
     assert failed.status == "failed" and "other files" in failed.error
     assert (precious / "precious.txt").exists() and (tmp_path / "out" / ".work" / "1" / "also-mine.txt").exists()
+
+
+
+@pytest.mark.full
+def test_a_failing_stage_is_recorded_with_its_start_and_end_and_the_reason(db, tmp_path):
+    """The review screen reads these: the stage that failed keeps its place, with an end time, and the pass says why."""
+    env = env_with(db, tmp_path, Explodes(StageError("Nothing to join")))
+    done = env.run(env.queue(keys=["boom"]))
+    assert done.status == "failed" and done.error == "Nothing to join"
+    [stage] = done.stages
+    assert (stage.key, stage.status) == ("boom", "failed")
+    assert stage.started_at and stage.finished_at

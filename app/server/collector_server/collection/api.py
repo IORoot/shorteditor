@@ -30,6 +30,13 @@ def build_router(service: CollectorService, browser: FolderBrowser, runs: RunSer
             raise HTTPException(status_code=404, detail="Collector not found")
         return collector
 
+    @router.post("/collectors/{collector_id}/duplicate", response_model=Collector, status_code=201)
+    def duplicate_collector(collector_id: int) -> Collector:
+        collector = service.duplicate_collector(collector_id)
+        if collector is None:
+            raise HTTPException(status_code=404, detail="Collector not found")
+        return collector
+
     @router.delete("/collectors/{collector_id}", status_code=204)
     def delete_collector(collector_id: int) -> None:
         try:

@@ -248,6 +248,22 @@ class ProductionService:
         self._need_pass(pass_id)
         return self._logs.for_pass(pass_id, kind)
 
+    def log_entries(self, pass_id: int, kind: LogKind) -> list[tuple[str, str]]:
+        self._need_pass(pass_id)
+        return self._logs.entries(pass_id, kind)
+
+    def delete_batches(self, batch_ids: list[int]) -> int:
+        """Removes batches with their passes and logs. Output videos on disk are kept. Refuses the whole request
+        when any of them has a pass that is waiting or running, so nothing is half deleted."""
+        with self._lock:
+            for batch_id in batch_ids:
+                self._need_batch(batch_id)
+                if any(p.status in ("queued", "running") for p in self._passes.for_batch(batch_id)):
+                    raise StateError("A batch that is waiting or running cannot be deleted. Wait for it to finish, then delete it")
+            for batch_id in batch_ids:
+                self._batches.delete(batch_id)
+            return len(batch_ids)
+
     def cards(self) -> list[BatchCard]:
         waiting = [p.id for p in self._passes.queued()]
         cards = []

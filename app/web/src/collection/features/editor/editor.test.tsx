@@ -73,15 +73,15 @@ describe('OutputSection', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ folderTemplate: 'a{counter}' }));
   });
 
-  it('edits group by, transfer and suffix', { tags: ['full'] }, () => {
+  it('edits group by and transfer', { tags: ['full'] }, () => {
     const onChange = vi.fn();
     render(<OutputSection config={makeConfig()} onChange={onChange} onBrowseOutput={() => undefined} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Week' }));
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ groupBy: 'week' }));
     fireEvent.click(screen.getByRole('radio', { name: 'Copy' }));
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ transfer: 'copy' }));
-    fireEvent.change(screen.getByLabelText('Suffix'), { target: { value: 'jam' } });
-    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ suffix: 'jam' }));
+    expect(screen.queryByLabelText('Suffix')).toBeNull();
+    expect(screen.queryByRole('button', { name: '{suffix}' })).toBeNull();
   });
 
   it('opens the output browser', { tags: ['full'] }, () => {

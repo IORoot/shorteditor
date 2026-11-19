@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS production_logs_by_pass ON production_logs (pass_id, 
 # Columns added after the tables first existed. CREATE TABLE IF NOT EXISTS never adds them to an old table.
 _NEW_COLUMNS = {
     "production_batches": {"pipeline_id": "INTEGER"},
-    "production_passes": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'"},
+    "production_passes": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
     "production_watches": {"pipeline_id": "INTEGER"},
 }
 

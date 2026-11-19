@@ -1,6 +1,6 @@
 import { HttpClient } from '../../shared/lib/http';
 import type { StageHandoff } from '../../shared/contracts/handoff';
-import type { Batch, BatchCard, BatchCreate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
+import type { Batch, BatchCard, BatchCreate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
 
 const BASE = '/api/production';
 
@@ -56,6 +56,11 @@ export class ProductionApi extends HttpClient {
     return this.send<WatchView>(`${BASE}/watches/${id}`, 'PUT', body);
   }
 
+  /** Removes the batches with their passes and logs. Refused, with nothing deleted, if one is waiting or running. */
+  deleteBatches(batchIds: number[]): Promise<{ deleted: number }> {
+    return this.send<{ deleted: number }>(`${BASE}/batches/delete`, 'POST', { batchIds });
+  }
+
   deleteWatch(id: number): Promise<void> {
     return this.remove(`${BASE}/watches/${id}`);
   }
@@ -66,6 +71,16 @@ export class ProductionApi extends HttpClient {
 
   checkWatch(id: number): Promise<CheckResult> {
     return this.send<CheckResult>(`${BASE}/watches/${id}/check`, 'POST', {});
+  }
+
+  /** The batch with all its passes, so the review screen can read the pass it is showing. */
+  batchDetail(batchId: number): Promise<{ batch: Batch; passes: Pass[] }> {
+    return this.request<{ batch: Batch; passes: Pass[] }>(`${BASE}/batches/${batchId}`);
+  }
+
+  /** The log of a pass: the pipeline's stage lines or the ffmpeg output, each with its time. */
+  passLog(passId: number, kind: 'pipeline' | 'ffmpeg'): Promise<LogLines> {
+    return this.request<LogLines>(`${BASE}/passes/${passId}/logs?kind=${kind}`);
   }
 
   outputUrl(passId: number): string {

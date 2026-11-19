@@ -34,6 +34,17 @@ describe('CollectorRow', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Turn on Coach Saturdays' }));
     expect(onToggle).toHaveBeenCalledWith(1, false);
   });
+
+  it('selects when anywhere on the row is clicked, but the switch only toggles', { tags: ['full'] }, () => {
+    const onSelect = vi.fn();
+    const onToggle = vi.fn();
+    render(<CollectorRow collector={base} selected={false} onSelect={onSelect} onToggle={onToggle} />);
+    fireEvent.click(screen.getByText('SSH coach-nas · Move'));
+    expect(onSelect).toHaveBeenCalledWith(1);
+    fireEvent.click(screen.getByRole('switch', { name: 'Turn on Coach Saturdays' }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(1, false);
+  });
 });
 
 describe('CollectorList', () => {

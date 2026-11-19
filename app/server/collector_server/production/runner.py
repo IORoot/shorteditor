@@ -14,7 +14,7 @@ from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
 from collector_server.shared.pipeline import PipelineSource
 
-from .stage_api import BlockedError, StageContext, StageError, StageStep
+from .stage_api import DEFAULT_AI_MODEL, BlockedError, StageContext, StageError, StageStep
 from .validation import build_settings, validate_pipeline
 from .worker import Worker
 
@@ -24,14 +24,16 @@ _FFMPEG_LINES_KEPT = 3000
 
 class PassRunner:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry, pipelines: PipelineSource,
-                 now: Callable[[], str], ai_key: Callable[[], str | None] = lambda: None) -> None:
+                 now: Callable[[], str], ai_key: Callable[[], str | None] = lambda: None,
+                 ai_model: Callable[[], str] = lambda: DEFAULT_AI_MODEL) -> None:
         self._batches, self._passes, self._logs, self._registry, self._pipelines, self._now = batches, passes, logs, registry, pipelines, now
         self._ai_key = ai_key  # read at the start of each pass, so a key saved in Settings is used by the next pass
+        self._ai_model = ai_model
 
     def run(self, pass_id: int, worker: Worker) -> None:
         claimed = self._passes.update(
             pass_id, only_if_status="queued", status="running", started_at=self._now(), finished_at=None,
-            error=None, blocked_reason=None, blocked_choices=[], blocked_items=[], output=None, stage_index=0, stage_key="",
+            error=None, blocked_reason=None, blocked_choices=[], blocked_items=[], output=None, stage_index=0, stage_key="", stages=[],
         )
         if claimed is None:
             return  # someone else took it, or it is not waiting any more
@@ -49,7 +51,7 @@ class PassRunner:
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
-            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key())
+            ctx = StageContext(batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model())
             self._finish(pass_id, "review", pipeline, output=self._execute(claimed, steps, ctx))
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
@@ -118,10 +120,23 @@ class PassRunner:
             stage = self._registry.get(step.key)
             plan.append((step, stage, build_settings(stage, {**step.settings, **current.overrides.get(step.key, {})})))
         data = None
+        stages: list[dict] = []  # saved after every change, so the review screen shows where the pass is
         for index, (step, stage, settings) in enumerate(plan):  # the index counts enabled stages only
-            self._passes.update(current.id, stage_index=index, stage_key=step.key)
+            stages.append({"key": step.key, "title": stage.title, "status": "running", "started_at": self._now(), "finished_at": None})
+            self._passes.update(current.id, stage_index=index, stage_key=step.key, stages=stages)
             ctx.log(f"{stage.title} started")
-            data = stage.run(data, settings, ctx)
+            try:
+                data = stage.run(data, settings, ctx)
+            except BlockedError:
+                stages[-1].update(status="blocked", finished_at=self._now())
+                self._passes.update(current.id, stages=stages)
+                raise
+            except Exception:
+                stages[-1].update(status="failed", finished_at=self._now())
+                self._passes.update(current.id, stages=stages)
+                raise
+            stages[-1].update(status="done", finished_at=self._now())
+            self._passes.update(current.id, stages=stages)
             ctx.log(f"{stage.title} done")
         if not isinstance(data, VideoData):
             raise StageError("The pipeline did not make a video")

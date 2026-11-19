@@ -1,32 +1,37 @@
 import type { Tone } from '../../shared/lib/types';
 import type { BatchCard } from './types';
 
-export type Column = 'review' | 'attention' | 'running' | 'queued' | 'approved';
+export type Column = 'review' | 'running' | 'queued' | 'approved';
 
-export const COLUMNS: Exclude<Column, 'approved'>[] = ['queued', 'running', 'attention', 'review'];
+/** Left to right: Queued, Running, Review, Approved. */
+export const COLUMNS: Column[] = ['queued', 'running', 'review', 'approved'];
 
 const COLUMN_OF: Record<BatchCard['status'], Column> = {
   review: 'review',
-  blocked: 'attention',
-  failed: 'attention',
+  blocked: 'review',  // waiting for a choice from the user, so it stays where the user looks
+  failed: 'review',  // a failed batch stays in Review with a red background
   running: 'running',
   queued: 'queued',
   approved: 'approved',
 };
 
-/** A status this version does not know is shown under Needs attention rather than breaking the board. */
+/** A status this version does not know is shown in Review rather than breaking the board. */
 export function columnOf(card: BatchCard): Column {
-  return COLUMN_OF[card.status] ?? 'attention';
+  return COLUMN_OF[card.status] ?? 'review';
 }
 
 export function groupCards(cards: BatchCard[]): Record<Column, BatchCard[]> {
-  const groups: Record<Column, BatchCard[]> = { review: [], attention: [], running: [], queued: [], approved: [] };
+  const groups: Record<Column, BatchCard[]> = { review: [], running: [], queued: [], approved: [] };
   for (const card of cards) groups[columnOf(card)].push(card);
   const newestFirst = (a: BatchCard, b: BatchCard) => b.batchId - a.batchId;
   const position = (card: BatchCard) => card.queuePosition ?? Number.MAX_SAFE_INTEGER;
   groups.queued.sort((a, b) => position(a) - position(b));
-  for (const column of ['review', 'attention', 'approved'] as const) groups[column].sort(newestFirst);
+  for (const column of ['review', 'approved'] as const) groups[column].sort(newestFirst);
   return groups;
+}
+
+function failedCount(cards: BatchCard[]): number {
+  return cards.filter((card) => card.status === 'failed').length;
 }
 
 export function subtitle(cards: BatchCard[]): string {
@@ -36,8 +41,8 @@ export function subtitle(cards: BatchCard[]): string {
     `${cards.length} ${cards.length === 1 ? 'batch' : 'batches'}`,
     groups.queued.length ? `${groups.queued.length} queued` : '',
     groups.running.length ? `${groups.running.length} running` : '',
-    groups.attention.length ? `${groups.attention.length} need attention` : '',
-    groups.review.length ? `${groups.review.length} ready to review` : '',
+    groups.review.length ? `${groups.review.length} to review` : '',
+    failedCount(cards) ? `${failedCount(cards)} failed` : '',
   ];
   return parts.filter(Boolean).join(' · ');
 }

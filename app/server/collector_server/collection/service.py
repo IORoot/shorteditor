@@ -37,6 +37,17 @@ class CollectorService:
             raise ValueError("Give the collector a name")
         return self._present(self._collectors.add(name, ""))
 
+    def duplicate_collector(self, collector_id: int) -> Collector | None:
+        """A copy with the same folders, filters and schedule times, named "... copy". Its schedule starts off, so the two never run side by side on their own."""
+        record = self._collectors.get(collector_id)
+        if record is None:
+            return None
+        config = record.config().model_copy(update={"name": f"{record.name} copy"})
+        copy = self._collectors.add_with_config(config)
+        draft = record.draft().model_copy(update={"enabled": False})
+        saved = self._collectors.save_schedule(copy.id, draft, ScheduleRule(draft).cron, self._clock.now())
+        return self._present(saved) if saved else None
+
     def delete_collector(self, collector_id: int) -> bool | None:
         """True when deleted, None when the collector doesn't exist. Refuses while a run is in progress."""
         if self._collectors.get(collector_id) is None:

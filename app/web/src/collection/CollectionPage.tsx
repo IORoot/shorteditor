@@ -154,6 +154,18 @@ export function CollectionPage({ active = true }: CollectionPageProps) {
     }
   };
 
+  const duplicateCollector = async () => {
+    if (!selected) return;
+    setActionError(null);
+    try {
+      const copy = await api.duplicateCollector(selected.id);
+      setSelectedId(copy.id);
+      collectors.reload();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not duplicate the collector');
+    }
+  };
+
   const toggleCollector = async (id: number, active: boolean) => {
     try {
       await api.setActive(id, active);
@@ -222,6 +234,7 @@ export function CollectionPage({ active = true }: CollectionPageProps) {
         selected ? (
           <CollectorActions
             onEdit={() => setEditing(true)}
+            onDuplicate={duplicateCollector}
             onDryRun={() => openDialog('dry')}
             onRun={() => openDialog('run')}
             runDisabled={anyRunning || !selected.active}

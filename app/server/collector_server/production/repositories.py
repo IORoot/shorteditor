@@ -5,15 +5,15 @@ from typing import get_args
 
 from collector_server.shared.database import Database
 
-from .models import Batch, LogKind, Pass, PassStatus
+from .models import Batch, LogKind, Pass, PassStatus, StageRun
 from .pieces import VideoData
 from .stage_api import StageStep
 
 _PASS_FIELDS = {
     "status", "stage_index", "stage_key", "blocked_reason", "blocked_choices",
-    "overrides", "error", "output", "started_at", "finished_at", "steps_used", "blocked_items",
+    "overrides", "error", "output", "started_at", "finished_at", "steps_used", "blocked_items", "stages",
 }
-_JSON_FIELDS = {"blocked_choices", "blocked_items", "overrides", "output", "steps_used"}
+_JSON_FIELDS = {"blocked_choices", "blocked_items", "overrides", "output", "steps_used", "stages"}
 
 
 class BatchRepository:
@@ -114,6 +114,7 @@ class PassRepository:
             stage_index=row["stage_index"], stage_key=row["stage_key"], blocked_reason=row["blocked_reason"],
             blocked_choices=json.loads(row["blocked_choices"]), blocked_items=json.loads(row["blocked_items"]), overrides=json.loads(row["overrides"]),
             steps_used=[StageStep(**step) for step in json.loads(row["steps_used"])],
+            stages=[StageRun(**stage) for stage in json.loads(row["stages"])],
             error=row["error"], output=VideoData.model_validate_json(row["output"]) if row["output"] else None,
             created_at=row["created_at"], started_at=row["started_at"], finished_at=row["finished_at"],
         )
@@ -133,5 +134,9 @@ class LogRepository:
         self._db.execute("DELETE FROM production_logs WHERE pass_id = ?", (pass_id,))
 
     def for_pass(self, pass_id: int, kind: LogKind) -> list[str]:
-        rows = self._db.query("SELECT text FROM production_logs WHERE pass_id = ? AND kind = ? ORDER BY id", (pass_id, kind))
-        return [row["text"] for row in rows]
+        return [at_text[1] for at_text in self.entries(pass_id, kind)]
+
+    def entries(self, pass_id: int, kind: LogKind) -> list[tuple[str, str]]:
+        """(time, text) pairs in the order they were written."""
+        rows = self._db.query("SELECT at, text FROM production_logs WHERE pass_id = ? AND kind = ? ORDER BY id", (pass_id, kind))
+        return [(row["at"], row["text"]) for row in rows]

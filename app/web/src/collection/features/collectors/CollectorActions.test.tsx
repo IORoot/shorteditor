@@ -21,6 +21,13 @@ describe('CollectorActions', () => {
     expect([onEdit, onDryRun, onRun].map((fn) => fn.mock.calls.length)).toEqual([1, 1, 1]);
   });
 
+  it('calls onDuplicate from the Duplicate button', { tags: ['full'] }, () => {
+    const onDuplicate = vi.fn();
+    render(<CollectorActions onEdit={() => undefined} onDuplicate={onDuplicate} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+  });
+
   it('can disable Run now while a run is in progress', { tags: ['full'] }, () => {
     render(<CollectorActions onEdit={() => undefined} runDisabled />);
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled();

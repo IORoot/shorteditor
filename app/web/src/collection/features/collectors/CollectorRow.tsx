@@ -14,18 +14,21 @@ export function CollectorRow({ collector, selected, onSelect, onToggle }: Collec
   const { schedule, statusNote, active } = collector;
   return (
     <div
-      className={`flex flex-col gap-2 rounded-2xl p-3.5 ${selected ? 'bg-surface shadow-[0_2px_12px_#0000000f]' : ''}`}
+      onClick={() => onSelect(collector.id)}
+      className={`flex cursor-pointer flex-col gap-2 rounded-2xl p-3.5 ${selected ? 'bg-surface shadow-[0_2px_12px_#0000000f]' : ''}`}
     >
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           aria-pressed={selected}
-          onClick={() => onSelect(collector.id)}
           className={`truncate text-h3 text-left font-semibold ${active ? 'text-base-content' : 'text-text-3'}`}
         >
           {collector.name}
         </button>
-        <Toggle label={`Turn on ${collector.name}`} checked={active} onChange={(enabled) => onToggle(collector.id, enabled)} />
+        {/* the switch turns the collector on or off; it must not also select the row */}
+        <div onClick={(event) => event.stopPropagation()}>
+          <Toggle label={`Turn on ${collector.name}`} checked={active} onChange={(enabled) => onToggle(collector.id, enabled)} />
+        </div>
       </div>
       <p className="truncate text-caption text-text-2">{collector.source}</p>
       <div className="flex items-center justify-between gap-2">

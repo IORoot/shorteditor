@@ -3,10 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from collector_server.shared.camel_model import CamelModel
+from collector_server.production.stage_api import DEFAULT_AI_MODEL
 from collector_server.shared.database import Database
 
 OPENROUTER_KEY = "openrouter_key"
+OPENROUTER_MODEL = "openrouter_model"
 _MAX_KEY_LENGTH = 300
+_MAX_MODEL_LENGTH = 200
 
 
 class AppSettings:
@@ -30,14 +33,17 @@ class AppSettings:
 class AiKeyView(CamelModel):
     key_set: bool
     key_hint: str | None  # the last four characters only; the key itself is never sent back
+    model: str  # the model the AI stages ask; the default until the user picks another
 
 
 class AiKeyUpdate(CamelModel):
     key: str | None = None  # None leaves the key alone; an empty string removes it
+    model: str | None = None  # None leaves the model alone; an empty string goes back to the default
 
 
-def _view(key: str | None) -> AiKeyView:
-    return AiKeyView(key_set=bool(key), key_hint=f"...{key[-4:]}" if key else None)
+def _view(settings: AppSettings) -> AiKeyView:
+    key = settings.get(OPENROUTER_KEY)
+    return AiKeyView(key_set=bool(key), key_hint=f"...{key[-4:]}" if key else None, model=settings.get(OPENROUTER_MODEL) or DEFAULT_AI_MODEL)
 
 
 def build_settings_router(settings: AppSettings) -> APIRouter:
@@ -45,7 +51,7 @@ def build_settings_router(settings: AppSettings) -> APIRouter:
 
     @router.get("/ai", response_model=AiKeyView)
     def read_ai() -> AiKeyView:
-        return _view(settings.get(OPENROUTER_KEY))
+        return _view(settings)
 
     @router.put("/ai", response_model=AiKeyView)
     def write_ai(update: AiKeyUpdate) -> AiKeyView:
@@ -54,6 +60,11 @@ def build_settings_router(settings: AppSettings) -> APIRouter:
             if key and (len(key) > _MAX_KEY_LENGTH or any(ch.isspace() for ch in key)):
                 raise HTTPException(status_code=400, detail="That does not look like an OpenRouter key")
             settings.put(OPENROUTER_KEY, key or None)
-        return _view(settings.get(OPENROUTER_KEY))
+        if update.model is not None:
+            model = update.model.strip()
+            if model and (len(model) > _MAX_MODEL_LENGTH or any(ch.isspace() for ch in model)):
+                raise HTTPException(status_code=400, detail="That does not look like an OpenRouter model name, such as nvidia/nemotron-3.5-super-vl")
+            settings.put(OPENROUTER_MODEL, model or None)
+        return _view(settings)
 
     return router

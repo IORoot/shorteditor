@@ -34,6 +34,11 @@ export class ApiClient extends HttpClient {
     return normalizeCollector(await this.send<Collector>(`/api/collectors/${collectorId}/active`, 'PUT', { active }));
   }
 
+  /** A copy of the collector with its folders, filters and schedule times; the copy's schedule starts off. */
+  async duplicateCollector(collectorId: number): Promise<Collector> {
+    return normalizeCollector(await this.send<Collector>(`/api/collectors/${collectorId}/duplicate`, 'POST', {}));
+  }
+
   async createCollector(name: string): Promise<Collector> {
     return normalizeCollector(await this.send<Collector>('/api/collectors', 'POST', { name }));
   }
