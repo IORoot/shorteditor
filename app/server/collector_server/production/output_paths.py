@@ -4,13 +4,42 @@ import os
 import re
 import shutil
 
-from .models import Batch
+from .models import DEFAULT_FOLDER_TEMPLATE, Batch
+
+# The tags a folder name template can use: {{name}} the batch name, {{id}} its number, {{date}} the day it was made.
+TAGS = ("name", "id", "date")
+_TAG = re.compile(r"\{\{\s*(\w+)\s*\}\}")
+_LITERAL = re.compile(r"[A-Za-z0-9._-]*")
+MAX_TEMPLATE = 100
+
+
+def check_folder_template(template: str) -> None:
+    """A folder name template is usable when it has only known tags, plain characters, and {{id}} so each batch gets its own folder."""
+    if not template or len(template) > MAX_TEMPLATE:
+        raise OutputFolderError(f"The folder name must be 1 to {MAX_TEMPLATE} characters")
+    for key in _TAG.findall(template):
+        if key not in TAGS:
+            raise OutputFolderError(f"{{{{{key}}}}} is not a tag. Use {', '.join('{{' + t + '}}' for t in TAGS)}")
+    if not _LITERAL.fullmatch(_TAG.sub("", template)):
+        raise OutputFolderError("The folder name can use letters, numbers, dots, dashes and underscores, and the tags. Remove any other characters")
+    if "id" not in _TAG.findall(template):
+        raise OutputFolderError("The folder name must use the {{id}} tag, so every batch gets its own folder")
+
+
+def _safe(text: str, limit: int) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip("-.")[:limit]
 
 
 def folder_name(batch: Batch) -> str:
-    """A safe folder name for a batch: the name with odd characters replaced, plus the id."""
-    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", batch.name).strip("-.")[:40] or "batch"
-    return f"{slug}-{batch.id}"
+    """The batch's folder under the output folder, from its template. The name tag is made safe and shortened."""
+    def value(match: re.Match) -> str:
+        key = match.group(1)
+        if key == "name":
+            return _safe(batch.name, 40) or "batch"
+        if key == "id":
+            return str(batch.id)
+        return batch.created_at[:10]  # date: the day part of the batch's created time
+    return _TAG.sub(value, batch.folder_template or DEFAULT_FOLDER_TEMPLATE).strip("-.") or f"batch-{batch.id}"
 
 
 def output_paths(batch: Batch, pass_id: int, number: int) -> tuple[str, str]:

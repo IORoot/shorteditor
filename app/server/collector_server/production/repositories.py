@@ -5,7 +5,7 @@ from typing import get_args
 
 from collector_server.shared.database import Database
 
-from .models import Batch, LogKind, Pass, PassStatus, Run, StageRun
+from .models import DEFAULT_FOLDER_TEMPLATE, Batch, LogKind, Pass, PassStatus, Run, StageRun
 from .pieces import VideoData
 from .stage_api import StageStep
 
@@ -21,10 +21,11 @@ class BatchRepository:
         self._db = db
 
     def create(self, name: str, input_folder: str, pipeline_id: int | None, steps: list[StageStep], run_on: str, output_root: str, now: str,
-               folder_pattern: str | None = None, auto_run: bool = True) -> Batch:
+               folder_pattern: str | None = None, auto_run: bool = True, folder_template: str = DEFAULT_FOLDER_TEMPLATE,
+               ignore_subfolders: bool = False) -> Batch:
         cursor = self._db.execute(
-            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at, folder_pattern, auto_run) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now, folder_pattern, int(auto_run)),
+            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at, folder_pattern, auto_run, folder_template, ignore_subfolders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now, folder_pattern, int(auto_run), folder_template, int(ignore_subfolders)),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
 
@@ -36,8 +37,8 @@ class BatchRepository:
         self._db.execute("DELETE FROM production_batches WHERE id = ?", (batch_id,))
 
     def update(self, batch_id: int, **fields: str) -> None:
-        """Only the name, the output folder and the auto run flag can be changed in place."""
-        unknown = set(fields) - {"name", "output_root", "auto_run"}
+        """Only the name, the output folder, its folder name and the auto run flag can be changed in place."""
+        unknown = set(fields) - {"name", "output_root", "folder_template", "auto_run"}
         if unknown:
             raise ValueError(f"Cannot update {', '.join(sorted(unknown))}")
         assignments = ", ".join(f"{name} = ?" for name in fields)
@@ -57,7 +58,8 @@ class BatchRepository:
         return Batch(
             id=row["id"], name=row["name"], input_folder=row["input_folder"], run_on=row["run_on"],
             pipeline_id=row["pipeline_id"], steps=[StageStep(**step) for step in json.loads(row["steps"])],
-            output_root=row["output_root"], created_at=row["created_at"], folder_pattern=row["folder_pattern"], auto_run=bool(row["auto_run"]),
+            output_root=row["output_root"], folder_template=row["folder_template"], created_at=row["created_at"], folder_pattern=row["folder_pattern"],
+            auto_run=bool(row["auto_run"]), ignore_subfolders=bool(row["ignore_subfolders"]),
         )
 
 

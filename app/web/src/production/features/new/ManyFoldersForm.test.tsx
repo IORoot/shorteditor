@@ -24,15 +24,16 @@ describe('ManyFoldersForm', () => {
     expect(screen.getByLabelText('Parent folder')).toHaveValue('/c');
     expect(screen.getByLabelText('Folder name pattern (regular expression)')).toHaveValue(PATTERN_PRESETS[0].pattern);
     expect(screen.getByLabelText('Pattern preset')).toHaveValue('date');
-    expect(screen.getByLabelText('Name each batch')).toHaveValue('{name}');
+    expect(screen.getByLabelText('Batch name')).toHaveValue('');
+    expect(screen.getByRole('switch', { name: 'Ignore subfolders' })).not.toBeChecked();
   });
 
   it('reports every edit as a patch', { tags: ['full'] }, () => {
     const onChange = show();
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/Volumes/Edit' } });
     expect(onChange).toHaveBeenLastCalledWith({ parentFolder: '/Volumes/Edit' });
-    fireEvent.change(screen.getByLabelText('Name each batch'), { target: { value: '{1} coach' } });
-    expect(onChange).toHaveBeenLastCalledWith({ nameTemplate: '{1} coach' });
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Reel' } });
+    expect(onChange).toHaveBeenLastCalledWith({ batchName: 'Reel' });
   });
 
   it('fills the pattern from a preset and clears it for Custom', { tags: ['full'] }, () => {

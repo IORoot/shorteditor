@@ -10,9 +10,9 @@ from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHan
 from collector_server.shared.errors import InvalidInputError, NotFoundError, StateError
 from collector_server.shared.pipeline import PipelineRef, PipelineSource
 from .catalog import StageLibrary
-from .output_paths import OutputFolderError, check_root
+from .output_paths import OutputFolderError, check_folder_template, check_root
 from .folder_scan import Candidate, scan_parent
-from .models import ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
+from .models import DEFAULT_FOLDER_TEMPLATE, ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
 from .repositories import BatchRepository, LogRepository, PassRepository, RunRepository
 from .stage_api import StageStep
@@ -188,11 +188,12 @@ class ProductionService:
 
     def create_batch(self, name: str, input_folder: str, pipeline_id: int | None, run_on: str, output_root: str | None,
                      steps: list[StageStep] | None = None, folders: list[str] | None = None, folder_pattern: str | None = None,
-                     auto_run: bool = True) -> Batch:
+                     auto_run: bool = True, folder_template: str | None = None, ignore_subfolders: bool = False) -> Batch:
         steps, pipeline_id = self._resolve(pipeline_id, steps)
         name = name.strip()
         if not name or len(name) > 120 or any(ord(c) < 32 for c in name):
             raise InvalidInputError("The batch needs a name of up to 120 characters")
+        template = self._checked_template(folder_template)
         root = self._check_settings(steps, run_on, output_root, input_folder)
         if not os.path.isabs(input_folder):
             raise InvalidInputError("The input folder must be an absolute path")
@@ -203,7 +204,7 @@ class ProductionService:
             folders = self._card_folders(input_folder)  # the scan is slow, so it is done before the lock is taken
         with self._lock:
             stored = [] if pipeline_id is not None else steps  # a pipeline batch reads its steps from the pipeline
-            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now(), folder_pattern, auto_run)
+            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now(), folder_pattern, auto_run, template, ignore_subfolders)
             try:
                 self._start_run(batch, folders)
             except Exception:
@@ -232,6 +233,8 @@ class ProductionService:
 
     def _batch_folders(self, batch: Batch) -> list[str]:
         """A batch made from many folders runs the folders its pattern matches now; any other batch runs its sub-folders."""
+        if batch.ignore_subfolders:
+            return [batch.input_folder]
         if batch.folder_pattern is None:
             return self._card_folders(batch.input_folder)
         folders = self._folders_with_videos(scan_parent(batch.input_folder, compile_pattern(batch.folder_pattern)))
@@ -248,6 +251,16 @@ class ProductionService:
             self._passes.create(batch.id, self._now(), (overrides or {}).get(folder), run_id=run.id, folder=folder, status=status)
         self._runs.delete_except(batch.id, run.id)
         return run
+
+    @staticmethod
+    def _checked_template(folder_template: str | None) -> str:
+        """The folder name template to store: the default when none is given, otherwise one that passes the checks."""
+        template = (folder_template or "").strip() or DEFAULT_FOLDER_TEMPLATE  # empty means the default, as for the output folder
+        try:
+            check_folder_template(template)
+        except OutputFolderError as error:
+            raise InvalidInputError(str(error)) from error
+        return template
 
     def _check_settings(self, steps: list[StageStep], run_on: str, output_root: str | None, *paths: str) -> str:
         """The checks every new batch needs, before anything is created. Returns the output folder to use."""
@@ -305,11 +318,14 @@ class ProductionService:
 
     def create_batches(self, request: BulkCreate) -> BulkResult:
         # One batch for the parent folder. Each folder the pattern matches that has videos is a card.
-        compiled = self.check_folder_settings(request.parent_folder, request.pattern, request.name_template, request.pipeline_id, request.run_on, request.output_root)
+        # Ignoring subfolders makes the parent folder the one card, and the pattern is not used.
+        pattern = "^.+$" if request.ignore_subfolders else request.pattern
+        compiled = self.check_folder_settings(request.parent_folder, pattern, request.name_template, request.pipeline_id, request.run_on, request.output_root)
         check_template(request.name_template, re.compile(""))  # the batch is named once, from the parent folder, so only {name} can be used
-        scan = scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
-        folders = self._folders_with_videos(scan)
-        name = render_name(request.name_template, re.match("", ""), os.path.basename(os.path.normpath(request.parent_folder)))
+        scan = None if request.ignore_subfolders else scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
+        folders = [request.parent_folder] if scan is None else self._folders_with_videos(scan)
+        parent_name = os.path.basename(os.path.normpath(request.parent_folder))
+        name = request.name.strip() if request.name and request.name.strip() else render_name(request.name_template, re.match("", ""), parent_name)
         with self._lock:  # the check and the creation are one step, so two requests never make the same batch
             taken = self.taken_folders()
             if self._parent_batched(request.parent_folder, taken):
@@ -318,7 +334,10 @@ class ProductionService:
             if not folders:
                 raise InvalidInputError("Nothing to create: no folder that matches the pattern has videos or is not already batched")
             batch = self.create_batch(name, request.parent_folder, request.pipeline_id, request.run_on, request.output_root,
-                                      folders=folders, folder_pattern=request.pattern, auto_run=request.auto_run)
+                                      folders=folders, folder_pattern=None if request.ignore_subfolders else request.pattern, auto_run=request.auto_run,
+                                      folder_template=request.folder_template, ignore_subfolders=request.ignore_subfolders)
+        if scan is None:
+            return BulkResult(created=[batch], skipped=[])
         chosen = set(folders)
         skipped = [self._item(c, taken, batched=False) for c in scan.matches if c.path not in chosen]
         return BulkResult(created=[batch], skipped=skipped)
@@ -403,9 +422,10 @@ class ProductionService:
         self._need_pass(pass_id)
         return self._logs.entries(pass_id, kind)
 
-    def update_batch(self, batch_id: int, name: str | None, output_root: str | None, auto_run: bool | None = None) -> Batch:
-        """Name and output folder change at once. The output folder can change only while no card has a finished video,
-        so every video that is kept can still be served from the folder it was made in."""
+    def update_batch(self, batch_id: int, name: str | None, output_root: str | None, auto_run: bool | None = None,
+                     folder_template: str | None = None) -> Batch:
+        """Name, output folder and folder name change at once. The output folder and folder name can change only while no card
+        has a finished video, so every video that is kept can still be served from the folder it was made in."""
         with self._lock:
             batch = self._need_batch(batch_id)
             fields: dict[str, str] = {}
@@ -414,17 +434,22 @@ class ProductionService:
                 if not name or len(name) > 120 or any(ord(c) < 32 for c in name):
                     raise InvalidInputError("The batch needs a name of up to 120 characters")
                 fields["name"] = name
-            if output_root is not None and output_root != batch.output_root:
+            template = self._checked_template(folder_template) if folder_template is not None else None
+            template_changes = template is not None and template != batch.folder_template
+            root_changes = output_root is not None and output_root != batch.output_root
+            if root_changes:
                 try:
                     check_root(output_root)
                 except OutputFolderError as error:
                     raise InvalidInputError(str(error)) from error
-                root = output_root
-                self._check_apart(batch.input_folder, root)
-                run = self._runs.latest(batch_id)
-                if run and any(c.output is not None for c in self._passes.for_batch(batch_id)):
-                    raise StateError("The output folder cannot change after a card has a finished video. Start a new batch for a new output folder")
-                fields["output_root"] = root
+                self._check_apart(batch.input_folder, output_root)
+            if root_changes or template_changes:
+                if any(c.output is not None for c in self._passes.for_batch(batch_id)):
+                    raise StateError("The output folder or folder name cannot change after a card has a finished video. Start a new batch for a new output folder")
+            if root_changes:
+                fields["output_root"] = output_root
+            if template_changes:
+                fields["folder_template"] = template
             if auto_run is not None:
                 fields["auto_run"] = int(auto_run)
                 if auto_run:  # turning it on starts what is waiting

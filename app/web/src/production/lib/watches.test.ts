@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { checkMessage, watchLabel, watchTone } from './watches';
 import type { CheckResult, WatchView } from './types';
 
-const batch = { id: 1, name: 'x', inputFolder: '/x', steps: [], runOn: 'any', outputRoot: '/o', createdAt: 'x', autoRun: true };
+const batch = { id: 1, name: 'x', inputFolder: '/x', steps: [], runOn: 'any', outputRoot: '/o', folderTemplate: '{{name}}-{{id}}', createdAt: 'x', autoRun: true };
 const result = (over: Partial<CheckResult>): CheckResult => ({ created: [], waiting: [], error: null, ...over });
 
 describe('checkMessage', () => {

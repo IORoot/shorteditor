@@ -12,6 +12,7 @@ import { subtitle } from '../../lib/board';
 import type { ActionName, ActionResult } from '../../lib/types';
 import { Board } from '../board/Board';
 import { Breadcrumbs } from '../shared/Breadcrumbs';
+import { FolderNameField } from '../new/FolderNameField';
 import { ActionButtons, ChosenBar, ConfirmDialog, Outcome } from '../actions/ActionBar';
 
 export interface BatchBoardPageProps {
@@ -34,6 +35,7 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [outputRoot, setOutputRoot] = useState('');
+  const [folderTemplate, setFolderTemplate] = useState('');
   const [choosing, setChoosing] = useState(false);
   const [chosen, setChosen] = useState<number[]>([]);
   const [results, setResults] = useState<ActionResult[] | null>(null);
@@ -49,11 +51,12 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
     if (!batch) return;
     setName(batch.name);
     setOutputRoot(batch.outputRoot);
+    setFolderTemplate(batch.folderTemplate);
     save.clear();
     setEditing(true);
   };
   const saveEdit = async () => {
-    if (await save.run(() => api.updateBatch(batchId, { name, outputRoot }))) {
+    if (await save.run(() => api.updateBatch(batchId, { name, outputRoot, folderTemplate }))) {
       setEditing(false);
       detail.reload();
       board.reload();
@@ -185,6 +188,9 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
             <input value={outputRoot} onChange={(event) => setOutputRoot(event.target.value)} className="rounded-[10px] bg-fill-2 px-3 py-2 font-mono text-caption font-normal text-text" />
             <span className="font-normal text-text-3">The output folder can change only before any card has a finished video.</span>
           </label>
+          <div className="flex min-w-[280px] flex-[2] flex-col gap-1.5">
+            <FolderNameField value={folderTemplate} onChange={setFolderTemplate} outputRoot={outputRoot} />
+          </div>
           {save.error ? <p role="alert" className="w-full text-small text-bad">{save.error}</p> : null}
           <div className="flex gap-2.5">
             <Button onClick={() => setEditing(false)}>Cancel</Button>

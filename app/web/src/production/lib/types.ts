@@ -67,6 +67,7 @@ export interface BatchCreate {
   pipelineId: number;
   runOn: string;
   outputRoot?: string;
+  folderTemplate?: string;
   autoRun?: boolean;
 }
 
@@ -83,6 +84,8 @@ export interface Batch {
   steps: StageStep[];
   runOn: string;
   outputRoot: string;
+  /** The batch's folder under the output folder, with {{name}}, {{id}} and {{date}} tags. */
+  folderTemplate: string;
   createdAt: string;
   /** On: new cards start by themselves. Off: they wait as held until started. */
   autoRun: boolean;
@@ -105,6 +108,7 @@ export interface BatchListItem {
 export interface BatchUpdate {
   name?: string;
   outputRoot?: string;
+  folderTemplate?: string;
   autoRun?: boolean;
 }
 
@@ -180,10 +184,15 @@ export interface FolderPreview {
 export interface BulkCreate {
   parentFolder: string;
   pattern: string;
+  /** The batch's name. Left out, the server uses the parent folder's name. */
+  name?: string;
+  /** On: the parent folder is the one card. The pattern is not used. */
+  ignoreSubfolders?: boolean;
   nameTemplate: string;
   pipelineId: number;
   runOn: string;
   outputRoot?: string;
+  folderTemplate?: string;
   autoRun?: boolean;
 }
 

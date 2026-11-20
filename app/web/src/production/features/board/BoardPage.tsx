@@ -8,7 +8,7 @@ import type { BrowseResult } from '../../../shared/lib/types';
 import { useAction } from '../../../shared/hooks/useAction';
 import type { ProductionApi } from '../../lib/api';
 import { listSubtitle, type BatchFilter } from '../../lib/batchList';
-import { toBulkRequest, toRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
+import { toBulkRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
 import type { ActionName, ActionResult, BatchListItem, Defaults, PipelineChoice } from '../../lib/types';
 import { BatchList } from '../batches/BatchList';
 import { NewBatchDialog, type WatchTarget } from '../new/NewBatchDialog';
@@ -17,7 +17,7 @@ import { DeleteBatchesDialog } from './DeleteBatchesDialog';
 import { ChosenBar, Outcome } from '../actions/ActionBar';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch' | 'deleteBatches' | 'batchActions'>;
+  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch' | 'deleteBatches' | 'batchActions'>;
   browse?: (path?: string) => Promise<BrowseResult>;
   /** Opens the Pipeline tab from the New batch dialog. */
   onManagePipelines?: () => void;
@@ -223,12 +223,6 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
           onClose={watchTarget ? closeWatchTarget : closeNew}
           onCreateMany={async (form) => {
             if (await create.run(() => api.createBatches(toBulkRequest(form)))) {
-              closeNew();
-              list.reload();
-            }
-          }}
-          onCreate={async (form) => {
-            if (await create.run(() => api.createBatch(toRequest(form)))) {
               closeNew();
               list.reload();
             }

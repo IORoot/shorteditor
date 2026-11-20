@@ -49,9 +49,9 @@ describe('BoardPage', () => {
     setup([makeCard({ name: 'H', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 8 })]);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     fireEvent.click(screen.getByRole('button', { name: 'New batch' }));
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Half typed' } });
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Half typed' } });
     await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
-    expect(screen.getByLabelText('Name')).toHaveValue('Half typed');
+    expect(screen.getByLabelText('Batch name')).toHaveValue('Half typed');
   });
 
   it('asks the server for the defaults again if the first try failed', { tags: ['full'] }, async () => {

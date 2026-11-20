@@ -67,7 +67,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.patch("/batches/{batch_id}", response_model=Batch)
     def update_batch(batch_id: Id, request: BatchUpdate) -> Batch:
-        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root, request.auto_run))
+        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root, request.auto_run, request.folder_template))
 
     @router.post("/batches/delete", response_model=BatchesDeleted)
     def delete_batches(request: BatchesDelete) -> BatchesDeleted:
@@ -75,7 +75,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.post("/batches", response_model=Batch, status_code=201)
     def create(request: BatchCreate) -> Batch:
-        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root, auto_run=request.auto_run))
+        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root, auto_run=request.auto_run, folder_template=request.folder_template))
 
     @router.post("/folders/preview", response_model=FolderPreview)
     def preview_folders(request: FolderPreviewRequest) -> FolderPreview:

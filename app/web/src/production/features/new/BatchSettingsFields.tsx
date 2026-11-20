@@ -4,6 +4,7 @@ import type { BrowseResult } from '../../../shared/lib/types';
 import type { SettingsForm } from '../../lib/presets';
 import type { Defaults, PipelineChoice } from '../../lib/types';
 import { FolderField } from './FolderField';
+import { FolderNameField } from './FolderNameField';
 import { Select } from './Select';
 
 export interface BatchSettingsFieldsProps {
@@ -16,10 +17,12 @@ export interface BatchSettingsFieldsProps {
   browse: (path?: string) => Promise<BrowseResult>;
   /** Shows the auto run switch. Watches do not have one: the batches they make always run. */
   showAutoRun?: boolean;
+  /** Shows the folder name field. Watches do not have one: the batches they make use the default name. */
+  showFolderTemplate?: boolean;
 }
 
 /** What every batch in the form shares: its pipeline, where it runs and where the result goes. */
-export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse, showAutoRun = false }: BatchSettingsFieldsProps) {
+export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse, showAutoRun = false, showFolderTemplate = false }: BatchSettingsFieldsProps) {
   return (
     <>
       {pipelines.length === 0 ? (
@@ -39,6 +42,7 @@ export function BatchSettingsFields({ value, onChange, defaults, pipelines, onMa
       </Select>
       <FolderField label="Output folder" value={value.outputRoot} onChange={(outputRoot) => onChange({ outputRoot })} browse={browse} placeholder={defaults.outputRoot} />
       <p className="text-small text-text-2">Leave the output folder empty to use the default. It must be new or empty, and separate from the input folder.</p>
+      {showFolderTemplate ? <FolderNameField value={value.folderTemplate} onChange={(folderTemplate) => onChange({ folderTemplate })} outputRoot={value.outputRoot} /> : null}
       {showAutoRun ? (
         <label className="flex items-center gap-3 text-small text-text-2">
           <Toggle label="Auto run" checked={value.autoRun} onChange={(autoRun) => onChange({ autoRun })} />

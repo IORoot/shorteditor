@@ -23,20 +23,14 @@ const preview = {
 };
 
 function open(over: Partial<React.ComponentProps<typeof NewBatchDialog>> = {}) {
-  const onCreate = vi.fn();
   const onCreateMany = vi.fn();
   const onSaveWatch = vi.fn();
   const onClose = vi.fn();
   const previewFolders = vi.fn().mockResolvedValue(preview);
-  render(<NewBatchDialog defaults={defaults} pipelines={[{ id: 1, name: 'Join clips', stageCount: 5 }]} busy={false} error={null} onCreate={onCreate} onCreateMany={onCreateMany} onSaveWatch={onSaveWatch} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
-  return { onCreate, onCreateMany, onSaveWatch, onClose, previewFolders };
+  render(<NewBatchDialog defaults={defaults} pipelines={[{ id: 1, name: 'Join clips', stageCount: 5 }]} busy={false} error={null} onCreateMany={onCreateMany} onSaveWatch={onSaveWatch} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
+  return { onCreateMany, onSaveWatch, onClose, previewFolders };
 }
 
-const fill = (name: string, folder: string) => {
-  fireEvent.change(screen.getByLabelText('Name'), { target: { value: name } });
-  fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: folder } });
-  fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-};
 
 describe('FolderField', () => {
   it('types a path, or browses and picks one', { tags: ['full'] }, async () => {
@@ -53,29 +47,29 @@ describe('FolderField', () => {
 });
 
 describe('NewBatchDialog', () => {
-  it('keeps Create disabled until the name and folder are filled', { tags: ['full'] }, () => {
-    const { onCreate } = open();
-    const create = screen.getByRole('button', { name: 'Create batch' });
-    expect(create).toBeDisabled();
-    fill('Coach Saturdays', '/clips/coach');
-    expect(create).toBeEnabled();
-    fireEvent.click(create);
-    expect(onCreate).toHaveBeenCalledTimes(1);
-    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Coach Saturdays', inputFolder: '/clips/coach', runOn: 'any' });
-  });
+  const parentFolder = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
+  const pipeline = () => fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
+  const settled = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(500); }); };
 
-  it('lets the user pick where it runs', { tags: ['full'] }, () => {
-    const { onCreate } = open();
-    fill('A', '/x');
-    fireEvent.change(screen.getByLabelText('Run on'), { target: { value: 'studio' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
-    expect(onCreate.mock.calls[0][0]).toMatchObject({ runOn: 'studio' });
-  });
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
 
-  it('offers Any worker plus the server workers', { tags: ['full'] }, () => {
+  it('has no one-folder option: it always starts on subfolders', { tags: ['full'] }, () => {
     open();
-    const options = Array.from(screen.getByLabelText('Run on').querySelectorAll('option')).map((o) => o.textContent);
-    expect(options).toEqual(['Any worker', 'This computer', 'Studio Mac']);
+    expect(screen.getByRole('heading', { name: 'New batch' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Input folder')).toBeNull();
+    expect(screen.getByLabelText('Parent folder')).toBeInTheDocument();
+  });
+
+  it('keeps Create disabled until the parent folder and pipeline are set', async () => {
+    open();
+    await settled();
+    const create = screen.getByRole('button', { name: 'Create batches' });
+    expect(create).toBeDisabled();
+    parentFolder('/c');
+    pipeline();
+    await settled();
+    expect(await screen.findByRole('button', { name: 'Create 1 batch' })).toBeEnabled();
   });
 
   it('shows the default output folder as a hint and lists the switched-on pipelines', { tags: ['full'] }, () => {
@@ -92,40 +86,66 @@ describe('NewBatchDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('does not send twice while creating', { tags: ['full'] }, () => {
-    open({ busy: true });
-    fill('A', '/x');
-    expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled();
-  });
-
-  it('puts the cursor in the Name field and closes on Escape', { tags: ['full'] }, () => {
+  it('closes on Escape', { tags: ['full'] }, () => {
     const { onClose } = open();
-    expect(screen.getByLabelText('Name')).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('lets Escape close only the folder picker when both are open', { tags: ['full'] }, async () => {
     const { onClose } = open();
-    fireEvent.click(screen.getByRole('button', { name: 'Browse for input folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browse for parent folder' }));
     await screen.findByRole('dialog', { name: 'Choose a folder' });
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Choose a folder' })).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('leaves the folder alone when the picker is cancelled', { tags: ['full'] }, async () => {
+  it('leaves the parent folder alone when the picker is cancelled', { tags: ['full'] }, async () => {
     open();
-    fill('A', '/clips/mine');
-    fireEvent.click(screen.getByRole('button', { name: 'Browse for input folder' }));
+    parentFolder('/clips/mine');
+    fireEvent.click(screen.getByRole('button', { name: 'Browse for parent folder' }));
     const picker = await screen.findByRole('dialog', { name: 'Choose a folder' });
     fireEvent.click(within(picker).getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByLabelText('Input folder')).toHaveValue('/clips/mine');
+    expect(screen.getByLabelText('Parent folder')).toHaveValue('/clips/mine');
+  });
+
+  it('names the batch after the parent folder until the name is typed over', async () => {
+    open();
+    parentFolder('/Volumes/Edit/Collected');
+    expect(screen.getByLabelText('Batch name')).toHaveValue('Collected');
+    parentFolder('/Volumes/Edit/Reels');
+    expect(screen.getByLabelText('Batch name')).toHaveValue('Reels');
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Coach Saturdays' } });
+    parentFolder('/Volumes/Edit/Other');
+    expect(screen.getByLabelText('Batch name')).toHaveValue('Coach Saturdays');
+  });
+
+  it('ignoring subfolders hides the pattern and preview, needs no preview, and sends the flag', async () => {
+    const { onCreateMany, previewFolders } = open();
+    parentFolder('/c');
+    pipeline();
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore subfolders' }));
+    expect(screen.queryByLabelText('Folder name pattern (regular expression)')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull();
+    await settled();
+    expect(previewFolders).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', ignoreSubfolders: true, batchName: 'c' });
+  });
+
+  it('sends a typed batch name in the one request', async () => {
+    const { onCreateMany } = open();
+    parentFolder('/c');
+    pipeline();
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Coach Saturdays' } });
+    await settled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Create 1 batch' }));
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ batchName: 'Coach Saturdays', ignoreSubfolders: false });
   });
 });
 
 describe('NewBatchDialog, subfolders', () => {
-  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
   const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
   const pipeline = () => fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
   const settled = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(500); }); };
@@ -133,31 +153,16 @@ describe('NewBatchDialog, subfolders', () => {
   beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
   afterEach(() => vi.useRealTimers());
 
-  it('switches between the two forms, with the right title, and keeps what was typed in each', { tags: ['full'] }, () => {
+  it('keeps what was typed when the parent folder changes', { tags: ['full'] }, () => {
     open();
-    expect(screen.getByRole('radio', { name: 'One folder' })).toHaveAttribute('aria-checked', 'true');
-    fill('Coach', '/clips/coach');
-    many();
-    expect(screen.getByRole('heading', { name: 'New batches' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Parent folder')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Input folder')).toBeNull();
     parent('/Volumes/Edit/Collected');
     pipeline();
-    fireEvent.click(screen.getByRole('radio', { name: 'One folder' }));
-    expect(screen.getByLabelText('Name')).toHaveValue('Coach');
-    many();
     expect(screen.getByLabelText('Parent folder')).toHaveValue('/Volumes/Edit/Collected');
-  });
-
-  it('does not ask the server for a preview while the one-folder form is showing', { tags: ['full'] }, async () => {
-    const { previewFolders } = open();
-    await settled();
-    expect(previewFolders).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Pipeline')).toHaveValue('1');
   });
 
   it('previews the folders and offers to create one batch for each new one', async () => {
     const { previewFolders } = open();
-    many();
     parent('/c');
     pipeline();
     await settled();
@@ -168,14 +173,13 @@ describe('NewBatchDialog, subfolders', () => {
 
   it('sends the whole form once, as one batch request', async () => {
     const { onCreateMany } = open();
-    many();
     parent('/c');
     pipeline();
-    fireEvent.change(screen.getByLabelText('Name each batch'), { target: { value: '{name} reel' } });
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Reel' } });
     await settled();
     fireEvent.click(await screen.findByRole('button', { name: 'Create 1 batch' }));
     expect(onCreateMany).toHaveBeenCalledTimes(1);
-    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', pipelineId: 1 });
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, batchName: 'Reel', pipelineId: 1 });
     expect(onCreateMany.mock.calls[0][0]).not.toHaveProperty('include');
   });
 
@@ -183,7 +187,6 @@ describe('NewBatchDialog, subfolders', () => {
     const none = { matches: [preview.matches[3]], notMatching: 0, truncated: false };
     const { previewFolders } = open({ previewFolders: vi.fn().mockResolvedValue(none) });
     expect(previewFolders).toBeDefined();
-    many();
     parent('/c');
     pipeline();
     await settled();
@@ -193,7 +196,6 @@ describe('NewBatchDialog, subfolders', () => {
 
   it('shows the server message for a refused pattern and keeps Create disabled', { tags: ['full'] }, async () => {
     open({ previewFolders: vi.fn().mockRejectedValue(new Error('The pattern could take far too long to match')) });
-    many();
     parent('/c');
     pipeline();
     await settled();
@@ -203,13 +205,11 @@ describe('NewBatchDialog, subfolders', () => {
 
   it('shows Creating… and stays disabled while busy', { tags: ['full'] }, async () => {
     open({ busy: true });
-    many();
     expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled();
   });
 
   it('passes the output folder to the preview so a clash is shown before Create', { tags: ['full'] }, async () => {
     const { previewFolders } = open();
-    many();
     parent('/c');
     pipeline();
     fireEvent.change(screen.getByLabelText('Output folder'), { target: { value: '/out/reels' } });
@@ -219,14 +219,12 @@ describe('NewBatchDialog, subfolders', () => {
 });
 
 describe('NewBatchDialog, keeping watch', () => {
-  const many = () => fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
   const parent = (value: string) => fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value } });
   const pipeline = () => fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
   const settled = async () => { await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); }); };
 
   it('with Keep watching on, Start watching saves a watch and creates no one-off batches', async () => {
     const { onSaveWatch, onCreateMany } = open();
-    many();
     parent('/c');
     pipeline();
     await settled();
@@ -240,7 +238,6 @@ describe('NewBatchDialog, keeping watch', () => {
 
   it('with the existing folders switched on, the button says it creates them and starts watching', { tags: ['full'] }, async () => {
     open();
-    many();
     parent('/c');
     pipeline();
     await settled();
@@ -252,7 +249,6 @@ describe('NewBatchDialog, keeping watch', () => {
   it('adding a watch from the Watches panel is watch-only, with no mode switch and a title that says so', { tags: ['full'] }, async () => {
     const { onSaveWatch } = open({ watchTarget: { kind: 'add' } });
     expect(screen.getByRole('heading', { name: 'New watch' })).toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'One folder' })).toBeNull();
     parent('/c');
     pipeline();
     await settled();

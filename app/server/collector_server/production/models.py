@@ -9,6 +9,8 @@ from collector_server.shared.camel_model import CamelModel
 from .pieces import VideoData
 from collector_server.shared.pipeline import StageStep
 
+DEFAULT_FOLDER_TEMPLATE = "{{name}}-{{id}}"  # the batch's folder under its output folder, unless its template says otherwise
+
 PassStatus = Literal["queued", "held", "paused", "running", "review", "blocked", "failed", "stopped", "approved"]
 ActionName = Literal["pause", "resume", "stop", "rerun", "delete"]
 LogKind = Literal["pipeline", "ffmpeg"]
@@ -22,9 +24,11 @@ class Batch(CamelModel):
     steps: list[StageStep] = []
     run_on: str = "any"
     output_root: str
+    folder_template: str = DEFAULT_FOLDER_TEMPLATE  # the batch's folder under the output folder, with {{name}}, {{id}} and {{date}} tags
     created_at: str
     folder_pattern: str | None = None  # set for a batch made from many folders: the folders its pattern matches are its cards
     auto_run: bool = True  # on: new cards start by themselves. Off: they wait as held until started
+    ignore_subfolders: bool = False  # on: the batch's one card is the input folder itself, not its subfolders
 
 
 class Run(CamelModel):
@@ -70,6 +74,7 @@ class Pass(CamelModel):
 class BatchUpdate(CamelModel):
     name: str | None = None  # None leaves the name alone
     output_root: str | None = None  # None leaves the output folder alone; allowed only while no card has a finished video
+    folder_template: str | None = None  # None leaves the folder name alone; allowed only under the same rule as the output folder
     auto_run: bool | None = None  # None leaves it alone; turning it on starts the cards that are held
 
 
@@ -102,6 +107,7 @@ class BatchCreate(CamelModel):
     pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
+    folder_template: str | None = None  # None uses the default folder name
     auto_run: bool = False  # off: the cards wait until the batch is started
 
 
@@ -207,10 +213,13 @@ class FolderPreview(CamelModel):
 class BulkCreate(CamelModel):
     parent_folder: str
     pattern: str
+    name: str | None = None  # the batch's name; None uses the parent folder's name
     name_template: str = "{name}"
+    ignore_subfolders: bool = False  # on: the parent folder is the one card, and the pattern is not used
     pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
+    folder_template: str | None = None  # None uses the default folder name
     auto_run: bool = False  # off: the cards wait until the batch is started
 
 

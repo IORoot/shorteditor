@@ -1,33 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { PATTERN_PRESETS, batchesNow, createCount, defaultForm, defaultManyForm, formFromWatch, isValid, manyIsValid, toBulkRequest, toRequest, toWatchRequest, watchNameOf, wholeHint, type ManyForm, type NewBatchForm } from './presets';
+import { PATTERN_PRESETS, batchesNow, createCount, defaultManyForm, formFromWatch, manyIsValid, toBulkRequest, toWatchRequest, watchNameOf, wholeHint, type ManyForm } from './presets';
 import type { WatchView } from './types';
 
-const form = (over: Partial<NewBatchForm> = {}): NewBatchForm => ({ ...defaultForm(), name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, ...over });
 const many = (over: Partial<ManyForm> = {}): ManyForm => ({ ...defaultManyForm(), parentFolder: '/Volumes/Edit/Collected', pipelineId: 1, ...over });
 
-describe('defaultForm', () => {
-  it('starts with no pipeline chosen and no output folder of its own', { tags: ['full'] }, () => {
-    expect(defaultForm()).toEqual({ name: '', inputFolder: '', outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false });
-  });
-});
-
-describe('isValid', () => {
-  it('needs a name, a folder and a pipeline', { tags: ['full'] }, () => {
-    expect(isValid(form())).toBe(true);
-    expect(isValid(form({ name: '   ' }))).toBe(false);
-    expect(isValid(form({ inputFolder: '' }))).toBe(false);
-    expect(isValid(form({ pipelineId: null }))).toBe(false);
-  });
-});
-
-describe('toRequest', () => {
-  it('sends trimmed text, the pipeline and where it runs', () => {
-    expect(toRequest(form({ name: '  Coach Saturdays ', runOn: 'studio' }))).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'studio', autoRun: false });
+describe('the batch name and subfolders', () => {
+  it('sends the typed batch name, or the parent folder name when it is blank', { tags: ['full'] }, () => {
+    expect(toBulkRequest(many({ batchName: '  Coach Saturdays ' })).name).toBe('Coach Saturdays');
+    expect(toBulkRequest(many({ batchName: '  ' })).name).toBe('Collected');
   });
 
-  it('leaves the output folder out when it is empty so the server default applies, and sends it when set', { tags: ['full'] }, () => {
-    expect('outputRoot' in toRequest(form({ outputRoot: '  ' }))).toBe(false);
-    expect(toRequest(form({ outputRoot: '/Volumes/Edit/Reels' })).outputRoot).toBe('/Volumes/Edit/Reels');
+  it('sends the ignore flag only when subfolders are ignored, and needs no pattern then', { tags: ['full'] }, () => {
+    expect('ignoreSubfolders' in toBulkRequest(many())).toBe(false);
+    expect(toBulkRequest(many({ ignoreSubfolders: true, pattern: '' })).ignoreSubfolders).toBe(true);
+    expect(manyIsValid(many({ pattern: '' }))).toBe(false);
+    expect(manyIsValid(many({ ignoreSubfolders: true, pattern: '' }))).toBe(true);
   });
 });
 
@@ -45,8 +32,8 @@ describe('pattern presets', () => {
 describe('defaultManyForm', () => {
   it('starts on the date preset with no pipeline and the usual run settings', { tags: ['full'] }, () => {
     expect(defaultManyForm()).toEqual({
-      parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}',
-      outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false,
+      parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', batchName: '', ignoreSubfolders: false,
+      outputRoot: '', folderTemplate: '{{name}}-{{id}}', runOn: 'any', pipelineId: null, autoRun: false,
       watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
     });
   });
@@ -112,7 +99,7 @@ describe('batchesNow', () => {
 describe('toBulkRequest', () => {
   it('sends the parent folder, pattern, name, pipeline and run setting for one batch', { tags: ['full'] }, () => {
     expect(toBulkRequest(many({ nameTemplate: '{name} coach', runOn: 'studio' }))).toEqual({
-      parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} coach', runOn: 'studio', pipelineId: 1, autoRun: false,
+      parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, name: 'Collected', nameTemplate: '{name} coach', runOn: 'studio', pipelineId: 1, autoRun: false,
     });
     expect(toBulkRequest(many({ outputRoot: ' /out ' })).outputRoot).toBe('/out');
   });

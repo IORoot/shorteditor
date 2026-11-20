@@ -184,3 +184,23 @@ def test_a_selection_with_a_running_batch_is_refused_and_nothing_is_deleted(api)
 def test_deleting_an_unknown_batch_is_a_404_and_an_empty_selection_is_refused(api):
     assert api.client.post("/api/production/batches/delete", json={"batchIds": [99]}).status_code == 404
     assert api.client.post("/api/production/batches/delete", json={"batchIds": []}).status_code == 422
+
+
+def test_the_folder_template_is_stored_and_defaults_when_left_out(api):
+    default = api.create().json()
+    assert default["folderTemplate"] == "{{name}}-{{id}}"
+    own = api.create(name="Second", folderTemplate="{{date}}-{{id}}").json()
+    assert own["folderTemplate"] == "{{date}}-{{id}}"
+
+
+def test_a_bad_folder_template_is_refused_and_no_batch_is_made(api):
+    response = api.create(folderTemplate="{{nope}}")
+    assert response.status_code == 422 and "nope" in response.json()["detail"]
+    assert api.client.get("/api/production/batch-list").json() == []
+
+
+def test_the_folder_template_can_be_changed_until_a_video_is_finished(api):
+    batch = api.create().json()
+    changed = api.client.patch(f"/api/production/batches/{batch['id']}", json={"folderTemplate": "class-{{id}}"})
+    assert changed.status_code == 200 and changed.json()["folderTemplate"] == "class-{{id}}"
+    assert api.client.patch(f"/api/production/batches/{batch['id']}", json={"folderTemplate": "no-id"}).status_code == 422

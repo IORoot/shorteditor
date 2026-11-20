@@ -1,25 +1,19 @@
-import type { BatchCreate, BulkCreate, FolderPreview, WatchCreate, WatchView } from './types';
+import { DEFAULT_FOLDER_TEMPLATE } from './folderTemplate';
+import type { BulkCreate, FolderPreview, WatchCreate, WatchView } from './types';
 
 /** The settings every batch shares: the pipeline, where it runs and where the result goes. */
 export interface SettingsForm {
   outputRoot: string;
+  /** The batch's folder name under the output folder, with tags. */
+  folderTemplate: string;
   runOn: string;
   pipelineId: number | null;
   /** On: the batch's cards start by themselves. Off: they wait until the batch is started. */
   autoRun: boolean;
 }
 
-export interface NewBatchForm extends SettingsForm {
-  name: string;
-  inputFolder: string;
-}
-
 export function defaultSettings(): SettingsForm {
-  return { outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false };
-}
-
-export function defaultForm(): NewBatchForm {
-  return { name: '', inputFolder: '', ...defaultSettings() };
+  return { outputRoot: '', folderTemplate: DEFAULT_FOLDER_TEMPLATE, runOn: 'any', pipelineId: null, autoRun: false };
 }
 
 export const PATTERN_PRESETS = [
@@ -34,6 +28,10 @@ export interface ManyForm extends SettingsForm {
   presetId: string;
   pattern: string;
   nameTemplate: string;
+  /** The batch's name for a one-off batch. Empty means the parent folder's name. */
+  batchName: string;
+  /** On: the parent folder is the one card, and the pattern is not used. Off: each matching subfolder with videos is a card. */
+  ignoreSubfolders: boolean;
   /** Keep watching the parent folder. The fields below are used only when this is on. */
   watching: boolean;
   watchName: string;
@@ -46,19 +44,20 @@ export interface ManyForm extends SettingsForm {
 
 export function defaultManyForm(): ManyForm {
   return {
-    parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', ...defaultSettings(),
+    parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', batchName: '', ignoreSubfolders: false,
+    ...defaultSettings(),
     watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
   };
 }
 
 const settingsValid = (form: SettingsForm): boolean => form.pipelineId !== null;
 
-export function isValid(form: NewBatchForm): boolean {
-  return form.name.trim() !== '' && form.inputFolder.trim() !== '' && settingsValid(form);
-}
+/** A one-off batch that ignores subfolders needs no pattern: its one card is the parent folder. */
+export const ignoresSubfolders = (form: ManyForm): boolean => !form.watching && form.ignoreSubfolders;
 
 export function manyIsValid(form: ManyForm): boolean {
-  return form.parentFolder.trim() !== '' && form.pattern.trim() !== '' && settingsValid(form) && (!form.watching || watchValid(form));
+  const patternOk = ignoresSubfolders(form) || form.pattern.trim() !== '';
+  return form.parentFolder.trim() !== '' && patternOk && settingsValid(form) && (!form.watching || watchValid(form));
 }
 
 const WHOLE_NUMBER = /^\d+$/;
@@ -70,11 +69,12 @@ export function wholeHint(text: string, min: number, max: number): string | null
 }
 
 const MAX_NAME = 120;
-const lastSegment = (path: string): string => path.split(/[\\/]/).filter((part) => part !== '').pop() ?? '';
+/** The last part of a folder path: the folder's own name. */
+export const folderNameOf = (path: string): string => path.split(/[\\/]/).filter((part) => part !== '').pop() ?? '';
 
 /** The watch's name: the typed one, or the parent folder's name. */
 export function watchNameOf(form: ManyForm): string {
-  return form.watchName.trim() || lastSegment(form.parentFolder.trim());
+  return form.watchName.trim() || folderNameOf(form.parentFolder.trim());
 }
 
 const watchValid = (form: ManyForm): boolean =>
@@ -85,6 +85,7 @@ const watchValid = (form: ManyForm): boolean =>
 
 /** How many batches Create will make right now: the one-off ones, or only the existing folders a watch batches at its start. */
 export function batchesNow(form: ManyForm, preview: FolderPreview): number {
+  if (ignoresSubfolders(form)) return 1;
   if (!form.watching) return createCount(preview);
   return form.watchExisting ? preview.matches.filter((m) => m.status === 'will_create').length : 0;
 }
@@ -128,17 +129,18 @@ export function toWatchRequest(form: ManyForm, includeExisting: boolean, enabled
   return request;
 }
 
-export function toRequest(form: NewBatchForm): BatchCreate {
-  const request: BatchCreate = { name: form.name.trim(), inputFolder: form.inputFolder.trim(), pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun };
-  if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
-  return request;
-}
+/** The folder name the user typed, when it is not the default: the default is left out of the request. */
+const customTemplate = (text: string): boolean => text.trim() !== '' && text.trim() !== DEFAULT_FOLDER_TEMPLATE;
 
 export function toBulkRequest(form: ManyForm): BulkCreate {
+  const parentFolder = form.parentFolder.trim();
   const request: BulkCreate = {
-    parentFolder: form.parentFolder.trim(), pattern: form.pattern, nameTemplate: form.nameTemplate, pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun,
+    parentFolder, pattern: form.pattern, name: form.batchName.trim() || folderNameOf(parentFolder), nameTemplate: form.nameTemplate,
+    pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun,
   };
+  if (ignoresSubfolders(form)) request.ignoreSubfolders = true;
   if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
+  if (customTemplate(form.folderTemplate)) request.folderTemplate = form.folderTemplate.trim();
   return request;
 }
 

@@ -310,3 +310,32 @@ def test_bulk_skips_a_folder_another_batch_already_covers(world):
     result = world.service.create_batches(world.request())
     assert card_names(world, result.created[0].id) == ["2026-11-08_b"]
     assert [(s.name, s.status) for s in result.skipped] == [("2026-11-07_a", "already_batched")]
+
+
+@pytest.mark.full
+def test_the_batch_takes_the_name_typed_and_defaults_to_the_parent_folder(world):
+    world.folder("2026-11-07_a")
+    [batch] = world.service.create_batches(world.request(name="Coach Saturdays", auto_run=False)).created
+    assert batch.name == "Coach Saturdays"
+    world.service.delete_batches([batch.id])
+    [default] = world.service.create_batches(world.request(name="  ")).created
+    assert default.name == "collected"  # a blank name uses the parent folder's name
+
+
+@pytest.mark.full
+def test_ignoring_subfolders_makes_the_parent_folder_the_one_card_and_reruns_it(world):
+    world.folder("2026-11-07_a")
+    [batch] = world.service.create_batches(world.request(ignore_subfolders=True, pattern="^nomatch$", auto_run=False)).created
+    assert batch.ignore_subfolders is True
+    assert [os.path.realpath(c.folder) for c in world.passes.for_batch(batch.id)] == [os.path.realpath(world.parent)]
+    world.folder("2026-11-08_b")
+    world.service.run_again(batch.id, None)
+    assert [os.path.realpath(c.folder) for c in world.passes.for_batch(batch.id)] == [os.path.realpath(world.parent)]
+
+
+@pytest.mark.full
+def test_subfolders_are_the_default(world):
+    world.folder("2026-11-07_a")
+    [batch] = world.service.create_batches(world.request()).created
+    assert batch.ignore_subfolders is False
+    assert card_names(world, batch.id) == ["2026-11-07_a"]

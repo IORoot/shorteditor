@@ -1,7 +1,7 @@
 import pytest
 
-from collector_server.production.models import Batch
-from collector_server.production.output_paths import folder_name, output_paths
+from collector_server.production.models import DEFAULT_FOLDER_TEMPLATE, Batch
+from collector_server.production.output_paths import OutputFolderError, check_folder_template, folder_name, output_paths
 
 
 def batch(name, id=7):
@@ -111,3 +111,41 @@ def test_remove_inside_refuses_unmarked_roots_outsiders_and_links(tmp_path):
     assert (outside / "keep.txt").exists()
     remove_inside(str(root), str(root / ".." / "victim"))
     assert (outside / "keep.txt").exists()
+
+
+def batch_with(template, name="Coach Saturdays", id=7, created_at="2026-11-20T18:12:12+00:00"):
+    return Batch(id=id, name=name, input_folder="/in", steps=[], output_root="/out", created_at=created_at, folder_template=template)
+
+
+@pytest.mark.parametrize(
+    "template, expected",
+    [
+        ("{{name}}-{{id}}", "Coach-Saturdays-7"),
+        ("{{ name }}_{{id}}", "Coach-Saturdays_7"),
+        ("{{date}}-{{id}}", "2026-11-20-7"),
+        ("class-{{id}}", "class-7"),
+        ("{{name}}/{{id}}", None),  # slashes are not allowed in a folder name
+    ],
+)
+def test_templates_render_their_tags(template, expected):
+    if expected is None:
+        with pytest.raises(OutputFolderError):
+            check_folder_template(template)
+        return
+    check_folder_template(template)
+    assert folder_name(batch_with(template)) == expected
+
+
+@pytest.mark.parametrize(
+    "template",
+    ["", "{{name}}", "{{nope}}-{{id}}", "{{id}}{", "{{name}} {{id}}", "x" * 101],
+)
+def test_bad_templates_are_refused(template):
+    with pytest.raises(OutputFolderError):
+        check_folder_template(template)
+
+
+def test_the_default_template_gives_the_old_folder_names():
+    assert folder_name(batch_with(DEFAULT_FOLDER_TEMPLATE, name="../../evil", id=7)) == "evil-7"
+    assert folder_name(batch_with(DEFAULT_FOLDER_TEMPLATE, name="", id=7)) == "batch-7"
+    assert folder_name(batch_with(DEFAULT_FOLDER_TEMPLATE, name="x" * 90, id=7)) == "x" * 40 + "-7"

@@ -48,6 +48,20 @@ describe('RenderTimeline', () => {
     expect(boxes[0]).toHaveAttribute('aria-label', 'Action clip 00:30–01:30');
   });
 
+  it('sizes each blue box to its part of its own video: 60 s of a 300 s video is 20% wide, starting at 10%', () => {
+    render(<RenderTimeline passId={9} stages={stages} />);
+    const first = screen.getAllByRole('img', { name: /^Action clip/ })[0];
+    expect(first.style.width).toBe('20%');
+    expect(first.style.left).toBe('10%');
+  });
+
+  it('a first half of a video is half of its box, not a sliver of the strip', () => {
+    const tenSecs = [stage('scan_folder', [{ name: 'a.mp4', start: 0, end: 10, length: 10 }, { name: 'b.mp4', start: 0, end: 10, length: 10 }]),
+      stage('detect_action', [{ name: 'a.mp4', start: 0, end: 5, length: 5 }])];
+    render(<RenderTimeline passId={9} stages={tenSecs} />);
+    expect(screen.getByRole('img', { name: /^Action clip/ }).style.width).toBe('50%');
+  });
+
   it('gives the totals of the source and of what the render keeps', () => {
     render(<RenderTimeline passId={9} stages={stages} />);
     // 300 + 200 + 280 = 780 s of source; the six kept clips are 60 + 60 + 40 + 40 + 60 + 30 = 290 s

@@ -13,6 +13,9 @@ export interface RenderTimelineProps {
 /** Scale used for the layout. Positions come out as tenths of a percent, so the strip fills whatever width it has. */
 const SCALE = 10000;
 
+/** A position or width as a percentage of its video's box, which is the box the blue boxes sit in. */
+const percentOf = (px: number, videoPx: number): number => (videoPx > 0 ? (px / videoPx) * 100 : 0);
+
 /**
  * Every source video of the card back to back at its true length, with its name and start and end times,
  * and a blue box over each action clip the render keeps. Shown only once the scan has listed the videos.
@@ -47,7 +50,7 @@ export function RenderTimeline({ passId, stages }: RenderTimelineProps) {
                   role="img"
                   aria-label={`Action clip ${block.label}`}
                   title={block.label}
-                  style={{ left: `${block.leftPx / 100}%`, width: `${block.widthPx / 100}%`, minWidth: 4 }}
+                  style={{ left: `${percentOf(block.leftPx, video.widthPx)}%`, width: `${percentOf(block.widthPx, video.widthPx)}%`, minWidth: 4 }}
                   className="absolute bottom-0 top-0 overflow-hidden rounded-md border-2 border-accent bg-accent-soft"
                 >
                   <img src={stillUrl(passId, video.name, block.start)} alt="" loading="lazy" className="h-full w-full object-cover" />

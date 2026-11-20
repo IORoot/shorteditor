@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS production_logs_by_card ON production_logs (card_id, 
 
 # Columns added after the tables first existed. CREATE TABLE IF NOT EXISTS never adds them to an old table.
 _NEW_COLUMNS = {
-    "production_batches": {"pipeline_id": "INTEGER", "folder_pattern": "TEXT", "auto_run": "INTEGER NOT NULL DEFAULT 1"},
+    "production_batches": {"pipeline_id": "INTEGER", "folder_pattern": "TEXT", "auto_run": "INTEGER NOT NULL DEFAULT 1", "folder_template": "TEXT NOT NULL DEFAULT '{{name}}-{{id}}'", "ignore_subfolders": "INTEGER NOT NULL DEFAULT 0"},
     "production_cards": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
     "production_watches": {"pipeline_id": "INTEGER"},
 }

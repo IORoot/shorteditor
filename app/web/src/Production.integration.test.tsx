@@ -28,8 +28,8 @@ function server(initial: BatchCard[]) {
     }
     if (url === '/api/production/defaults') return json({ outputRoot: '/Volumes/Edit/production_output', workers: [{ id: 'local', label: 'This computer' }] });
     if (url === '/api/production/pipelines') return json([{ id: 1, name: 'Join clips', stageCount: 5 }]);
-    if (url === '/api/production/batches' && method === 'POST' && state.holdCreate) return new Promise(() => undefined);
-    if (url === '/api/production/batches' && method === 'POST') return state.createError ? json({ detail: state.createError }, 422) : json({ id: 9 }, 201);
+    if (url === '/api/production/batches/bulk' && method === 'POST' && state.holdCreate) return new Promise(() => undefined);
+    if (url === '/api/production/batches/bulk' && method === 'POST') return state.createError ? json({ detail: state.createError }, 422) : json({ created: [{ id: 9 }], skipped: [] }, 201);
     if (/^\/api\/production\/passes\/\d+\/approve$/.test(url)) return json({ runId: 1, stage: 'production', folders: [] });
     if (/^\/api\/production\/passes\/\d+\/resolve$/.test(url)) return json({});
     return json({ detail: 'not found' }, 404);
@@ -74,12 +74,15 @@ describe('Production, end to end', () => {
     expect(await screen.findByRole('dialog', { name: 'New batch' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText('Output folder')).toHaveAttribute('placeholder', '/Volumes/Edit/production_output'));
     const before = backend.boardLoads();
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Coach Saturdays' } });
-    fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/clips/coach' } });
+    fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/clips/coach' } });
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Coach Saturdays' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore subfolders' }));
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
-    expect(backend.posted(/\/batches$/)[0].body).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'any', autoRun: false });
+    expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
+      parentFolder: '/clips/coach', pattern: '^\\d{4}-\\d{2}-\\d{2}_.+$', name: 'Coach Saturdays', nameTemplate: '{name}', pipelineId: 1, runOn: 'any', autoRun: false, ignoreSubfolders: true,
+    });
     await waitFor(() => expect(backend.boardLoads()).toBeGreaterThan(before));
   });
 
@@ -88,10 +91,10 @@ describe('Production, end to end', () => {
     backend.state.createError = 'The output folder and the input folder must not overlap';
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
-    fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(await screen.findByLabelText('Parent folder'), { target: { value: '/x' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore subfolders' }));
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('must not overlap');
     expect(screen.getByRole('dialog', { name: 'New batch' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -104,27 +107,27 @@ describe('Production, end to end', () => {
     vi.stubGlobal('fetch', (url: string, init?: RequestInit) => (url === '/api/production/defaults' ? Promise.resolve(new Response('x', { status: 500 })) : original(url, init)));
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
-    fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(await screen.findByLabelText('Parent folder'), { target: { value: '/x' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore subfolders' }));
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
-    await waitFor(() => expect(backend.posted(/\/batches$/)).toHaveLength(1));
-    expect('outputRoot' in (backend.posted(/\/batches$/)[0].body as object)).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
+    await waitFor(() => expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(1));
+    expect('outputRoot' in (backend.posted(/\/batches\/bulk$/)[0].body as object)).toBe(false);
   });
 
   it('sends one request when Create is clicked twice while the server is still answering', { tags: ['full'] }, async () => {
     const backend = server([]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'A' } });
-    fireEvent.change(screen.getByLabelText('Input folder'), { target: { value: '/x' } });
+    fireEvent.change(await screen.findByLabelText('Parent folder'), { target: { value: '/x' } });
+    fireEvent.click(screen.getByRole('switch', { name: 'Ignore subfolders' }));
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     backend.state.holdCreate = true;
-    const create = screen.getByRole('button', { name: 'Create batch' });
+    const create = screen.getByRole('button', { name: 'Create 1 batch' });
     fireEvent.click(create);
     fireEvent.click(create);
-    await waitFor(() => expect(backend.posted(/\/batches$/)).toHaveLength(1));
-    expect(backend.posted(/\/batches$/)).toHaveLength(1);
+    await waitFor(() => expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(1));
+    expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(1);
   });
 
   it('goes back from a review page to the board, and starts the New batch form empty each time', { tags: ['full'] }, async () => {
