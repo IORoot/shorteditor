@@ -22,6 +22,8 @@ export interface PipelineEditorProps {
   id: number | null;
   onOpen: (id: number) => void;
   onClose: () => void;
+  /** The stage to open on, by its place in the pipeline. The first stage when not given. */
+  stage?: number;
 }
 
 interface Loaded {
@@ -30,7 +32,7 @@ interface Loaded {
   library: StageInfo[];
 }
 
-export function PipelineEditor({ api, id, onOpen, onClose }: PipelineEditorProps) {
+export function PipelineEditor({ api, id, onOpen, onClose, stage }: PipelineEditorProps) {
   const { state } = useLoad<Loaded>(async () => {
     const [library, detail, template] = await Promise.all([api.stages(), id === null ? null : api.get(id), id === null ? api.template() : null]);
     return { detail, steps: detail?.steps ?? template ?? [], library };
@@ -38,7 +40,7 @@ export function PipelineEditor({ api, id, onOpen, onClose }: PipelineEditorProps
   if (state.status === 'loading') return <p role="status" className="text-small text-text-3">Loading the pipeline…</p>;
   if (state.status === 'error') return <p role="alert" className="break-words rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{state.message}</p>;
   const { detail, steps, library } = state.data;
-  return <Editor api={api} id={id} detail={detail} initial={steps} library={library} onOpen={onOpen} onClose={onClose} />;
+  return <Editor api={api} id={id} detail={detail} initial={steps} library={library} onOpen={onOpen} onClose={onClose} stage={stage} />;
 }
 
 interface EditorProps {
@@ -49,15 +51,16 @@ interface EditorProps {
   library: StageInfo[];
   onOpen: (id: number) => void;
   onClose: () => void;
+  stage?: number;
 }
 
-function Editor({ api, id, detail, initial, library, onOpen, onClose }: EditorProps) {
+function Editor({ api, id, detail, initial, library, onOpen, onClose, stage }: EditorProps) {
   const counter = useRef(0);
   const makeRows = (steps: StageStep[]): Row[] => steps.map((step) => ({ uid: ++counter.current, step }));
   const [rows, setRows] = useState<Row[]>(() => makeRows(initial));
   const [name, setName] = useState(detail?.name ?? '');
   const [description, setDescription] = useState(detail?.description ?? '');
-  const [selected, setSelected] = useState<number | null>(rows[0]?.uid ?? null);
+  const [selected, setSelected] = useState<number | null>(rows[stage ?? 0]?.uid ?? rows[0]?.uid ?? null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, { text: string; error: string | null }>>({});
   const [confirmingDelete, setConfirmingDelete] = useState(false);

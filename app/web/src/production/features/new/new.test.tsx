@@ -163,30 +163,20 @@ describe('NewBatchDialog, subfolders', () => {
     await settled();
     expect(previewFolders).toHaveBeenCalledWith('/c', PATTERN_PRESETS[0].pattern, undefined);
     expect(await screen.findByText('2026-11-14_a')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create 2 batches' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Create 1 batch' })).toBeEnabled();
   });
 
-  it('counts a ticked already-batched folder, and says "1 batch" for one', { tags: ['full'] }, async () => {
-    open();
-    many();
-    parent('/c');
-    pipeline();
-    await settled();
-    fireEvent.click(await screen.findByRole('checkbox', { name: '2026-10-17_old' }));
-    expect(screen.getByRole('button', { name: 'Create 3 batches' })).toBeEnabled();
-  });
-
-  it('sends the whole form, with the folders to include again, once', async () => {
+  it('sends the whole form once, as one batch request', async () => {
     const { onCreateMany } = open();
     many();
     parent('/c');
     pipeline();
     fireEvent.change(screen.getByLabelText('Name each batch'), { target: { value: '{name} reel' } });
     await settled();
-    fireEvent.click(await screen.findByRole('checkbox', { name: '2026-10-17_old' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Create 3 batches' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create 1 batch' }));
     expect(onCreateMany).toHaveBeenCalledTimes(1);
-    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', include: ['2026-10-17_old'], pipelineId: 1 });
+    expect(onCreateMany.mock.calls[0][0]).toMatchObject({ parentFolder: '/c', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} reel', pipelineId: 1 });
+    expect(onCreateMany.mock.calls[0][0]).not.toHaveProperty('include');
   });
 
   it('keeps Create disabled with nothing to create, a refused pattern, or while busy', { tags: ['full'] }, async () => {

@@ -37,7 +37,7 @@ describe('ProductionApi', () => {
     expect(sent(resolve.fetchMock)).toEqual({ url: '/api/production/passes/7/resolve', method: 'POST', body: { choice: 'keep_first' } });
     const again = api({});
     await again.client.runAgain(3);
-    expect(sent(again.fetchMock)).toEqual({ url: '/api/production/batches/3/passes', method: 'POST', body: {} });
+    expect(sent(again.fetchMock)).toEqual({ url: '/api/production/batches/3/runs', method: 'POST', body: {} });
     const switched = api({});
     await switched.client.runAgain(3, 2);
     expect(sent(switched.fetchMock).body).toEqual({ pipelineId: 2 });
@@ -70,7 +70,7 @@ describe('ProductionApi', () => {
     await withRoot.client.previewFolders('/c', '^.+$', '/out');
     expect(sent(withRoot.fetchMock).body).toEqual({ parentFolder: '/c', pattern: '^.+$', outputRoot: '/out' });
     const bulk = api({ created: [], skipped: [] });
-    const body = { parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', pipelineId: 1, runOn: 'any', include: ['x'] };
+    const body = { parentFolder: '/c', pattern: '^.+$', nameTemplate: '{name}', pipelineId: 1, runOn: 'any' };
     await bulk.client.createBatches(body);
     expect(sent(bulk.fetchMock)).toEqual({ url: '/api/production/batches/bulk', method: 'POST', body });
   });

@@ -22,7 +22,6 @@ export interface ManyFoldersFormProps {
 }
 
 export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManagePipelines, browse, preview, watch }: ManyFoldersFormProps) {
-  const toggle = (name: string) => onChange({ include: form.include.includes(name) ? form.include.filter((n) => n !== name) : [...form.include, name] });
   // A watch that does not batch the folders already there reads them as "already there"; the edit form never does.
   const watching = watch !== undefined && (watch !== 'optional' || form.watching);
   const reading: WatchReading | undefined = watching ? (watch === 'edit' || !form.watchExisting ? 'skip' : 'create') : undefined;
@@ -55,13 +54,13 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
         {preview.status === 'ready' ? (
           <>
             {preview.refreshing ? <p className="text-caption text-text-3">Updating…</p> : null}
-            <FolderPreviewList preview={preview.data} include={form.include} onToggle={toggle} watching={reading} />
+            <FolderPreviewList preview={preview.data} watching={reading} />
           </>
         ) : null}
       </section>
       {watch !== undefined ? <WatchOptions value={form} onChange={onChange} mode={watch} folderCount={willCreate} /> : null}
       <p className="text-caption font-semibold tracking-wide text-text-3">Settings for every batch</p>
-      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} />
+      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun={watch === undefined} />
     </>
   );
 }

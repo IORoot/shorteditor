@@ -3,12 +3,12 @@ import { useAction } from '../../../shared/hooks/useAction';
 import { useLoad } from '../../../shared/hooks/useLoad';
 import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
-import type { PipelineChoice } from '../../lib/types';
+import type { ActionName, PipelineChoice } from '../../lib/types';
 import { PassDetail } from './PassDetail';
 import { ReviewPage } from './ReviewPage';
 
 export interface ReviewRouteProps {
-  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'pipelines' | 'batchDetail' | 'passLog'>;
+  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'pipelines' | 'batchDetail' | 'passLog' | 'cardActions'>;
   /** The card whose review page this is. */
   cardId: number;
   /** Goes back to the batch's board; null when the card is no longer there. */
@@ -46,9 +46,21 @@ export function ReviewRoute({ api, cardId, onBack }: ReviewRouteProps) {
     );
   }
 
+  // Pause, resume, stop, run this card again or delete it. Deleting leaves the card, so the batch's board is next.
+  const onCardAction = async (name: ActionName) => {
+    const done = await action.run(async () => {
+      const result = (await api.cardActions([card.passId], name)).results[0];
+      if (!result?.ok) throw new Error(result?.message ?? 'Could not do that');
+    });
+    if (!done) return;
+    if (name === 'delete') onBack(card.batchId);
+    else board.reload();
+  };
+
   return (
     <ReviewPage
       card={card}
+      onCardAction={onCardAction}
       outputUrl={api.outputUrl(card.passId)}
       busy={action.busy}
       error={action.error}

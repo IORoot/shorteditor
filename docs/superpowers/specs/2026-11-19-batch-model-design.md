@@ -96,7 +96,7 @@ A batch is the thing the user works with: named, edited, run, re-run and listed.
 
 ## Open questions for the user
 
-1. **Bulk create.** The "many folders" form today creates one batch per matching folder in a parent folder. Under this model, should it create one batch for the parent, with each matching folder as a card? That changes what the duplicate-folder check protects and what the Production list shows. I have not assumed an answer.
+1. **Bulk create (answered: one batch).** The user chose one batch for the parent folder, with each matching folder as a card. See the implementation note below.
 2. **Watches.** A watch creates one batch per new folder today. Should a watch add cards to an existing batch instead? I have left watches unchanged.
 
 ## What is left to the builder
@@ -115,3 +115,5 @@ A batch is the thing the user works with: named, edited, run, re-run and listed.
 - **Web:** the Production tab opens to the batch list. A batch opens its board (`#/production/batches/{id}`), and a card opens its review page by card id (`#/production/cards/{id}`). Re-running from a review page returns to the batch board, because the old card is gone.
 - **Layout C:** the table columns are Batch, Pipeline, Cards, Status, Result and Last run. The filter tabs are All, Running, Queued, Review, Failed and Approved. The design's Stages and Updated columns and its "Needs attention" tab are not built.
 - **Not changed:** the bulk create and the watches still make one batch per folder, as the open questions above describe.
+- **Bulk create (decided by the user):** one batch per parent folder. Its input folder is the parent and its cards are the folders the pattern matches that have videos. The pattern is stored on the batch (`folder_pattern`), so a re-run picks up the folders that match now. A parent that already has a batch is refused, and a folder already covered by another batch (as an input folder or as a card) is left out and listed as already batched. The name template may only use `{name}`, the parent folder's name. There is no 200-batch cap any more.
+- **Watches: still one batch per folder.** Not changed yet. The user's answer may also cover watches; decide before changing them.

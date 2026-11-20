@@ -40,9 +40,9 @@ describe('BatchCard', () => {
   });
 
   it('shows a still from the first clip, and the film icon when there is no picture', () => {
-    const { container } = render(<BatchCard card={makeCard({ batchId: 7, status: 'review', output })} selected={false} onOpen={() => undefined} />);
+    const { container } = render(<BatchCard card={makeCard({ batchId: 7, passId: 70, status: 'review', output })} selected={false} onOpen={() => undefined} />);
     const img = container.querySelector('img');
-    expect(img).toHaveAttribute('src', '/api/production/batches/7/thumbnail');
+    expect(img).toHaveAttribute('src', '/api/production/passes/70/thumbnail');
     fireEvent.error(img as HTMLImageElement);
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('svg')).not.toBeNull();
@@ -57,9 +57,9 @@ describe('BatchCard', () => {
 
   it('keeps a very long name and path from breaking the card but keeps them readable', { tags: ['full'] }, () => {
     const name = 'N'.repeat(200);
-    render(<BatchCard card={makeCard({ name, inputFolder: `/clips/${'p'.repeat(200)}` })} selected={false} onOpen={() => undefined} />);
+    render(<BatchCard card={makeCard({ name: 'Batch', folder: `/clips/${name}` })} selected={false} onOpen={() => undefined} />);
     const title = screen.getByText(name);
-    expect(title).toHaveAttribute('title', name);
+    expect(title).toHaveAttribute('title', `/clips/${name}`);
     expect(title.className).toMatch(/truncate/);
   });
 
@@ -91,12 +91,12 @@ describe('BatchCard', () => {
 
 describe('Board', () => {
   const cards = [
-    makeCard({ name: 'Ready one', status: 'review', output }),
-    makeCard({ name: 'Blocked one', status: 'blocked', blockedReason: 'Over' }),
-    makeCard({ name: 'Failed one', status: 'failed', error: 'Boom' }),
-    makeCard({ name: 'Running one', status: 'running', stagePosition: 2, stageTitle: 'Order clips' }),
-    makeCard({ name: 'Queued one', status: 'queued', queuePosition: 0 }),
-    makeCard({ name: 'Done one', status: 'approved', output }),
+    makeCard({ name: 'Ready one', folder: '/clips/Ready one', status: 'review', output }),
+    makeCard({ name: 'Blocked one', folder: '/clips/Blocked one', status: 'blocked', blockedReason: 'Over' }),
+    makeCard({ name: 'Failed one', folder: '/clips/Failed one', status: 'failed', error: 'Boom' }),
+    makeCard({ name: 'Running one', folder: '/clips/Running one', status: 'running', stagePosition: 2, stageTitle: 'Order clips' }),
+    makeCard({ name: 'Queued one', folder: '/clips/Queued one', status: 'queued', queuePosition: 0 }),
+    makeCard({ name: 'Done one', folder: '/clips/Done one', status: 'approved', output }),
   ];
 
   it('puts each batch in its column with a count', () => {

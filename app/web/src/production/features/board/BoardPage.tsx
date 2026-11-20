@@ -9,14 +9,15 @@ import { useAction } from '../../../shared/hooks/useAction';
 import type { ProductionApi } from '../../lib/api';
 import { listSubtitle, type BatchFilter } from '../../lib/batchList';
 import { toBulkRequest, toRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
-import type { BatchListItem, Defaults, PipelineChoice } from '../../lib/types';
+import type { ActionName, ActionResult, BatchListItem, Defaults, PipelineChoice } from '../../lib/types';
 import { BatchList } from '../batches/BatchList';
 import { NewBatchDialog, type WatchTarget } from '../new/NewBatchDialog';
 import { WatchesPanel } from '../watches/WatchesPanel';
 import { DeleteBatchesDialog } from './DeleteBatchesDialog';
+import { ChosenBar, Outcome } from '../actions/ActionBar';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch' | 'deleteBatches'>;
+  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatch' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch' | 'deleteBatches' | 'batchActions'>;
   browse?: (path?: string) => Promise<BrowseResult>;
   /** Opens the Pipeline tab from the New batch dialog. */
   onManagePipelines?: () => void;
@@ -43,6 +44,8 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
   const [chosen, setChosen] = useState<number[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [filter, setFilter] = useState<BatchFilter>('all');
+  const bulk = useAction();
+  const [results, setResults] = useState<ActionResult[] | null>(null);
   const chosenSet = useMemo(() => new Set(chosen.filter((id) => items.some((item) => item.id === id))), [chosen, items]);
 
   const toggleChoosing = () => {
@@ -55,8 +58,37 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
       onOpenBatch?.(item.id);
       return;
     }
-    if (item.status === 'running' || item.status === 'queued') return;
     setChosen((ids) => (ids.includes(item.id) ? ids.filter((id) => id !== item.id) : [...ids, item.id]));
+  };
+  // Pause, resume, stop and run again go to every chosen batch at once; delete asks first.
+  // One batch, from its row's icons. Delete asks first, like the chosen-batches delete.
+  const actOnRow = async (item: BatchListItem, action: ActionName) => {
+    if (action === 'delete') {
+      remove.clear();
+      setChosen([item.id]);
+      setConfirmOpen(true);
+      return;
+    }
+    bulk.clear();
+    const sent = await bulk.run(async () => {
+      const reply = await api.batchActions([item.id], action);
+      setResults(reply.results);
+    });
+    if (sent) list.reload();
+  };
+  const actOnChosen = async (action: ActionName) => {
+    if (action === 'delete') {
+      remove.clear();
+      setConfirmOpen(true);
+      return;
+    }
+    const ids = [...chosenSet];
+    bulk.clear();
+    const sent = await bulk.run(async () => {
+      const reply = await api.batchActions(ids, action);
+      setResults(reply.results);
+    });
+    if (sent) list.reload();
   };
   const deleteChosen = async () => {
     const ids = [...chosenSet];
@@ -140,19 +172,15 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
       ) : null}
       {list.state.status === 'ready' && items.length === 0 ? <p className="text-body text-text-3">No batches yet. Create one to start.</p> : null}
       {choosing ? (
-        <div role="toolbar" aria-label="Chosen batches" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-accent-soft px-4 py-3">
-          <p className="text-small font-semibold text-primary">
-            {chosenSet.size === 0 ? 'Click the batches to delete' : `${chosenSet.size} chosen`}
-          </p>
-          <div className="flex items-center gap-2.5">
-            <Button variant="ghost" disabled={chosenSet.size === 0} onClick={() => setChosen([])}>Clear</Button>
-            <Button variant="danger" disabled={chosenSet.size === 0 || remove.busy} onClick={() => { remove.clear(); setConfirmOpen(true); }}>
-              Delete {chosenSet.size > 0 ? chosenSet.size : ''}
-            </Button>
-          </div>
+        <div className="flex flex-col gap-2">
+          <ChosenBar label="Chosen batches" noun="batches" count={chosenSet.size} busy={bulk.busy || remove.busy} onAct={actOnChosen} onClear={() => { setChosen([]); setResults(null); }} />
+          {bulk.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{bulk.error}</p> : null}
+          <Outcome results={results} />
         </div>
       ) : null}
-      {items.length > 0 ? <BatchList items={items} filter={filter} onFilter={setFilter} onOpen={openOrChoose} chosen={choosing ? chosenSet : undefined} /> : null}
+      {!choosing && bulk.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{bulk.error}</p> : null}
+      {!choosing ? <Outcome results={results} /> : null}
+      {items.length > 0 ? <BatchList items={items} filter={filter} onFilter={setFilter} onOpen={openOrChoose} chosen={choosing ? chosenSet : undefined} onAct={actOnRow} busy={bulk.busy || remove.busy} /> : null}
       {confirmOpen ? (
         <DeleteBatchesDialog
           count={chosenSet.size}

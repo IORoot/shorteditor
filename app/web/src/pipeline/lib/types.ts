@@ -36,6 +36,7 @@ export interface PipelineSummary {
   maxSizeMb: number | null;
   usedBy: number;
   updatedAt: string;
+  steps: StageStep[];
 }
 
 export interface Pipeline {

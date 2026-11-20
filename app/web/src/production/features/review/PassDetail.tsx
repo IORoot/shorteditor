@@ -4,6 +4,7 @@ import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
 import type { ProductionApi } from '../../lib/api';
 import { elapsed, clock, span, timelineRows, waitingSince, type TimelineRow } from '../../lib/passDetail';
+import { StageDetailsView } from './StageDetails';
 import type { BatchCard, LogEntry, Pass } from '../../lib/types';
 
 const LIVE_MS = 1500;
@@ -39,6 +40,9 @@ const NOW_TEXT: Record<BatchCard['status'], string> = {
   review: 'Finished, ready to review',
   approved: 'Done',
   blocked: 'Waiting for your choice',
+  paused: 'Paused, waiting to be resumed',
+  held: 'Waiting to be started',
+  stopped: 'Stopped',
   failed: 'Failed',
 };
 
@@ -112,6 +116,7 @@ export function PassDetail({ api, card }: PassDetailProps) {
                   {row.finishedAt ? ` · ended ${clock(row.finishedAt)} · took ${span(elapsed(row.startedAt, row.finishedAt, now))}` : ` · ${span(elapsed(row.startedAt, null, now))} so far`}
                 </span>
               ) : null}
+              {row.details ? <StageDetailsView details={row.details} /> : null}
             </li>
           ))}
         </ol>

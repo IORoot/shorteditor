@@ -5,6 +5,8 @@ export interface SettingsForm {
   outputRoot: string;
   runOn: string;
   pipelineId: number | null;
+  /** On: the batch's cards start by themselves. Off: they wait until the batch is started. */
+  autoRun: boolean;
 }
 
 export interface NewBatchForm extends SettingsForm {
@@ -13,7 +15,7 @@ export interface NewBatchForm extends SettingsForm {
 }
 
 export function defaultSettings(): SettingsForm {
-  return { outputRoot: '', runOn: 'any', pipelineId: null };
+  return { outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false };
 }
 
 export function defaultForm(): NewBatchForm {
@@ -26,13 +28,12 @@ export const PATTERN_PRESETS = [
   { id: 'custom', label: 'Custom pattern', pattern: '' },
 ];
 
-/** The "subfolders" form. `include` lists already-batched folders the user ticked to batch again. */
+/** The "subfolders" form: one batch for the parent folder, with a card for each folder the pattern matches. */
 export interface ManyForm extends SettingsForm {
   parentFolder: string;
   presetId: string;
   pattern: string;
   nameTemplate: string;
-  include: string[];
   /** Keep watching the parent folder. The fields below are used only when this is on. */
   watching: boolean;
   watchName: string;
@@ -45,7 +46,7 @@ export interface ManyForm extends SettingsForm {
 
 export function defaultManyForm(): ManyForm {
   return {
-    parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [], ...defaultSettings(),
+    parentFolder: '', presetId: PATTERN_PRESETS[0].id, pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', ...defaultSettings(),
     watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
   };
 }
@@ -84,7 +85,7 @@ const watchValid = (form: ManyForm): boolean =>
 
 /** How many batches Create will make right now: the one-off ones, or only the existing folders a watch batches at its start. */
 export function batchesNow(form: ManyForm, preview: FolderPreview): number {
-  if (!form.watching) return createCount(preview, form.include);
+  if (!form.watching) return createCount(preview);
   return form.watchExisting ? preview.matches.filter((m) => m.status === 'will_create').length : 0;
 }
 
@@ -128,20 +129,20 @@ export function toWatchRequest(form: ManyForm, includeExisting: boolean, enabled
 }
 
 export function toRequest(form: NewBatchForm): BatchCreate {
-  const request: BatchCreate = { name: form.name.trim(), inputFolder: form.inputFolder.trim(), pipelineId: form.pipelineId as number, runOn: form.runOn };
+  const request: BatchCreate = { name: form.name.trim(), inputFolder: form.inputFolder.trim(), pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun };
   if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
   return request;
 }
 
 export function toBulkRequest(form: ManyForm): BulkCreate {
   const request: BulkCreate = {
-    parentFolder: form.parentFolder.trim(), pattern: form.pattern, nameTemplate: form.nameTemplate, pipelineId: form.pipelineId as number, runOn: form.runOn, include: form.include,
+    parentFolder: form.parentFolder.trim(), pattern: form.pattern, nameTemplate: form.nameTemplate, pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun,
   };
   if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
   return request;
 }
 
-/** How many batches Create will make: the new folders plus the already-batched ones the user ticked. */
-export function createCount(preview: FolderPreview, include: string[]): number {
-  return preview.matches.filter((m) => m.status === 'will_create' || (m.status === 'already_batched' && include.includes(m.name))).length;
+/** A one-off run makes one batch for the parent folder, unless every folder with videos is already in a batch. */
+export function createCount(preview: FolderPreview): number {
+  return preview.matches.some((m) => m.status === 'will_create') ? 1 : 0;
 }

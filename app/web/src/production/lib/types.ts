@@ -1,4 +1,17 @@
-export type PassStatus = 'queued' | 'running' | 'review' | 'blocked' | 'failed' | 'approved';
+export type PassStatus = 'queued' | 'held' | 'paused' | 'running' | 'review' | 'blocked' | 'failed' | 'stopped' | 'approved';
+
+/** What can be done to a batch or a card. */
+export type ActionName = 'pause' | 'resume' | 'stop' | 'rerun' | 'delete';
+
+export interface ActionResult {
+  id: number;
+  ok: boolean;
+  message: string;
+}
+
+export interface ActionResults {
+  results: ActionResult[];
+}
 
 export interface StageStep {
   key: string;
@@ -54,6 +67,7 @@ export interface BatchCreate {
   pipelineId: number;
   runOn: string;
   outputRoot?: string;
+  autoRun?: boolean;
 }
 
 export interface PipelineChoice {
@@ -70,6 +84,8 @@ export interface Batch {
   runOn: string;
   outputRoot: string;
   createdAt: string;
+  /** On: new cards start by themselves. Off: they wait as held until started. */
+  autoRun: boolean;
 }
 
 /** One row of the batch list: a batch with the status of its newest run. */
@@ -83,23 +99,37 @@ export interface BatchListItem {
   folderCount: number;
   approvedCount: number;
   failedCount: number;
-  status: 'empty' | 'queued' | 'running' | 'review' | 'failed' | 'approved';
+  status: 'empty' | 'queued' | 'held' | 'paused' | 'running' | 'review' | 'failed' | 'stopped' | 'approved';
 }
 
 export interface BatchUpdate {
   name?: string;
   outputRoot?: string;
+  autoRun?: boolean;
 }
 
 export type StageRunStatus = 'running' | 'done' | 'failed' | 'blocked';
 
 /** One stage a pass has reached: when it started and, once it is over, when it ended. */
+export interface ClipDetail {
+  name: string;
+  start: number;
+  end: number;
+  length: number;
+}
+
+/** What a stage made: a list of clips, or the video it wrote. */
+export type StageDetails =
+  | { kind: 'clips'; clips: ClipDetail[]; total: number; before?: number | null; limit?: number; choice?: string | null }
+  | { kind: 'video'; name: string; duration: number; sizeBytes: number; width: number | null; height: number | null; fps: number | null; target?: { width: number; height: number; fps: number } };
+
 export interface StageRun {
   key: string;
   title: string;
   status: StageRunStatus;
   startedAt: string;
   finishedAt: string | null;
+  details?: StageDetails | null;
 }
 
 export interface LogEntry {
@@ -152,7 +182,7 @@ export interface BulkCreate {
   pipelineId: number;
   runOn: string;
   outputRoot?: string;
-  include: string[];
+  autoRun?: boolean;
 }
 
 export interface BulkResult {

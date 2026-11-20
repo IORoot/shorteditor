@@ -7,7 +7,7 @@ const many = (over: Partial<ManyForm> = {}): ManyForm => ({ ...defaultManyForm()
 
 describe('defaultForm', () => {
   it('starts with no pipeline chosen and no output folder of its own', { tags: ['full'] }, () => {
-    expect(defaultForm()).toEqual({ name: '', inputFolder: '', outputRoot: '', runOn: 'any', pipelineId: null });
+    expect(defaultForm()).toEqual({ name: '', inputFolder: '', outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false });
   });
 });
 
@@ -22,7 +22,7 @@ describe('isValid', () => {
 
 describe('toRequest', () => {
   it('sends trimmed text, the pipeline and where it runs', () => {
-    expect(toRequest(form({ name: '  Coach Saturdays ', runOn: 'studio' }))).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'studio' });
+    expect(toRequest(form({ name: '  Coach Saturdays ', runOn: 'studio' }))).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'studio', autoRun: false });
   });
 
   it('leaves the output folder out when it is empty so the server default applies, and sends it when set', { tags: ['full'] }, () => {
@@ -45,8 +45,8 @@ describe('pattern presets', () => {
 describe('defaultManyForm', () => {
   it('starts on the date preset with no pipeline and the usual run settings', { tags: ['full'] }, () => {
     expect(defaultManyForm()).toEqual({
-      parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', include: [],
-      outputRoot: '', runOn: 'any', pipelineId: null,
+      parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}',
+      outputRoot: '', runOn: 'any', pipelineId: null, autoRun: false,
       watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
     });
   });
@@ -102,18 +102,17 @@ describe('batchesNow', () => {
     { name: 'old', path: '/p/old', clipCount: 2, status: 'already_batched' },
   ] as never, notMatching: 0, truncated: false };
 
-  it('counts the batches created now: the one-off ones, or the existing folders when watching includes them', { tags: ['full'] }, () => {
-    expect(batchesNow(many({ include: ['old'] }), preview)).toBe(3);
-    expect(batchesNow(many({ watching: true, include: ['old'] }), preview)).toBe(0);
-    expect(batchesNow(many({ watching: true, watchExisting: true, include: ['old'] }), preview)).toBe(2);
+  it('counts the batches created now: one for a one-off run, or the existing folders when watching includes them', { tags: ['full'] }, () => {
+    expect(batchesNow(many(), preview)).toBe(1);
+    expect(batchesNow(many({ watching: true }), preview)).toBe(0);
+    expect(batchesNow(many({ watching: true, watchExisting: true }), preview)).toBe(2);
   });
 });
 
 describe('toBulkRequest', () => {
-  it('sends the pattern, template, pipeline and the folders to include again', { tags: ['full'] }, () => {
-    expect(toBulkRequest(many({ nameTemplate: '{1} coach', include: ['2026-11-07_a'], runOn: 'studio' }))).toEqual({
-      parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{1} coach', runOn: 'studio',
-      include: ['2026-11-07_a'], pipelineId: 1,
+  it('sends the parent folder, pattern, name, pipeline and run setting for one batch', { tags: ['full'] }, () => {
+    expect(toBulkRequest(many({ nameTemplate: '{name} coach', runOn: 'studio' }))).toEqual({
+      parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name} coach', runOn: 'studio', pipelineId: 1, autoRun: false,
     });
     expect(toBulkRequest(many({ outputRoot: ' /out ' })).outputRoot).toBe('/out');
   });
@@ -121,10 +120,8 @@ describe('toBulkRequest', () => {
 
 describe('createCount', () => {
   const preview = (statuses: string[]) => ({ matches: statuses.map((status, i) => ({ name: `f${i}`, path: `/p/f${i}`, clipCount: 1, status })) as never, notMatching: 0, truncated: false });
-  it('counts what will be created plus the already-batched folders ticked to include', { tags: ['full'] }, () => {
-    const p = preview(['will_create', 'will_create', 'already_batched', 'already_batched', 'no_videos', 'unreadable']);
-    expect(createCount(p, [])).toBe(2);
-    expect(createCount(p, ['f2'])).toBe(3);
-    expect(createCount(p, ['f2', 'f3', 'f4', 'f5', 'nope'])).toBe(4);
+  it('is one batch when any folder will be created, and none when every folder is already batched or empty', { tags: ['full'] }, () => {
+    expect(createCount(preview(['will_create', 'will_create', 'already_batched', 'no_videos', 'unreadable']))).toBe(1);
+    expect(createCount(preview(['already_batched', 'no_videos']))).toBe(0);
   });
 });

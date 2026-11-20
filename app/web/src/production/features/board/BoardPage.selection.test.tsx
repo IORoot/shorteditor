@@ -36,13 +36,13 @@ describe('BoardPage choosing batches to delete', () => {
     makeCard({ name: 'C', status: 'running', stageTitle: 'Scan folder', stagePosition: 1, batchId: 3, passId: 13 }),
   ];
 
-  it('chooses cards on click instead of opening them, and leaves running ones alone', { tags: ['full'] }, async () => {
+  it('chooses batches on click instead of opening them, running ones too', { tags: ['full'] }, async () => {
     setup(cards());
     fireEvent.click(await screen.findByRole('button', { name: 'Select' }));
     fireEvent.click(screen.getByRole('button', { name: 'A, Review' }));
     expect(screen.getByRole('button', { name: 'A, Review' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('toolbar', { name: 'Chosen batches' })).toHaveTextContent('1 chosen');
-    expect(screen.getByRole('button', { name: 'C, Running' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'C, Running' })).toBeEnabled();
     expect(window.location.hash).toBe('');
   });
 

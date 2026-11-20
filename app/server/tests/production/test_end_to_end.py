@@ -56,7 +56,7 @@ def add_clips(system, seconds=2):
 
 def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
     add_clips(system)
-    created = system.client.post("/api/production/batches", json={"name": "Coach Saturdays", "inputFolder": str(system.folder), "pipelineId": 1})
+    created = system.client.post("/api/production/batches", json={"name": "Coach Saturdays", "inputFolder": str(system.folder), "pipelineId": 1, "autoRun": True})
     assert created.status_code == 201
     batch_id = created.json()["id"]
     assert system.board()[0]["status"] == "queued"
@@ -73,8 +73,8 @@ def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
     assert handoff["stage"] == "production" and handoff["folders"][0]["clips"][0]["name"] == "output.mp4"
     assert system.board()[0]["status"] == "approved"
 
-    again = system.client.post(f"/api/production/batches/{batch_id}/passes", json={})
-    assert again.status_code == 201 and again.json()["number"] == 2 and again.json()["status"] == "queued"
+    again = system.client.post(f"/api/production/batches/{batch_id}/runs", json={})
+    assert again.status_code == 201 and [c["status"] for c in again.json()["passes"]] == ["queued"]
     system.go()
     assert system.board()[0]["passNumber"] == 2 and system.board()[0]["status"] == "review"
 
@@ -83,7 +83,7 @@ def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
 @pytest.mark.full
 def test_an_over_length_batch_blocks_and_resolves(system):
     add_clips(system, seconds=2)
-    system.client.post("/api/production/batches", json={"name": "Long", "inputFolder": str(system.folder), "pipelineId": 2})
+    system.client.post("/api/production/batches", json={"name": "Long", "inputFolder": str(system.folder), "pipelineId": 2, "autoRun": True})
     system.go()
     [card] = system.board()
     assert card["status"] == "blocked" and card["blockedChoices"] == ["drop_shortest", "keep_first"]
@@ -99,7 +99,7 @@ def test_an_over_length_batch_blocks_and_resolves(system):
 def test_several_batches_run_one_after_another(system):
     add_clips(system)
     for name in ("One", "Two"):
-        system.client.post("/api/production/batches", json={"name": name, "inputFolder": str(system.folder), "pipelineId": 1})
+        system.client.post("/api/production/batches", json={"name": name, "inputFolder": str(system.folder), "pipelineId": 1, "autoRun": True})
     first = system.queue.tick()
     assert len(first) == 1  # the local worker takes one job at a time
     system.queue.wait_idle(60)
@@ -110,7 +110,7 @@ def test_several_batches_run_one_after_another(system):
 @pytest.mark.full
 @pytest.mark.full
 def test_an_empty_folder_fails_with_a_readable_message(system):
-    system.client.post("/api/production/batches", json={"name": "Empty", "inputFolder": str(system.folder), "pipelineId": 1})
+    system.client.post("/api/production/batches", json={"name": "Empty", "inputFolder": str(system.folder), "pipelineId": 1, "autoRun": True})
     system.go()
     [card] = system.board()
     assert card["status"] == "failed" and card["error"].startswith("No clips found")

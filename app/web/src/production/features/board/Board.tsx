@@ -14,7 +14,7 @@ export interface BoardProps {
   cards: Card[];
   selectedBatchId: number | null;
   onOpen: (card: Card) => void;
-  /** The batches chosen for deleting. Undefined while the board is not choosing. */
+  /** The cards chosen (by card id). Undefined while the board is not choosing. */
   chosen?: ReadonlySet<number>;
 }
 
@@ -27,7 +27,7 @@ export function Board({ cards, selectedBatchId, onOpen, chosen }: BoardProps) {
           <BoardColumn key={column} title={TITLE[column]} count={groups[column].length}>
             <div className="flex flex-col gap-3">
               {groups[column].map((card) => (
-                <BatchCard key={card.batchId} card={card} selected={card.batchId === selectedBatchId} onOpen={onOpen} picking={pickingOf(card, chosen)} />
+                <BatchCard key={card.passId} card={card} selected={card.batchId === selectedBatchId} onOpen={onOpen} picking={pickingOf(card, chosen)} />
               ))}
             </div>
           </BoardColumn>

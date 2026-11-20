@@ -43,9 +43,12 @@ function folderServer() {
     if (url === '/api/production/pipelines') return json([{ id: 1, name: 'Join clips', stageCount: 5 }]);
     if (url === '/api/production/folders/preview') return state.previewError ? json({ detail: state.previewError }, 422) : json(state.preview);
     if (url === '/api/production/batches/bulk') {
-      const created = state.preview.matches.filter((m) => m.status === 'will_create').map((m) => ({ id: nextId++, name: m.name, inputFolder: m.path }));
-      state.cards = [...state.cards, ...created.map((b) => makeCard({ batchId: b.id, name: b.name, status: 'queued', queuePosition: 0 }))];
-      return json({ created, skipped: [] }, 201);
+      // one batch for the parent folder, with a card for each folder that will be created
+      const parentName = String(body.parentFolder).split('/').filter(Boolean).pop() ?? '';
+      const id = nextId++;
+      const folders = state.preview.matches.filter((m) => m.status === 'will_create');
+      state.cards = [...state.cards, ...folders.map((m) => makeCard({ batchId: id, name: parentName, folder: m.path, status: 'queued', queuePosition: 0 }))];
+      return json({ created: [{ id, name: parentName, inputFolder: body.parentFolder }], skipped: [] }, 201);
     }
     if (url === '/api/production/watches' && method === 'GET') return json(state.watches);
     if (url === '/api/production/watches' && method === 'POST') {
@@ -104,7 +107,7 @@ afterEach(() => {
 });
 
 describe('Production folders and watches, end to end', () => {
-  it('creates a batch for each new folder and the list shows them as Queued', async () => {
+  it('creates one batch for the parent folder, with a card for each new folder, and the list shows it as Queued', async () => {
     const backend = folderServer();
     backend.state.preview = settledPreview();
     await openProduction();
@@ -113,12 +116,12 @@ describe('Production folders and watches, end to end', () => {
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     expect(await screen.findByText('2026-11-14_a')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Create 2 batches' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
     expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
-      parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', include: [], pipelineId: 1,
+      parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', pipelineId: 1, autoRun: false,
     });
-    await waitFor(() => expect(screen.getByRole('button', { name: '2026-11-07_b, Queued' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'c, Queued' })).toBeInTheDocument());
   });
 
   it('Add watch from the panel opens a watch-only form, and saving it returns to the panel with the new watch', { tags: ['full'] }, async () => {

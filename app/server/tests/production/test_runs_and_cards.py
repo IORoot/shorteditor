@@ -78,7 +78,7 @@ def test_re_run_refuses_while_a_card_is_waiting(parts):
     clip(inbox / "class-1")
     clip(inbox / "class-2")
     create(service, inbox)
-    with pytest.raises(StateError, match="already waiting"):
+    with pytest.raises(StateError, match="waiting"):
         service.run_again(1, None)
 
 

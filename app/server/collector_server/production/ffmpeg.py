@@ -49,10 +49,26 @@ class FfmpegRunner:
         except ValueError:
             return None
 
+    def video_info(self, path: str) -> dict[str, float | int | None]:
+        """The picture size and frame rate of the first video stream. Missing values are None."""
+        lines = self._probe_lines(["-select_streams", "v:0", "-show_entries", "stream=width,height,avg_frame_rate", "-of", "csv=p=0", f"file:{path}"])
+        parts = lines[-1].strip().split(",") if lines else []
+        width, height = (int(parts[0]), int(parts[1])) if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit() else (None, None)
+        fps = None
+        if len(parts) >= 3 and "/" in parts[2]:
+            top, _, bottom = parts[2].partition("/")
+            if top.isdigit() and bottom.isdigit() and int(bottom) > 0:
+                fps = round(int(top) / int(bottom), 2)
+        return {"width": width, "height": height, "fps": fps}
+
     def _probe(self, args: list[str]) -> str:
+        lines = self._probe_lines(args)
+        return lines[-1].strip() if lines else ""
+
+    def _probe_lines(self, args: list[str]) -> list[str]:
         lines: list[str] = []
         self._execute([_binary("ffprobe"), "-v", "error", *args], lines.append)
-        return lines[-1].strip() if lines else ""
+        return lines
 
     def _execute(self, argv: list[str], on_line: Callable[[str], None]) -> None:
         tail: list[str] = []

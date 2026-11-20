@@ -38,6 +38,8 @@ function apiWith(cards: ReturnType<typeof makeCard>[]) {
     batchDetail: vi.fn().mockResolvedValue({ batch: { id: 1, name: 'Coach Saturdays', inputFolder: '/in', steps: [], runOn: 'any', outputRoot: '/out', createdAt: '' }, passes: [] }),
     runAgain: vi.fn().mockResolvedValue({ batch: {}, passes: [] }),
     updateBatch: vi.fn().mockResolvedValue({}),
+    batchActions: vi.fn().mockResolvedValue({ results: [] }),
+    cardActions: vi.fn().mockResolvedValue({ results: [] }),
   };
 }
 
@@ -47,7 +49,7 @@ describe('BatchBoardPage', () => {
       makeCard({ name: 'Coach Saturdays', status: 'review', batchId: 1, passId: 11, folder: '/in/a' }),
       makeCard({ name: 'Camera A', status: 'queued', batchId: 2, passId: 21 }),
     ]);
-    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch'>} batchId={1} onBack={() => undefined} />);
+    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'batchActions' | 'cardActions'>} batchId={1} onBack={() => undefined} />);
     const review = await screen.findByRole('region', { name: 'Review' });
     expect(within(review).getByRole('button', { name: /Coach Saturdays/ })).toBeInTheDocument();
     expect(screen.queryByText('Camera A')).toBeNull();
@@ -55,14 +57,14 @@ describe('BatchBoardPage', () => {
 
   it('runs the batch again from its own page', { tags: ['full'] }, async () => {
     const api = apiWith([makeCard({ name: 'Coach Saturdays', status: 'approved', batchId: 1, passId: 11 })]);
-    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch'>} batchId={1} onBack={() => undefined} />);
+    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'batchActions' | 'cardActions'>} batchId={1} onBack={() => undefined} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Run again' }));
     await waitFor(() => expect(api.runAgain).toHaveBeenCalledWith(1));
   });
 
   it('opens a card on the review page by its card id', { tags: ['full'] }, async () => {
     const api = apiWith([makeCard({ name: 'Coach Saturdays', status: 'review', batchId: 1, passId: 11 })]);
-    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch'>} batchId={1} onBack={() => undefined} />);
+    render(<BatchBoardPage api={api as unknown as Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'batchActions' | 'cardActions'>} batchId={1} onBack={() => undefined} />);
     fireEvent.click(await screen.findByRole('button', { name: /Coach Saturdays/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/production/cards/11'));
   });

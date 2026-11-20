@@ -6,10 +6,9 @@ import { chipLabel, clock, lastSegment, queueCaption, stageSegments, toneOf } fr
 import type { BatchCard as Card } from '../../lib/types';
 import { StageStrip } from './StageStrip';
 
-/** While the board is choosing batches: whether this one is chosen, and whether it cannot be chosen now. */
+/** While the board is choosing cards: whether this one is chosen. */
 export interface Picking {
   checked: boolean;
-  blocked: boolean;
 }
 
 export interface BatchCardProps {
@@ -35,18 +34,19 @@ function caption(card: Card): string {
 }
 
 /** A still from the batch's first clip; the film icon stays when there is no picture. */
-function Picture({ batchId }: { batchId: number }) {
+function Picture({ passId }: { passId: number }) {
   const [missing, setMissing] = useState(false);
   return (
     <span className="flex h-24 items-center justify-center overflow-hidden bg-fill-2 text-text-3">
-      {missing ? <Film size={22} aria-hidden="true" /> : <img src={`/api/production/batches/${batchId}/thumbnail`} alt="" onError={() => setMissing(true)} className="h-full w-full object-cover" />}
+      {missing ? <Film size={22} aria-hidden="true" /> : <img src={`/api/production/passes/${passId}/thumbnail`} alt="" onError={() => setMissing(true)} className="h-full w-full object-cover" />}
     </span>
   );
 }
 
+/** Whether a card is chosen. The set holds card ids (pass ids), since one batch can have many cards on the board. */
 export function pickingOf(card: Card, chosen?: ReadonlySet<number>): Picking | undefined {
   if (!chosen) return undefined;
-  return { checked: chosen.has(card.batchId), blocked: card.status === 'running' || card.status === 'queued' };
+  return { checked: chosen.has(card.passId) };
 }
 
 export function BatchCard({ card, selected, onOpen, picking }: BatchCardProps) {
@@ -59,8 +59,6 @@ export function BatchCard({ card, selected, onOpen, picking }: BatchCardProps) {
       aria-label={`${card.name}, ${label}`}
       aria-current={selected ? 'true' : undefined}
       aria-pressed={picking ? picking.checked : undefined}
-      disabled={picking?.blocked}
-      title={picking?.blocked ? 'Wait for this batch to finish before deleting it' : undefined}
       data-batch-id={card.batchId}
       onClick={() => onOpen(card)}
       className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl text-left shadow-[0_2px_12px_#0000000f] disabled:opacity-50 ${card.status === 'failed' ? 'bg-bad-soft' : 'bg-surface'} ${ring}`}
@@ -70,11 +68,11 @@ export function BatchCard({ card, selected, onOpen, picking }: BatchCardProps) {
           <Check size={14} />
         </span>
       ) : null}
-      <Picture batchId={card.batchId} />
+      <Picture passId={card.passId} />
       <span className="flex min-w-0 flex-col gap-2 p-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span title={card.name} className="truncate text-body font-semibold">{card.name}</span>
-          <span className="truncate text-caption text-text-2">{lastSegment(card.inputFolder)} · {card.pipelineName ?? 'Own steps'} · {card.pipeline.length} {card.pipeline.length === 1 ? 'stage' : 'stages'}</span>
+          <span title={card.folder} className="truncate text-body font-semibold">{lastSegment(card.folder)}</span>
+          <span className="truncate text-caption text-text-2">{card.name} · {card.pipelineName ?? 'Own steps'} · {card.pipeline.length} {card.pipeline.length === 1 ? 'stage' : 'stages'}</span>
         </span>
         <StageStrip segments={stageSegments(card)} />
         <span className="flex min-w-0 items-center justify-between gap-2">

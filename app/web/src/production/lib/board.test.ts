@@ -3,8 +3,8 @@ import { makeCard } from '../test/fixtures';
 import { COLUMNS, chipLabel, clock, columnOf, groupCards, queueCaption, stageSegments, subtitle, toneOf } from './board';
 
 describe('column order', () => {
-  it('lists the columns Queued, Running, Review', { tags: ['full'] }, () => {
-    expect(COLUMNS).toEqual(['queued', 'running', 'review']);
+  it('lists the columns Queued, Running, Review, Approved', { tags: ['full'] }, () => {
+    expect(COLUMNS).toEqual(['queued', 'running', 'review', 'approved']);
   });
 });
 
@@ -110,7 +110,7 @@ describe('clock', () => {
 });
 
 describe('a status this version does not know', () => {
-  const odd = () => makeCard({ status: 'paused' as never });
+  const odd = () => makeCard({ status: 'archived' as never });
 
   it('lands in Review instead of breaking the board', { tags: ['full'] }, () => {
     expect(columnOf(odd())).toBe('review');
@@ -119,7 +119,7 @@ describe('a status this version does not know', () => {
   });
 
   it('shows the raw status as its label with a warning tone', { tags: ['full'] }, () => {
-    expect(chipLabel(odd())).toBe('paused');
+    expect(chipLabel(odd())).toBe('archived');
     expect(toneOf(odd())).toBe('warn');
     expect(stageSegments(odd())).toHaveLength(5);
   });

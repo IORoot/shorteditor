@@ -30,6 +30,7 @@ class PipelineSummary(CamelModel):
     max_size_mb: float | None
     used_by: int
     updated_at: str
+    steps: list[StageStep] = []  # every stage in order, enabled or not, for the list's stage overview
 
 
 class PipelineDetail(Pipeline):

@@ -8,8 +8,10 @@ import type { PipelineSummary } from '../../lib/types';
 import { PipelineRow } from './PipelineRow';
 
 export interface PipelineListProps {
-  api: Pick<PipelineApi, 'list' | 'setEnabled' | 'impact'>;
+  api: Pick<PipelineApi, 'list' | 'setEnabled' | 'impact' | 'stages'>;
   onOpen: (id: number) => void;
+  /** Opens the editor on one stage of a pipeline, by its place in the pipeline. */
+  onOpenStage?: (id: number, stage: number) => void;
   onNew: () => void;
 }
 
@@ -19,8 +21,9 @@ interface Asking {
   waitingBatches: number;
 }
 
-export function PipelineList({ api, onOpen, onNew }: PipelineListProps) {
+export function PipelineList({ api, onOpen, onOpenStage, onNew }: PipelineListProps) {
   const { state, reload } = useLoad(() => api.list(), []);
+  const library = useLoad(() => api.stages(), []);
   const action = useAction();
   const [asking, setAsking] = useState<Asking | null>(null);
 
@@ -71,7 +74,7 @@ export function PipelineList({ api, onOpen, onNew }: PipelineListProps) {
       {state.status === 'ready' && state.data.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {state.data.map((pipeline) => (
-            <PipelineRow key={pipeline.id} pipeline={pipeline} busy={action.busy} onToggle={(enabled) => void toggle(pipeline, enabled)} onOpen={() => onOpen(pipeline.id)} />
+            <PipelineRow key={pipeline.id} pipeline={pipeline} busy={action.busy} library={library.state.status === 'ready' ? library.state.data : undefined} onToggle={(enabled) => void toggle(pipeline, enabled)} onOpen={() => onOpen(pipeline.id)} onOpenStage={onOpenStage ? (stage) => onOpenStage(pipeline.id, stage) : undefined} />
           ))}
         </ul>
       ) : null}

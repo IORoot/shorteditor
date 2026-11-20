@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { summary } from '../../test-fixtures';
+import { library, steps, summary } from '../../test-fixtures';
 import { PipelineList, type PipelineListProps } from './PipelineList';
 
 function show(rows = [summary()], impact = { watches: 0, waitingBatches: 0 }) {
   const api = {
     list: vi.fn().mockResolvedValue(rows),
+    stages: vi.fn().mockResolvedValue(library),
     setEnabled: vi.fn().mockResolvedValue({}),
     impact: vi.fn().mockResolvedValue(impact),
   };
@@ -16,6 +17,28 @@ function show(rows = [summary()], impact = { watches: 0, waitingBatches: 0 }) {
 }
 
 describe('PipelineList', () => {
+  it('opens the editor on the stage that was clicked', { tags: ['full'] }, async () => {
+    const onOpenStage = vi.fn();
+    const api = { list: vi.fn().mockResolvedValue([summary()]), stages: vi.fn().mockResolvedValue(library), setEnabled: vi.fn(), impact: vi.fn() };
+    render(<PipelineList api={api as unknown as PipelineListProps['api']} onOpen={() => undefined} onOpenStage={onOpenStage} onNew={() => undefined} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Limit length stage' }));
+    expect(onOpenStage).toHaveBeenCalledWith(1, 1);
+  });
+
+  it('lays out each pipeline\'s stages in order, with the chevrons between them', { tags: ['full'] }, async () => {
+    show([summary({ steps: [...steps(), { key: 'gone', settings: {}, enabled: false }] })]);
+    const flow = await screen.findByRole('list', { name: 'Stages' });
+    const boxes = within(flow).getAllByRole('listitem');
+    expect(boxes).toHaveLength(4);
+    expect(within(boxes[0]).getByText('Scan folder')).toBeInTheDocument();
+    expect(within(boxes[1]).getByText('Limit length')).toBeInTheDocument();
+    expect(within(boxes[1]).getByText('Max 900 s')).toBeInTheDocument();
+    expect(within(boxes[2]).getByText('Render')).toBeInTheDocument();
+    expect(within(boxes[3]).getByText('Missing stage')).toBeInTheDocument();
+    expect(within(boxes[3]).getByText('Off')).toBeInTheDocument();
+  });
+
+
   it('shows each pipeline with its numbers', { tags: ['full'] }, async () => {
     show([summary({ usedBy: 3 }), summary({ id: 2, name: 'Short', maxSeconds: null, maxSizeMb: null, stageCount: 3, enabled: false })]);
     const first = await screen.findByRole('listitem', { name: 'Pipeline Join clips' });

@@ -9,7 +9,8 @@ from collector_server.shared.camel_model import CamelModel
 from .pieces import VideoData
 from collector_server.shared.pipeline import StageStep
 
-PassStatus = Literal["queued", "running", "review", "blocked", "failed", "approved"]
+PassStatus = Literal["queued", "held", "paused", "running", "review", "blocked", "failed", "stopped", "approved"]
+ActionName = Literal["pause", "resume", "stop", "rerun", "delete"]
 LogKind = Literal["pipeline", "ffmpeg"]
 
 
@@ -22,6 +23,8 @@ class Batch(CamelModel):
     run_on: str = "any"
     output_root: str
     created_at: str
+    folder_pattern: str | None = None  # set for a batch made from many folders: the folders its pattern matches are its cards
+    auto_run: bool = True  # on: new cards start by themselves. Off: they wait as held until started
 
 
 class Run(CamelModel):
@@ -37,6 +40,7 @@ class StageRun(CamelModel):
     status: Literal["running", "done", "failed", "blocked"]
     started_at: str
     finished_at: str | None = None
+    details: dict | None = None  # what the stage produced: the clips it found or made, or the video it wrote
 
 
 class Pass(CamelModel):
@@ -66,6 +70,7 @@ class Pass(CamelModel):
 class BatchUpdate(CamelModel):
     name: str | None = None  # None leaves the name alone
     output_root: str | None = None  # None leaves the output folder alone; allowed only while no card has a finished video
+    auto_run: bool | None = None  # None leaves it alone; turning it on starts the cards that are held
 
 
 class BatchesDelete(CamelModel):
@@ -76,12 +81,28 @@ class BatchesDeleted(CamelModel):
     deleted: int
 
 
+class ActionRequest(CamelModel):
+    action: ActionName
+    ids: Annotated[list[int], Field(min_length=1, max_length=500)]
+
+
+class ActionResult(CamelModel):
+    id: int
+    ok: bool
+    message: str = ""
+
+
+class ActionResults(CamelModel):
+    results: list[ActionResult]
+
+
 class BatchCreate(CamelModel):
     name: str
     input_folder: str
     pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
+    auto_run: bool = False  # off: the cards wait until the batch is started
 
 
 class RunAgain(CamelModel):
@@ -190,7 +211,7 @@ class BulkCreate(CamelModel):
     pipeline_id: int
     run_on: str = "any"
     output_root: str | None = None
-    include: list[str] = []  # folder names to batch again although they already have a batch
+    auto_run: bool = False  # off: the cards wait until the batch is started
 
 
 class BulkResult(CamelModel):

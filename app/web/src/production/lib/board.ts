@@ -8,6 +8,9 @@ export const COLUMNS: Column[] = ['queued', 'running', 'review', 'approved'];
 
 const COLUMN_OF: Record<BatchCard['status'], Column> = {
   review: 'review',
+  held: 'queued',  // waiting to be started, shown with the queue
+  paused: 'queued',  // held in the queue until it is resumed
+  stopped: 'review',  // stopped by the user: it stays with the finished cards, where its state is shown
   blocked: 'review',  // waiting for a choice from the user, so it stays where the user looks
   failed: 'review',  // a failed batch stays in Review with a red background
   running: 'running',
@@ -48,6 +51,9 @@ export function subtitle(cards: BatchCard[]): string {
 }
 
 const LABEL: Record<BatchCard['status'], string> = {
+  held: 'Not started',
+  paused: 'Paused',
+  stopped: 'Stopped',
   review: 'Ready',
   blocked: 'Blocked',
   failed: 'Failed',
@@ -57,6 +63,9 @@ const LABEL: Record<BatchCard['status'], string> = {
 };
 
 const TONE: Record<BatchCard['status'], Tone> = {
+  held: 'warn',
+  paused: 'warn',
+  stopped: 'warn',
   review: 'ok',
   blocked: 'warn',
   failed: 'bad',

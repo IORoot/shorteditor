@@ -188,11 +188,11 @@ def test_run_again_from_two_threads_makes_only_one_pass(parts):
 
 @pytest.mark.full
 @pytest.mark.full
-def test_run_again_is_refused_while_the_latest_pass_is_blocked(parts):
-    service, passes, _, inbox, _ = parts
+def test_run_again_replaces_a_blocked_run(parts):
+    service, passes, runs, inbox, _ = parts
     made = blocked(service, passes, inbox)
-    with pytest.raises(StateError, match="blocked"):
-        service.run_again(made.batch_id, None)
+    run = service.run_again(made.batch_id, None)
+    assert run.number == 2 and [c.status for c in passes.for_run(run.id)] == ["queued"]
 
 
 @pytest.mark.full

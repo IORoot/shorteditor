@@ -1,9 +1,11 @@
 import { ArrowLeft } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
+import { ACTION_LABEL, cardCan } from '../../lib/actions';
 import { chipLabel, queueCaption, toneOf } from '../../lib/board';
-import type { BatchCard, PipelineChoice } from '../../lib/types';
+import type { ActionName, BatchCard, PipelineChoice } from '../../lib/types';
+import { ConfirmDialog } from '../actions/ActionBar';
 import { BlockedChoices } from './BlockedChoices';
 import { OutputMeta } from './OutputMeta';
 import { RunAgain } from './RunAgain';
@@ -21,6 +23,38 @@ export interface ReviewPageProps {
   onBack: () => void;
   /** What the pass is doing: stages, timer and log. Shown beside the video and the choices. */
   detail?: ReactNode;
+  /** Pause, resume, stop, run this card again or delete it. Hidden when the page cannot act. */
+  onCardAction?: (action: ActionName) => void;
+}
+
+/** The actions this card can take, as buttons. Delete asks first. */
+function CardActions({ card, busy, onAct }: { card: BatchCard; busy: boolean; onAct: (action: ActionName) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const actions: ActionName[] = (['pause', 'resume', 'stop', 'rerun'] as ActionName[]).filter((action) => cardCan(card.status, action));
+  return (
+    <div className="flex flex-wrap gap-2.5 pt-2">
+      {actions.map((action) => (
+        <Button key={action} disabled={busy} onClick={() => onAct(action)}>
+          {action === 'rerun' ? 'Run this card again' : action === 'resume' && card.status === 'held' ? 'Start' : ACTION_LABEL[action]}
+        </Button>
+      ))}
+      {cardCan(card.status, 'delete') ? <Button variant="danger" disabled={busy} onClick={() => setConfirming(true)}>{ACTION_LABEL.delete}</Button> : null}
+      {confirming ? (
+        <ConfirmDialog
+          title="Delete this card?"
+          body="The card leaves the board with its logs. Its output video on disk is kept. This can’t be undone."
+          confirmLabel="Delete card"
+          busy={busy}
+          error={null}
+          onConfirm={() => {
+            setConfirming(false);
+            onAct('delete');
+          }}
+          onClose={() => setConfirming(false)}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 function progress(card: BatchCard): string {
@@ -28,7 +62,7 @@ function progress(card: BatchCard): string {
   return card.stageTitle ? `${card.stageTitle} · stage ${card.stagePosition} of ${card.stageCount}` : 'Starting';
 }
 
-export function ReviewPage({ card, outputUrl, busy, error, pipelines, onApprove, onRunAgain, onResolve, onBack, detail }: ReviewPageProps) {
+export function ReviewPage({ card, outputUrl, busy, error, pipelines, onApprove, onRunAgain, onResolve, onBack, detail, onCardAction }: ReviewPageProps) {
   const finished = card.status === 'review' || card.status === 'approved';
   return (
     <main aria-label="Review" className="flex min-w-0 flex-1 flex-col gap-6 px-2">
@@ -44,6 +78,7 @@ export function ReviewPage({ card, outputUrl, busy, error, pipelines, onApprove,
             <div className="pt-1"><StatusChip tone={toneOf(card)}>{chipLabel(card)}</StatusChip></div>
           </div>
           {error ? <p role="alert" className="break-words rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{error}</p> : null}
+          {onCardAction ? <CardActions card={card} busy={busy} onAct={onCardAction} /> : null}
           {finished && card.output ? (
             <>
               <VideoPlayer src={outputUrl} />

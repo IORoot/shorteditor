@@ -1,4 +1,5 @@
 import { Button } from '../../../shared/components/ui/Button';
+import { Toggle } from '../../../shared/components/ui/Toggle';
 import type { BrowseResult } from '../../../shared/lib/types';
 import type { SettingsForm } from '../../lib/presets';
 import type { Defaults, PipelineChoice } from '../../lib/types';
@@ -13,10 +14,12 @@ export interface BatchSettingsFieldsProps {
   pipelines: PipelineChoice[];
   onManagePipelines?: () => void;
   browse: (path?: string) => Promise<BrowseResult>;
+  /** Shows the auto run switch. Watches do not have one: the batches they make always run. */
+  showAutoRun?: boolean;
 }
 
 /** What every batch in the form shares: its pipeline, where it runs and where the result goes. */
-export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse }: BatchSettingsFieldsProps) {
+export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse, showAutoRun = false }: BatchSettingsFieldsProps) {
   return (
     <>
       {pipelines.length === 0 ? (
@@ -36,6 +39,14 @@ export function BatchSettingsFields({ value, onChange, defaults, pipelines, onMa
       </Select>
       <FolderField label="Output folder" value={value.outputRoot} onChange={(outputRoot) => onChange({ outputRoot })} browse={browse} placeholder={defaults.outputRoot} />
       <p className="text-small text-text-2">Leave the output folder empty to use the default. It must be new or empty, and separate from the input folder.</p>
+      {showAutoRun ? (
+        <label className="flex items-center gap-3 text-small text-text-2">
+          <Toggle label="Auto run" checked={value.autoRun} onChange={(autoRun) => onChange({ autoRun })} />
+          <span>
+            <span className="font-semibold text-text">Auto run</span> · {value.autoRun ? 'the cards start as soon as the batch is made' : 'the cards wait until you start them'}
+          </span>
+        </label>
+      ) : null}
     </>
   );
 }

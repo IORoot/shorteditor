@@ -123,7 +123,7 @@ class PipelineService:
             id=p.id, name=p.name, description=p.description, enabled=p.enabled,
             stage_count=sum(1 for s in p.steps if s.enabled),
             max_seconds=setting("limit_length", "maxSeconds"), max_size_mb=setting("render_output", "maxSizeMb"),
-            used_by=len(self._usage.users_of(p.id)), updated_at=p.updated_at,
+            used_by=len(self._usage.users_of(p.id)), updated_at=p.updated_at, steps=list(p.steps),
         )
 
     def _validate(self, request: PipelineSave, own_id: int | None) -> tuple[str, str]:

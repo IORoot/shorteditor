@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
+from .models import ActionRequest, ActionResults, Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -29,6 +29,10 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     def output(pass_id: Id) -> FileResponse:
         return FileResponse(guarded(lambda: service.output_path(pass_id)), media_type="video/mp4")
 
+    @router.get("/passes/{pass_id}/thumbnail")
+    def card_thumbnail(pass_id: Id) -> FileResponse:
+        return FileResponse(guarded(lambda: service.card_thumbnail_path(pass_id)), media_type="image/jpeg")
+
     @router.get("/batches/{batch_id}/thumbnail")
     def thumbnail(batch_id: Id) -> FileResponse:
         return FileResponse(guarded(lambda: service.thumbnail_path(batch_id)), media_type="image/jpeg")
@@ -47,7 +51,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.patch("/batches/{batch_id}", response_model=Batch)
     def update_batch(batch_id: Id, request: BatchUpdate) -> Batch:
-        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root))
+        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root, request.auto_run))
 
     @router.post("/batches/delete", response_model=BatchesDeleted)
     def delete_batches(request: BatchesDelete) -> BatchesDeleted:
@@ -55,7 +59,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.post("/batches", response_model=Batch, status_code=201)
     def create(request: BatchCreate) -> Batch:
-        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root))
+        return guarded(lambda: service.create_batch(request.name, request.input_folder, request.pipeline_id, request.run_on, request.output_root, auto_run=request.auto_run))
 
     @router.post("/folders/preview", response_model=FolderPreview)
     def preview_folders(request: FolderPreviewRequest) -> FolderPreview:
@@ -75,6 +79,14 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
         guarded(lambda: service.run_again(batch_id, request.pipeline_id))
         batch, cards = guarded(lambda: service.detail(batch_id))
         return BatchDetail(batch=batch, passes=cards)
+
+    @router.post("/batches/actions", response_model=ActionResults)
+    def batch_actions(request: ActionRequest) -> ActionResults:
+        return ActionResults(results=service.batch_actions(request.ids, request.action))
+
+    @router.post("/passes/actions", response_model=ActionResults)
+    def card_actions(request: ActionRequest) -> ActionResults:
+        return ActionResults(results=service.card_actions(request.ids, request.action))
 
     @router.post("/passes/{pass_id}/resolve", response_model=Pass)
     def resolve(pass_id: Id, request: Resolve) -> Pass:

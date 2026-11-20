@@ -1,4 +1,4 @@
-import type { LogEntry, StageRun, StageRunStatus } from './types';
+import type { LogEntry, StageDetails, StageRun, StageRunStatus } from './types';
 
 /** Clock time of day, for example 14:05:09, in the viewer's time zone. */
 export function clock(iso: string): string {
@@ -20,11 +20,12 @@ export interface TimelineRow {
   status: StageRunStatus | 'waiting';
   startedAt: string | null;
   finishedAt: string | null;
+  details?: StageDetails | null;
 }
 
 /** Every stage of the run: the ones reached so far with their times, then the rest still waiting. */
 export function timelineRows(stages: StageRun[], planned: string[]): TimelineRow[] {
-  const reached: TimelineRow[] = stages.map((stage) => ({ key: stage.key, title: stage.title, status: stage.status, startedAt: stage.startedAt, finishedAt: stage.finishedAt }));
+  const reached: TimelineRow[] = stages.map((stage) => ({ key: stage.key, title: stage.title, status: stage.status, startedAt: stage.startedAt, finishedAt: stage.finishedAt, details: stage.details ?? null }));
   const waiting: TimelineRow[] = planned.slice(stages.length).map((title, index) => ({ key: `waiting-${index}`, title, status: 'waiting', startedAt: null, finishedAt: null }));
   return [...reached, ...waiting];
 }

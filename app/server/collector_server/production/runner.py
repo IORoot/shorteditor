@@ -15,11 +15,16 @@ from .repositories import BatchRepository, LogRepository, PassRepository
 from collector_server.shared.pipeline import PipelineSource
 
 from .stage_api import DEFAULT_AI_MODEL, BlockedError, StageContext, StageError, StageStep
+from .stage_details import describe
 from .validation import build_settings, validate_pipeline
 from .worker import Worker
 
 _FFMPEG_BATCH = 50
 _FFMPEG_LINES_KEPT = 3000
+
+
+class _Cancelled(Exception):
+    """The card was paused, stopped or deleted while it ran. Its half-made files are removed; its status is already set."""
 
 
 class PassRunner:
@@ -52,7 +57,12 @@ class PassRunner:
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
             ctx = StageContext(claimed.folder or batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model())
-            self._finish(pass_id, "review", pipeline, output=self._execute(claimed, steps, ctx))
+            video = self._execute(claimed, steps, ctx)
+            if not self._finish(pass_id, "review", pipeline, output=video):
+                self._discard(root, made_dir)  # changed while it ran: the result is not kept
+        except _Cancelled:
+            pipeline("Stopped: the card was paused, stopped or deleted while it ran")
+            self._discard(root, made_dir)
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
             self._discard(root, made_dir)
@@ -95,10 +105,11 @@ class PassRunner:
         if root:
             remove_inside(root, output_dir)
 
-    def _finish(self, pass_id: int, status: str, pipeline: LogSink, **fields) -> None:  # noqa: ANN003
+    def _finish(self, pass_id: int, status: str, pipeline: LogSink, **fields) -> bool:  # noqa: ANN003
         saved = self._passes.update(pass_id, only_if_status="running", status=status, **{"finished_at": self._now(), **fields})
         if saved is None:
             pipeline("Result not saved: the pass was changed while it ran")
+        return saved is not None
 
     def _steps_for(self, batch: Batch) -> list[StageStep]:
         """A pipeline batch runs the pipeline's steps as they are when the pass starts. The switch is checked here."""
@@ -111,6 +122,15 @@ class PassRunner:
             raise StageError(f"Pipeline '{ref.name}' is off. Switch it on, then run again.")
         return ref.steps
 
+    @staticmethod
+    def _details(key: str, before, after, settings, ctx: StageContext) -> dict | None:  # noqa: ANN001
+        """What a finished stage made, for the card's detail page. Never fails the pass: a probe that cannot read a file leaves it out."""
+        try:
+            return describe(key, before, after, settings, ctx.ffmpeg)
+        except Exception:  # noqa: BLE001 - the details are a convenience; the result is already made
+            ctx.log("Could not read the details of this stage")
+            return None
+
     def _execute(self, current: Pass, steps: list[StageStep], ctx: StageContext) -> VideoData:
         errors = validate_pipeline(self._registry, steps)
         if errors:
@@ -122,9 +142,12 @@ class PassRunner:
         data = None
         stages: list[dict] = []  # saved after every change, so the review screen shows where the pass is
         for index, (step, stage, settings) in enumerate(plan):  # the index counts enabled stages only
+            if self._passes.get(current.id) is None or self._passes.get(current.id).status != "running":
+                raise _Cancelled()  # paused, stopped or deleted: no more stages
             stages.append({"key": step.key, "title": stage.title, "status": "running", "started_at": self._now(), "finished_at": None})
             self._passes.update(current.id, stage_index=index, stage_key=step.key, stages=stages)
             ctx.log(f"{stage.title} started")
+            before = data
             try:
                 data = stage.run(data, settings, ctx)
             except BlockedError:
@@ -135,7 +158,7 @@ class PassRunner:
                 stages[-1].update(status="failed", finished_at=self._now())
                 self._passes.update(current.id, stages=stages)
                 raise
-            stages[-1].update(status="done", finished_at=self._now())
+            stages[-1].update(status="done", finished_at=self._now(), details=self._details(step.key, before, data, settings, ctx))
             self._passes.update(current.id, stages=stages)
             ctx.log(f"{stage.title} done")
         if not isinstance(data, VideoData):

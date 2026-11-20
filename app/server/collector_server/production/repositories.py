@@ -20,10 +20,11 @@ class BatchRepository:
     def __init__(self, db: Database) -> None:
         self._db = db
 
-    def create(self, name: str, input_folder: str, pipeline_id: int | None, steps: list[StageStep], run_on: str, output_root: str, now: str) -> Batch:
+    def create(self, name: str, input_folder: str, pipeline_id: int | None, steps: list[StageStep], run_on: str, output_root: str, now: str,
+               folder_pattern: str | None = None, auto_run: bool = True) -> Batch:
         cursor = self._db.execute(
-            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now),
+            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at, folder_pattern, auto_run) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now, folder_pattern, int(auto_run)),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
 
@@ -35,8 +36,8 @@ class BatchRepository:
         self._db.execute("DELETE FROM production_batches WHERE id = ?", (batch_id,))
 
     def update(self, batch_id: int, **fields: str) -> None:
-        """Only the name and the output folder can be changed in place."""
-        unknown = set(fields) - {"name", "output_root"}
+        """Only the name, the output folder and the auto run flag can be changed in place."""
+        unknown = set(fields) - {"name", "output_root", "auto_run"}
         if unknown:
             raise ValueError(f"Cannot update {', '.join(sorted(unknown))}")
         assignments = ", ".join(f"{name} = ?" for name in fields)
@@ -56,7 +57,7 @@ class BatchRepository:
         return Batch(
             id=row["id"], name=row["name"], input_folder=row["input_folder"], run_on=row["run_on"],
             pipeline_id=row["pipeline_id"], steps=[StageStep(**step) for step in json.loads(row["steps"])],
-            output_root=row["output_root"], created_at=row["created_at"],
+            output_root=row["output_root"], created_at=row["created_at"], folder_pattern=row["folder_pattern"], auto_run=bool(row["auto_run"]),
         )
 
 
@@ -102,14 +103,15 @@ class PassRepository:
     def db(self) -> Database:
         return self._db
 
-    def create(self, batch_id: int, now: str, overrides: dict[str, dict] | None = None, *, run_id: int | None = None, folder: str = "") -> Pass:
+    def create(self, batch_id: int, now: str, overrides: dict[str, dict] | None = None, *, run_id: int | None = None, folder: str = "",
+               status: str = "queued") -> Pass:
         """A card made without a run goes into a new run of its own, so it is still on the board."""
         if run_id is None:
             run_id = RunRepository(self._db).create(batch_id, now).id
         cursor = self._db.execute(
-            "INSERT INTO production_cards (batch_id, run_id, folder, number, overrides, created_at) "
-            "VALUES (?, ?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM production_cards WHERE batch_id = ?), ?, ?)",
-            (batch_id, run_id, folder, batch_id, json.dumps(overrides or {}), now),
+            "INSERT INTO production_cards (batch_id, run_id, folder, number, overrides, created_at, status) "
+            "VALUES (?, ?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM production_cards WHERE batch_id = ?), ?, ?, ?)",
+            (batch_id, run_id, folder, batch_id, json.dumps(overrides or {}), now, status),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
 
@@ -117,11 +119,18 @@ class PassRepository:
         rows = self._db.query("SELECT * FROM production_cards WHERE id = ?", (pass_id,))
         return self._pass(rows[0]) if rows else None
 
+    def folders(self) -> list[str]:
+        """The folder of every card in the database."""
+        return [row["folder"] for row in self._db.query("SELECT DISTINCT folder FROM production_cards WHERE folder != ''")]
+
     def for_batch(self, batch_id: int) -> list[Pass]:
         return self._many("SELECT * FROM production_cards WHERE batch_id = ? ORDER BY number", (batch_id,))
 
     def for_run(self, run_id: int) -> list[Pass]:
         return self._many("SELECT * FROM production_cards WHERE run_id = ? ORDER BY number", (run_id,))
+
+    def delete(self, pass_id: int) -> None:
+        self._db.execute("DELETE FROM production_cards WHERE id = ?", (pass_id,))  # its logs go with it; output files stay
 
     def queued(self) -> list[Pass]:
         # Oldest first. A card put back in the queue after a block keeps its place.

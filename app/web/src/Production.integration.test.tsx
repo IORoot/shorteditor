@@ -79,7 +79,7 @@ describe('Production, end to end', () => {
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create batch' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
-    expect(backend.posted(/\/batches$/)[0].body).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'any' });
+    expect(backend.posted(/\/batches$/)[0].body).toEqual({ name: 'Coach Saturdays', inputFolder: '/clips/coach', pipelineId: 1, runOn: 'any', autoRun: false });
     await waitFor(() => expect(backend.boardLoads()).toBeGreaterThan(before));
   });
 
@@ -146,7 +146,7 @@ describe('Production, end to end', () => {
   });
 
   it('approves a finished batch on its review page and moves it to the approved row', { tags: ['full'] }, async () => {
-    const card = makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
+    const card = makeCard({ name: 'Coach Saturdays', folder: '/clips/Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
     const backend = server([card]);
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'Coach Saturdays, Review' }));

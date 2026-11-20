@@ -21,7 +21,7 @@ def test_a_pass_left_running_by_a_crash_is_failed_at_start_up(tmp_path, monkeypa
     first.post("/api/production/batches", json={"name": "B", "inputFolder": str(folder), "pipelineId": 1})
     from collector_server.shared.database import Database
 
-    Database(str(tmp_path / "app.db")).execute("UPDATE production_passes SET status = 'running'")
+    Database(str(tmp_path / "app.db")).execute("UPDATE production_cards SET status = 'running'")
     with TestClient(create_default_app()) as restarted:  # start-up recovery runs when the app starts
         [card] = restarted.get("/api/production/batches").json()
     assert card["status"] == "failed" and card["error"] == "Interrupted by a restart"

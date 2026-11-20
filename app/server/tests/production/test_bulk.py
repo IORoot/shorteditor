@@ -1,3 +1,4 @@
+import os
 import threading
 
 import pytest
@@ -6,13 +7,13 @@ from fastapi.testclient import TestClient
 
 from collector_server.production.api import build_router
 from collector_server.production.builtin import build_registry
+from collector_server.production.catalog import StageLibrary
 from collector_server.production.errors import InvalidInputError
 from collector_server.production.models import BulkCreate
 from collector_server.production.repositories import BatchRepository, LogRepository, PassRepository
 from collector_server.production.schema import ensure_schema
 from collector_server.production.service import ProductionService
 from collector_server.production.stage_api import StageStep
-from collector_server.production.catalog import StageLibrary
 from tests.production.helpers import FakePipelines
 
 NOW = "2026-11-17T10:00:00+00:00"
@@ -41,23 +42,34 @@ def world(db, tmp_path):
         return str(parent / name)
 
     w.folder = folder
-    w.request = lambda **kw: BulkCreate(**{"parent_folder": str(parent), "pattern": DATE, "pipeline_id": 1, **kw})
+    w.request = lambda **kw: BulkCreate(**{"parent_folder": str(parent), "pattern": DATE, "pipeline_id": 1, "auto_run": True, **kw})
     return w
 
 
-@pytest.mark.full
+@pytest.fixture
+def client(world):
+    app = FastAPI()
+    app.include_router(build_router(world.service))
+    return TestClient(app)
+
+
+def card_names(world, batch_id):
+    return sorted(os.path.basename(c.folder) for c in world.passes.for_batch(batch_id))
+
+
 @pytest.mark.full
 def test_preview_marks_will_create_already_batched_and_no_videos(world):
     world.folder("2026-11-07_a")
-    taken = world.folder("2026-11-08_b")
+    world.folder("2026-11-08_b")
     world.folder("2026-11-09_c", clips=0)
-    world.service.create_batch("Earlier", taken, 1, "any", None)
     preview = world.service.preview_folders(str(world.parent), DATE)
     assert [(i.name, i.status, i.clip_count) for i in preview.matches] == [
-        ("2026-11-07_a", "will_create", 2), ("2026-11-08_b", "already_batched", 2), ("2026-11-09_c", "no_videos", 0)]
+        ("2026-11-07_a", "will_create", 2), ("2026-11-08_b", "will_create", 2), ("2026-11-09_c", "no_videos", 0)]
+    world.service.create_batch("Earlier", str(world.parent), 1, "any", None)
+    preview = world.service.preview_folders(str(world.parent), DATE)
+    assert [i.status for i in preview.matches] == ["already_batched", "already_batched", "no_videos"]
 
 
-@pytest.mark.full
 @pytest.mark.full
 def test_preview_counts_non_matching(world):
     world.folder("2026-11-07_a")
@@ -66,7 +78,6 @@ def test_preview_counts_non_matching(world):
 
 
 @pytest.mark.full
-@pytest.mark.full
 def test_preview_refuses_a_bad_pattern_and_a_missing_parent(world):
     with pytest.raises(InvalidInputError, match="far too long"):
         world.service.preview_folders(str(world.parent), "(a+)+")
@@ -74,63 +85,65 @@ def test_preview_refuses_a_bad_pattern_and_a_missing_parent(world):
         world.service.preview_folders(str(world.tmp / "nope"), DATE)
 
 
-def test_bulk_creates_one_batch_per_new_folder_in_name_order(world):
+@pytest.mark.full
+def test_bulk_makes_one_batch_for_the_parent_with_a_card_per_matched_folder(world):
     for name in ("2026-11-09_c", "2026-11-07_a", "2026-11-08_b"):
         world.folder(name)
+    world.folder("notes")
     result = world.service.create_batches(world.request())
-    assert [b.name for b in result.created] == ["2026-11-07_a", "2026-11-08_b", "2026-11-09_c"]
-    assert [b.id for b in result.created] == sorted(b.id for b in result.created)
-    for batch in result.created:
-        assert [p.status for p in world.passes.for_batch(batch.id)] == ["queued"]
+    [batch] = result.created
+    assert (batch.input_folder, batch.folder_pattern, result.skipped) == (str(world.parent), DATE, [])
+    assert card_names(world, batch.id) == ["2026-11-07_a", "2026-11-08_b", "2026-11-09_c"]
+    assert {c.status for c in world.passes.for_batch(batch.id)} == {"queued"}
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_bulk_names_come_from_the_template(world):
-    world.folder("2026-11-07_coach")
-    result = world.service.create_batches(world.request(pattern=r"^(\d{4})-(\d{2})-\d{2}_(?P<who>.+)$", name_template="{who} {2}/{1}"))
-    assert result.created[0].name == "coach 11/2026"
+def test_bulk_names_the_batch_from_the_parent_folder_and_template(world):
+    world.folder("2026-11-07_a")
+    result = world.service.create_batches(world.request(name_template="{name} Saturdays"))
+    assert result.created[0].name == f"{world.parent.name} Saturdays"
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_bulk_rejects_an_unknown_placeholder(world):
+def test_bulk_refuses_placeholders_other_than_name(world):
     world.folder("2026-11-07_a")
     with pytest.raises(InvalidInputError, match="does not have"):
         world.service.create_batches(world.request(name_template="{nope}"))
+    with pytest.raises(InvalidInputError):
+        world.service.create_batches(world.request(pattern=r"^(\d{4})-.+$", name_template="{1}"))
+    assert world.batches.list() == []
 
 
 @pytest.mark.full
-def test_bulk_skips_already_batched_and_lists_them(world):
-    world.folder("2026-11-07_a")
-    taken = world.folder("2026-11-08_b")
-    world.service.create_batch("Earlier", taken, 1, "any", None)
-    result = world.service.create_batches(world.request())
-    assert [b.name for b in result.created] == ["2026-11-07_a"]
-    assert [(s.name, s.status) for s in result.skipped] == [("2026-11-08_b", "already_batched")]
-
-
-@pytest.mark.full
-@pytest.mark.full
-def test_include_creates_an_already_batched_folder_again(world):
-    taken = world.folder("2026-11-08_b")
-    world.service.create_batch("Earlier", taken, 1, "any", None)
-    result = world.service.create_batches(world.request(include=["2026-11-08_b"]))
-    assert [b.name for b in result.created] == ["2026-11-08_b"]
-    assert len(world.batches.list()) == 2
-
-
-@pytest.mark.full
-@pytest.mark.full
-def test_bulk_never_creates_for_a_folder_without_videos(world):
+def test_bulk_leaves_out_folders_without_videos_and_lists_them(world):
     world.folder("2026-11-07_a")
     world.folder("2026-11-08_empty", clips=0)
-    result = world.service.create_batches(world.request(include=["2026-11-08_empty"]))
-    assert [b.name for b in result.created] == ["2026-11-07_a"]
-    assert [s.status for s in result.skipped] == ["no_videos"]
+    result = world.service.create_batches(world.request())
+    assert card_names(world, result.created[0].id) == ["2026-11-07_a"]
+    assert [(s.name, s.status) for s in result.skipped] == [("2026-11-08_empty", "no_videos")]
 
 
 @pytest.mark.full
+def test_bulk_refuses_a_parent_that_already_has_a_batch(world):
+    world.folder("2026-11-07_a")
+    world.service.create_batches(world.request())
+    with pytest.raises(InvalidInputError, match="already has a batch"):
+        world.service.create_batches(world.request())
+    assert len(world.batches.list()) == 1
+
+
+@pytest.mark.full
+def test_re_running_a_bulk_batch_picks_up_new_matches_and_ignores_the_rest(world):
+    world.folder("2026-11-07_a")
+    batch = world.service.create_batches(world.request()).created[0]
+    world.folder("2026-11-10_new")
+    world.folder("notes")
+    for card in world.passes.for_batch(batch.id):
+        world.passes.update(card.id, status="approved")
+    world.service.run_again(batch.id, None)
+    assert card_names(world, batch.id) == ["2026-11-07_a", "2026-11-10_new"]
+
+
 @pytest.mark.full
 def test_bulk_refuses_when_run_on_or_output_folder_is_bad(world):
     world.folder("2026-11-07_a")
@@ -142,17 +155,6 @@ def test_bulk_refuses_when_run_on_or_output_folder_is_bad(world):
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_bulk_refuses_more_than_200(world):
-    for n in range(201):
-        world.folder(f"2026-11-07_{n:03d}", clips=1)
-    with pytest.raises(InvalidInputError, match="200"):
-        world.service.create_batches(world.request())
-    assert world.batches.list() == []
-
-
-@pytest.mark.full
-@pytest.mark.full
 def test_bulk_with_nothing_to_create_is_a_plain_error(world):
     world.folder("2026-11-07_a", clips=0)
     with pytest.raises(InvalidInputError, match="Nothing to create"):
@@ -160,8 +162,26 @@ def test_bulk_with_nothing_to_create_is_a_plain_error(world):
 
 
 @pytest.mark.full
+def test_a_failure_while_making_cards_leaves_no_batch_behind(world, monkeypatch):
+    for n in range(3):
+        world.folder(f"2026-11-0{n}_x")
+    real = world.passes.create
+    calls = {"n": 0}
+
+    def flaky(batch_id, now, overrides=None, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("disk is full")
+        return real(batch_id, now, overrides, **kwargs)
+
+    monkeypatch.setattr(world.passes, "create", flaky)
+    with pytest.raises(RuntimeError, match="disk is full"):
+        world.service.create_batches(world.request())
+    assert world.batches.list() == []
+
+
 @pytest.mark.full
-def test_two_bulk_requests_at_once_create_each_folder_once(world):
+def test_two_bulk_requests_at_once_make_one_batch(world):
     for n in range(6):
         world.folder(f"2026-11-0{n}_x")
     outcomes = []
@@ -175,17 +195,21 @@ def test_two_bulk_requests_at_once_create_each_folder_once(world):
     threads = [threading.Thread(target=go) for _ in range(4)]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    assert sum(outcomes) == 6 and len(world.batches.list()) == 6
-
-
-@pytest.fixture
-def client(world):
-    app = FastAPI()
-    app.include_router(build_router(world.service))
-    return TestClient(app)
+    assert sum(outcomes) == 1 and len(world.batches.list()) == 1
 
 
 @pytest.mark.full
+def test_bulk_route_201_422_and_shape(world, client):
+    world.folder("2026-11-07_a")
+    ok = client.post("/api/production/batches/bulk", json={"parentFolder": str(world.parent), "pattern": DATE, "pipelineId": 1})
+    assert ok.status_code == 201
+    assert [b["name"] for b in ok.json()["created"]] == [world.parent.name] and ok.json()["skipped"] == []
+    again = client.post("/api/production/batches/bulk", json={"parentFolder": str(world.parent), "pattern": DATE, "pipelineId": 1})
+    assert again.status_code == 422 and "already has a batch" in again.json()["detail"]
+    bad = client.post("/api/production/folders/preview", json={"parentFolder": str(world.parent), "pattern": "(a+)+"})
+    assert bad.status_code == 422 and "far too long" in bad.json()["detail"]
+
+
 @pytest.mark.full
 def test_preview_route(world, client):
     world.folder("2026-11-07_a")
@@ -194,20 +218,6 @@ def test_preview_route(world, client):
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_bulk_route_201_422_and_shape(world, client):
-    world.folder("2026-11-07_a")
-    ok = client.post("/api/production/batches/bulk", json={"parentFolder": str(world.parent), "pattern": DATE, "pipelineId": 1})
-    assert ok.status_code == 201
-    assert [b["name"] for b in ok.json()["created"]] == ["2026-11-07_a"] and ok.json()["skipped"] == []
-    again = client.post("/api/production/batches/bulk", json={"parentFolder": str(world.parent), "pattern": DATE, "pipelineId": 1})
-    assert again.status_code == 422 and "Nothing to create" in again.json()["detail"]
-    bad = client.post("/api/production/folders/preview", json={"parentFolder": str(world.parent), "pattern": "(a+)+"})
-    assert bad.status_code == 422 and "far too long" in bad.json()["detail"]
-
-
-@pytest.mark.full
-@pytest.mark.full
 def test_a_relative_parent_folder_is_refused_everywhere(world):
     with pytest.raises(InvalidInputError, match="absolute"):
         world.service.preview_folders(".", DATE)
@@ -215,7 +225,6 @@ def test_a_relative_parent_folder_is_refused_everywhere(world):
         world.service.create_batches(world.request(parent_folder="."))
 
 
-@pytest.mark.full
 @pytest.mark.full
 def test_preview_warns_about_an_output_folder_that_overlaps_the_parent(world):
     world.folder("2026-11-07_a")
@@ -230,7 +239,6 @@ def test_preview_warns_about_an_output_folder_that_overlaps_the_parent(world):
 
 
 @pytest.mark.full
-@pytest.mark.full
 def test_preview_route_takes_an_optional_output_folder(world, client):
     world.folder("2026-11-07_a")
     bad = client.post("/api/production/folders/preview", json={"parentFolder": str(world.parent), "pattern": DATE, "outputRoot": str(world.parent / "x")})
@@ -238,28 +246,16 @@ def test_preview_route_takes_an_optional_output_folder(world, client):
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_two_links_to_one_folder_create_one_batch(world):
+def test_two_links_to_one_folder_make_one_card(world):
     world.folder("2026-11-07_a")
     (world.parent / "2026-11-08_alias").symlink_to(world.parent / "2026-11-07_a")
-    result = world.service.create_batches(world.request())
-    assert [b.name for b in result.created] == ["2026-11-07_a"]
+    [batch] = world.service.create_batches(world.request()).created
+    assert card_names(world, batch.id) == ["2026-11-07_a"]
 
 
-@pytest.mark.full
-@pytest.mark.full
-def test_include_ignores_unknown_and_repeated_names(world):
-    taken = world.folder("2026-11-08_b")
-    world.service.create_batch("Earlier", taken, 1, "any", None)
-    world.folder("2026-11-07_a")
-    result = world.service.create_batches(world.request(include=["nope", "nope", "2026-11-08_b", "2026-11-08_b"]))
-    assert sorted(b.name for b in result.created) == ["2026-11-07_a", "2026-11-08_b"]
-
-
-@pytest.mark.full
 @pytest.mark.full
 def test_an_unreadable_folder_is_shown_as_such_and_never_created(world):
-    inside = world.folder("2026-11-07_a")
+    world.folder("2026-11-07_a")
     (world.parent / "2026-11-07_a" / "sub").mkdir()
     (world.parent / "2026-11-07_a" / "sub" / "x.mp4").write_bytes(b"x")
     (world.parent / "2026-11-07_a" / "sub").chmod(0)
@@ -270,10 +266,8 @@ def test_an_unreadable_folder_is_shown_as_such_and_never_created(world):
             world.service.create_batches(world.request())
     finally:
         (world.parent / "2026-11-07_a" / "sub").chmod(0o755)
-    assert inside
 
 
-@pytest.mark.full
 @pytest.mark.full
 def test_preview_says_when_the_folder_list_was_cut(world, monkeypatch):
     import collector_server.production.folder_scan as folder_scan
@@ -284,7 +278,6 @@ def test_preview_says_when_the_folder_list_was_cut(world, monkeypatch):
     assert world.service.preview_folders(str(world.parent), DATE).truncated is True
 
 
-@pytest.mark.full
 @pytest.mark.full
 def test_the_lock_is_not_held_while_a_big_folder_is_scanned(world, monkeypatch):
     import collector_server.production.service as service_module
@@ -310,21 +303,10 @@ def test_the_lock_is_not_held_while_a_big_folder_is_scanned(world, monkeypatch):
 
 
 @pytest.mark.full
-@pytest.mark.full
-def test_a_failure_halfway_says_how_many_were_made_and_leaves_no_dead_card(world, monkeypatch):
-    for n in range(4):
-        world.folder(f"2026-11-0{n}_x")
-    real = world.passes.create
-    calls = {"n": 0}
-
-    def flaky(batch_id, now, overrides=None, **kwargs):
-        calls["n"] += 1
-        if calls["n"] == 3:
-            raise RuntimeError("disk is full")
-        return real(batch_id, now, overrides, **kwargs)
-
-    monkeypatch.setattr(world.passes, "create", flaky)
-    with pytest.raises(InvalidInputError, match="Created 2 of 4.*disk is full"):
-        world.service.create_batches(world.request())
-    batches = world.batches.list()
-    assert len(batches) == 2 and all(world.passes.for_batch(b.id) for b in batches)
+def test_bulk_skips_a_folder_another_batch_already_covers(world):
+    taken = world.folder("2026-11-07_a")
+    world.service.create_batch("Earlier", taken, 1, "any", None)
+    world.folder("2026-11-08_b")
+    result = world.service.create_batches(world.request())
+    assert card_names(world, result.created[0].id) == ["2026-11-08_b"]
+    assert [(s.name, s.status) for s in result.skipped] == [("2026-11-07_a", "already_batched")]

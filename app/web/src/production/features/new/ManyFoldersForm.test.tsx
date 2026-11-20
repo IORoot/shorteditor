@@ -80,20 +80,6 @@ describe('ManyFoldersForm', () => {
     expect(screen.getByText('Updating…')).toBeInTheDocument();
   });
 
-  it('ticking an already-batched folder adds it to the include list, and ticking it again removes it', { tags: ['full'] }, () => {
-    const preview: PreviewState = { status: 'ready', refreshing: false, data: { matches: [{ name: 'old', path: '/c/old', clipCount: 2, status: 'already_batched' }], notMatching: 0, truncated: false } };
-    const onChange = show({ include: [] }, preview);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'old' }));
-    expect(onChange).toHaveBeenLastCalledWith({ include: ['old'] });
-  });
-
-  it('removes an included folder when it is unticked', { tags: ['full'] }, () => {
-    const preview: PreviewState = { status: 'ready', refreshing: false, data: { matches: [{ name: 'old', path: '/c/old', clipCount: 2, status: 'already_batched' }], notMatching: 0, truncated: false } };
-    const onChange = show({ include: ['old', 'other'] }, preview);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'old' }));
-    expect(onChange).toHaveBeenLastCalledWith({ include: ['other'] });
-  });
-
   it('shows the shared settings for every batch', { tags: ['full'] }, () => {
     show();
     expect(screen.getByText('Settings for every batch')).toBeInTheDocument();

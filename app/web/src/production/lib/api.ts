@@ -1,6 +1,6 @@
 import { HttpClient } from '../../shared/lib/http';
 import type { StageHandoff } from '../../shared/contracts/handoff';
-import type { Batch, BatchCard, BatchCreate, BatchListItem, BatchUpdate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
+import type { ActionName, ActionResults, Batch, BatchCard, BatchCreate, BatchListItem, BatchUpdate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
 
 const BASE = '/api/production';
 
@@ -39,6 +39,16 @@ export class ProductionApi extends HttpClient {
   /** A new run of the batch: one card per folder, from the original folders. Replaces the previous run. */
   runAgain(batchId: number, pipelineId?: number): Promise<{ batch: Batch; passes: Pass[] }> {
     return this.send<{ batch: Batch; passes: Pass[] }>(`${BASE}/batches/${batchId}/runs`, 'POST', pipelineId === undefined ? {} : { pipelineId });
+  }
+
+  /** Pause, resume, stop, run again or delete the given batches. One result per batch; a refused one says why. */
+  batchActions(ids: number[], action: ActionName): Promise<ActionResults> {
+    return this.send<ActionResults>(`${BASE}/batches/actions`, 'POST', { ids, action });
+  }
+
+  /** The same actions for cards (folders). */
+  cardActions(ids: number[], action: ActionName): Promise<ActionResults> {
+    return this.send<ActionResults>(`${BASE}/passes/actions`, 'POST', { ids, action });
   }
 
   /** The switched-on pipelines a batch or watch can use. */

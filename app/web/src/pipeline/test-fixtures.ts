@@ -1,7 +1,7 @@
 import type { PipelineDetail, PipelineSummary, StageInfo, StageStep } from './lib/types';
 
 export const summary = (over: Partial<PipelineSummary> = {}): PipelineSummary => ({
-  id: 1, name: 'Join clips', description: 'Join a folder', enabled: true, stageCount: 5, maxSeconds: 900, maxSizeMb: 150, usedBy: 0, updatedAt: '2026-11-17T10:00:00+00:00', ...over,
+  id: 1, name: 'Join clips', description: 'Join a folder', enabled: true, stageCount: 5, maxSeconds: 900, maxSizeMb: 150, usedBy: 0, updatedAt: '2026-11-17T10:00:00+00:00', steps: steps(), ...over,
 });
 
 export const library: StageInfo[] = [

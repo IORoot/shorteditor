@@ -23,8 +23,6 @@ export type WatchReading = 'create' | 'skip';
 
 export interface FolderPreviewListProps {
   preview: FolderPreview;
-  include: string[];
-  onToggle: (name: string) => void;
   watching?: WatchReading;
 }
 
@@ -34,7 +32,7 @@ function counts(preview: FolderPreview, watching?: WatchReading): string {
   const batched = count('already_batched');
   const none = count('no_videos');
   const unreadable = count('unreadable');
-  const willPart = watching === 'skip' ? `${will} already there, not batched now` : `${will} will be created`;
+  const willPart = watching === 'skip' ? `${will} already there, not batched now` : watching === 'create' ? `${will} will be created` : `${will} will be cards in one batch`;
   return [
     will ? willPart : '',
     batched ? `${batched} already batched` : '',
@@ -44,14 +42,12 @@ function counts(preview: FolderPreview, watching?: WatchReading): string {
   ].filter(Boolean).join(' · ');
 }
 
-/** Whether a row gets a box, and whether the box is ticked. Watching never offers to batch an already-batched folder again. */
-function box(item: PreviewItem, include: string[], watching?: WatchReading): { show: boolean; checked: boolean; fixed: boolean } {
-  if (item.status === 'will_create') return watching === 'skip' ? { show: false, checked: false, fixed: false } : { show: true, checked: true, fixed: true };
-  if (item.status === 'already_batched' && watching === undefined) return { show: true, checked: include.includes(item.name), fixed: false };
-  return { show: false, checked: false, fixed: false };
+/** Whether a row gets a box. A folder that will be created is ticked and fixed; nothing else gets a box. */
+function box(item: PreviewItem, watching?: WatchReading): { show: boolean } {
+  return { show: item.status === 'will_create' && watching !== 'skip' };
 }
 
-export function FolderPreviewList({ preview, include, onToggle, watching }: FolderPreviewListProps) {
+export function FolderPreviewList({ preview, watching }: FolderPreviewListProps) {
   const anyBatched = preview.matches.some((m) => m.status === 'already_batched');
   return (
     <div className="flex flex-col gap-2 rounded-[14px] bg-fill-2 p-3.5">
@@ -59,19 +55,12 @@ export function FolderPreviewList({ preview, include, onToggle, watching }: Fold
       {preview.matches.length === 0 ? <p className="text-small text-text-3">No folders match this pattern.</p> : null}
       <ul className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
         {preview.matches.map((item) => {
-          const state = box(item, include, watching);
+          const state = box(item, watching);
           const chip = watching === 'skip' && item.status === 'will_create' ? ALREADY_THERE : CHIP[item.status];
           return (
             <li key={item.path} className="flex min-w-0 items-center gap-2.5 rounded-[10px] bg-surface px-3 py-2">
               {state.show ? (
-                <input
-                  type="checkbox"
-                  aria-label={item.name}
-                  className="checkbox checkbox-sm"
-                  checked={state.checked}
-                  disabled={state.fixed}
-                  onChange={() => onToggle(item.name)}
-                />
+                <input type="checkbox" aria-label={item.name} className="checkbox checkbox-sm" checked disabled />
               ) : (
                 <span aria-hidden="true" className="size-5 shrink-0" />
               )}
@@ -87,7 +76,7 @@ export function FolderPreviewList({ preview, include, onToggle, watching }: Fold
       {anyBatched && watching === undefined ? (
         <p className="flex items-center gap-1.5 text-caption text-text-3">
           <Info size={13} aria-hidden="true" />
-          Folders already batched are skipped. Tick one to include it again.
+          Folders already in a batch are left out.
         </p>
       ) : null}
     </div>

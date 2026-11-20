@@ -32,7 +32,7 @@ def api(db, tmp_path):
         repo_logs = logs
 
         def create(self, **kw):
-            body = {"name": "Coach Saturdays", "inputFolder": self.folder, "pipelineId": 1, **kw}
+            body = {"name": "Coach Saturdays", "inputFolder": self.folder, "pipelineId": 1, "autoRun": True, **kw}
             return self.client.post("/api/production/batches", json=body)
 
     return Api()

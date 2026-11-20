@@ -12,7 +12,7 @@ from collector_server.shared.pipeline import PipelineRef, PipelineSource
 from .catalog import StageLibrary
 from .output_paths import OutputFolderError, check_root
 from .folder_scan import Candidate, scan_parent
-from .models import Batch, BatchCard, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
+from .models import ActionResult, Batch, BatchCard, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
 from .repositories import BatchRepository, LogRepository, PassRepository, RunRepository
 from .stage_api import StageStep
@@ -22,7 +22,19 @@ _WITH_STAGE = {"running", "blocked", "failed"}
 
 
 _MAX_TEXT = 1000
-MAX_BULK = 200
+# which card statuses each action applies to, and how the action reads in a message
+_ACTS_ON = {
+    "queued": ("pause", "stop"),
+    "held": ("resume", "stop"),
+    "running": ("pause", "stop"),
+    "paused": ("resume", "stop"),
+    "stopped": ("resume",),
+    "blocked": ("stop",),
+}
+_PAST = {"pause": "paused", "resume": "resumed", "stop": "stopped", "rerun": "run again", "delete": "deleted"}
+# the card's fields back to a fresh queued card; its folder, choices and output folder stay
+_FRESH = {"stage_index": 0, "stage_key": "", "stages": [], "blocked_reason": None, "blocked_choices": [], "blocked_items": [],
+          "error": None, "output": None, "started_at": None, "finished_at": None}
 
 
 class ProductionService:
@@ -57,6 +69,18 @@ class ProductionService:
             raise NotFoundError("There is no picture for this batch yet")
         return target
 
+    def card_thumbnail_path(self, pass_id: int) -> str:
+        """A still from the first clip in the card's own folder, made once and kept in the batch's output folder."""
+        card = self._need_pass(pass_id)
+        batch = self._need_batch(card.batch_id)
+        target = os.path.join(batch.output_root, ".thumbnails", f"card-{card.id}.jpg")
+        if os.path.isfile(target):
+            return target
+        clip = first_clip(card.folder or batch.input_folder)
+        if clip is None or not make_thumbnail(clip, target):
+            raise NotFoundError("There is no picture for this card yet")
+        return target
+
     def pipelines_for_choice(self) -> list[PipelineChoice]:
         """The switched-on pipelines a new batch or watch can use."""
         return [PipelineChoice(id=p.id, name=p.name, stage_count=sum(1 for s in p.steps if s.enabled)) for p in self._pipelines.enabled_pipelines()]
@@ -82,7 +106,8 @@ class ProductionService:
         return self._usable(pipeline_id).steps, pipeline_id
 
     def create_batch(self, name: str, input_folder: str, pipeline_id: int | None, run_on: str, output_root: str | None,
-                     steps: list[StageStep] | None = None, folders: list[str] | None = None) -> Batch:
+                     steps: list[StageStep] | None = None, folders: list[str] | None = None, folder_pattern: str | None = None,
+                     auto_run: bool = True) -> Batch:
         steps, pipeline_id = self._resolve(pipeline_id, steps)
         name = name.strip()
         if not name or len(name) > 120 or any(ord(c) < 32 for c in name):
@@ -97,7 +122,7 @@ class ProductionService:
             folders = self._card_folders(input_folder)  # the scan is slow, so it is done before the lock is taken
         with self._lock:
             stored = [] if pipeline_id is not None else steps  # a pipeline batch reads its steps from the pipeline
-            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now())
+            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now(), folder_pattern, auto_run)
             try:
                 self._start_run(batch, folders)
             except Exception:
@@ -106,18 +131,40 @@ class ProductionService:
         return batch
 
     @staticmethod
-    def _card_folders(input_folder: str) -> list[str]:
+    def _folders_with_videos(scan) -> list[str]:  # noqa: ANN001
+        """Each folder that has videos and could be read fully, once even when two links point at it."""
+        seen: set[str] = set()
+        folders: list[str] = []
+        for c in scan.matches:
+            real = os.path.realpath(c.path)
+            if c.clip_count == 0 or c.incomplete or c.name.startswith(".") or real in seen:
+                continue
+            seen.add(real)
+            folders.append(c.path)
+        return folders
+
+    @classmethod
+    def _card_folders(cls, input_folder: str) -> list[str]:
         """One card per sub-folder that holds videos. A folder with no such sub-folder is one card itself."""
-        scan = scan_parent(input_folder, re.compile(".*"))
-        folders = [c.path for c in scan.matches if c.clip_count > 0 and not c.name.startswith(".")]
+        folders = cls._folders_with_videos(scan_parent(input_folder, re.compile(".*")))
         return folders or [input_folder]
 
+    def _batch_folders(self, batch: Batch) -> list[str]:
+        """A batch made from many folders runs the folders its pattern matches now; any other batch runs its sub-folders."""
+        if batch.folder_pattern is None:
+            return self._card_folders(batch.input_folder)
+        folders = self._folders_with_videos(scan_parent(batch.input_folder, compile_pattern(batch.folder_pattern)))
+        if not folders:
+            raise InvalidInputError("No folder matches this batch's pattern any more, so there is nothing to run")
+        return folders
+
     def _start_run(self, batch: Batch, folders: list[str], overrides: dict[str, dict[str, dict]] | None = None) -> Run:
-        """A new run with one queued card per folder. The batch's older runs are removed; their output files stay on disk.
-        Call with the lock held."""
+        """A new run with one card per folder: queued when the batch runs by itself, held until started when not.
+        The batch's older runs are removed; their output files stay on disk. Call with the lock held."""
         run = self._runs.create(batch.id, self._now())
+        status = "queued" if batch.auto_run else "held"
         for folder in folders:
-            self._passes.create(batch.id, self._now(), (overrides or {}).get(folder), run_id=run.id, folder=folder)
+            self._passes.create(batch.id, self._now(), (overrides or {}).get(folder), run_id=run.id, folder=folder, status=status)
         self._runs.delete_except(batch.id, run.id)
         return run
 
@@ -167,7 +214,8 @@ class ProductionService:
             self._check_apart(parent, output_root)
         scan = scan_parent(parent, compiled)
         taken = self.taken_folders()
-        return FolderPreview(matches=[self._item(c, taken) for c in scan.matches], not_matching=scan.not_matching, truncated=scan.truncated)
+        return FolderPreview(matches=[self._item(c, taken, self._parent_batched(parent, taken)) for c in scan.matches],
+                             not_matching=scan.not_matching, truncated=scan.truncated)
 
     @staticmethod
     def _check_parent(parent: str) -> None:
@@ -175,46 +223,44 @@ class ProductionService:
             raise InvalidInputError("The parent folder must be an absolute path")
 
     def create_batches(self, request: BulkCreate) -> BulkResult:
+        # One batch for the parent folder. Each folder the pattern matches that has videos is a card.
         compiled = self.check_folder_settings(request.parent_folder, request.pattern, request.name_template, request.pipeline_id, request.run_on, request.output_root)
+        check_template(request.name_template, re.compile(""))  # the batch is named once, from the parent folder, so only {name} can be used
         scan = scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
-        card_folders = {c.path: self._card_folders(c.path) for c in scan.matches if c.clip_count > 0}
-        with self._lock:  # the decision is made inside it, so two requests never create the same folder twice
+        folders = self._folders_with_videos(scan)
+        name = render_name(request.name_template, re.match("", ""), os.path.basename(os.path.normpath(request.parent_folder)))
+        with self._lock:  # the check and the creation are one step, so two requests never make the same batch
             taken = self.taken_folders()
-            create: list[Candidate] = []
-            skipped: list[PreviewItem] = []
-            for candidate in scan.matches:
-                item = self._item(candidate, taken)
-                if item.status == "will_create" or (item.status == "already_batched" and candidate.name in request.include):
-                    create.append(candidate)
-                else:
-                    skipped.append(item)
-            if not create:
-                raise InvalidInputError("Nothing to create: every matching folder is already batched, has no videos or could not be read")
-            if len(create) > MAX_BULK:
-                raise InvalidInputError(f"That would create {len(create)} batches. The most at once is {MAX_BULK}; make the pattern narrower")
-            created: list[Batch] = []
-            try:
-                for candidate in create:
-                    name = render_name(request.name_template, candidate.match, candidate.name)
-                    created.append(self.create_batch(name, candidate.path, request.pipeline_id, request.run_on, request.output_root, folders=card_folders[candidate.path]))
-            except Exception as error:
-                raise InvalidInputError(
-                    f"Created {len(created)} of {len(create)} batches, then stopped: {error}. "
-                    "Run it again: folders that already have a batch are skipped"
-                ) from error
-        return BulkResult(created=created, skipped=skipped)
+            if self._parent_batched(request.parent_folder, taken):
+                raise InvalidInputError("This folder already has a batch. Run that batch again to pick up new folders")
+            folders = [f for f in folders if os.path.realpath(f) not in taken]  # a folder already in a batch stays in that batch
+            if not folders:
+                raise InvalidInputError("Nothing to create: no folder that matches the pattern has videos or is not already batched")
+            batch = self.create_batch(name, request.parent_folder, request.pipeline_id, request.run_on, request.output_root,
+                                      folders=folders, folder_pattern=request.pattern, auto_run=request.auto_run)
+        chosen = set(folders)
+        skipped = [self._item(c, taken, batched=False) for c in scan.matches if c.path not in chosen]
+        return BulkResult(created=[batch], skipped=skipped)
 
     def taken_folders(self) -> set[str]:
-        return {os.path.realpath(batch.input_folder) for batch in self._batches.list()}
+        """Every folder a batch already covers: each batch's input folder and each card's folder."""
+        folders = {os.path.realpath(batch.input_folder) for batch in self._batches.list()}
+        return folders | {os.path.realpath(folder) for folder in self._passes.folders()}
 
     @staticmethod
-    def _item(candidate: Candidate, taken: set[str]) -> PreviewItem:
+    def _parent_batched(parent: str, taken: set[str]) -> bool:
+        return os.path.realpath(parent) in taken
+
+    @staticmethod
+    def _item(candidate: Candidate, taken: set[str], batched: bool) -> PreviewItem:
         if candidate.incomplete:
             status = "unreadable"
         elif candidate.clip_count == 0:
             status = "no_videos"
+        elif batched or os.path.realpath(candidate.path) in taken:
+            status = "already_batched"
         else:
-            status = "already_batched" if os.path.realpath(candidate.path) in taken else "will_create"
+            status = "will_create"
         return PreviewItem(name=candidate.name, path=candidate.path, clip_count=candidate.clip_count, status=status)
 
     def run_again(self, batch_id: int, pipeline_id: int | None) -> Run:
@@ -223,9 +269,7 @@ class ProductionService:
             latest = self._runs.latest(batch_id)  # a batch left without a run can start again
             cards = self._passes.for_run(latest.id) if latest else []
             if any(c.status in ("queued", "running") for c in cards):
-                raise StateError("This batch is already waiting or running")
-            if any(c.status == "blocked" for c in cards):
-                raise StateError("This batch is blocked. Choose what to do about it first")
+                raise StateError("This batch is waiting or running. Pause or stop it first")
             if pipeline_id is not None:
                 self._usable(pipeline_id)
                 self._batches.set_pipeline(batch.id, pipeline_id)
@@ -233,7 +277,7 @@ class ProductionService:
                 raise InvalidInputError("Choose a pipeline for this batch first")
             # Each card keeps its folder's choices, except picks, which were for one run's clips.
             inherited = {c.folder: {stage: setting for stage, setting in c.overrides.items() if "picks" not in setting} for c in cards}
-            return self._start_run(batch, self._card_folders(batch.input_folder), inherited)
+            return self._start_run(batch, self._batch_folders(batch), inherited)
 
     def resolve_block(self, pass_id: int, choice: str, picks: list[int] | None = None) -> Pass:
         with self._lock:
@@ -278,7 +322,7 @@ class ProductionService:
         self._need_pass(pass_id)
         return self._logs.entries(pass_id, kind)
 
-    def update_batch(self, batch_id: int, name: str | None, output_root: str | None) -> Batch:
+    def update_batch(self, batch_id: int, name: str | None, output_root: str | None, auto_run: bool | None = None) -> Batch:
         """Name and output folder change at once. The output folder can change only while no card has a finished video,
         so every video that is kept can still be served from the folder it was made in."""
         with self._lock:
@@ -300,9 +344,73 @@ class ProductionService:
                 if run and any(c.output is not None for c in self._passes.for_batch(batch_id)):
                     raise StateError("The output folder cannot change after a card has a finished video. Start a new batch for a new output folder")
                 fields["output_root"] = root
+            if auto_run is not None:
+                fields["auto_run"] = int(auto_run)
+                if auto_run:  # turning it on starts what is waiting
+                    run = self._runs.latest(batch_id)
+                    for card in self._passes.for_run(run.id) if run else []:
+                        self._passes.update(card.id, only_if_status="held", status="queued")
             if fields:
                 self._batches.update(batch_id, **fields)
             return self._need_batch(batch_id)
+
+    # ---- pause, resume, stop, rerun, delete: one card, one batch, or many at once
+    def card_action(self, pass_id: int, action: str) -> str:
+        with self._lock:
+            card = self._need_pass(pass_id)
+            self._need_newest(card)
+            return self._apply(card, action)
+
+    def batch_action(self, batch_id: int, action: str) -> str:
+        with self._lock:
+            self._need_batch(batch_id)
+            if action == "rerun":
+                self.run_again(batch_id, None)
+                return "Started a new run"
+            if action == "delete":
+                self.delete_batches([batch_id])
+                return "Deleted"
+            latest = self._runs.latest(batch_id)
+            cards = [c for c in (self._passes.for_run(latest.id) if latest else []) if action in _ACTS_ON.get(c.status, ())]
+            if not cards:
+                raise StateError(f"Nothing in this batch can be {_PAST[action]}")
+            for card in cards:
+                self._apply(card, action)
+            return f"{_PAST[action].capitalize()} {len(cards)} {'card' if len(cards) == 1 else 'cards'}"
+
+    def card_actions(self, pass_ids: list[int], action: str) -> list[ActionResult]:
+        return [self._one(pass_id, lambda pid=pass_id: self.card_action(pid, action)) for pass_id in pass_ids]
+
+    def batch_actions(self, batch_ids: list[int], action: str) -> list[ActionResult]:
+        return [self._one(batch_id, lambda bid=batch_id: self.batch_action(bid, action)) for batch_id in batch_ids]
+
+    @staticmethod
+    def _one(item_id: int, act) -> ActionResult:  # noqa: ANN001
+        try:
+            return ActionResult(id=item_id, ok=True, message=act())
+        except (NotFoundError, StateError, InvalidInputError) as problem:
+            return ActionResult(id=item_id, ok=False, message=str(problem))
+
+    def _apply(self, card: Pass, action: str) -> str:
+        """Call with the lock held. A running card is changed here and its runner stops before its next stage."""
+        status = card.status
+        if action not in _ACTS_ON.get(status, ()) and action not in ("rerun", "delete"):
+            raise StateError(f"A {status} card cannot be {_PAST[action]}")
+        if action == "rerun":
+            if status in ("queued", "running"):
+                raise StateError("This card is already waiting or running. Pause or stop it first")
+            updated = self._passes.update(card.id, only_if_status=status, status="queued", **_FRESH)
+        elif action == "delete":
+            if status == "running":
+                raise StateError("A running card cannot be deleted. Stop it first")
+            self._passes.delete(card.id)
+            return "Deleted"
+        else:
+            target = {"pause": "paused", "resume": "queued", "stop": "stopped"}[action]
+            updated = self._passes.update(card.id, only_if_status=status, status=target)
+        if updated is None:
+            raise StateError("The card changed while you acted on it. Try again")
+        return _PAST[action].capitalize()
 
     def delete_batches(self, batch_ids: list[int]) -> int:
         """Removes batches with their passes and logs. Output videos on disk are kept. Refuses the whole request
@@ -392,4 +500,10 @@ def _batch_status(cards: list[Pass]) -> str:
         return "running"
     if "queued" in statuses:
         return "queued"
+    if "held" in statuses:
+        return "held"
+    if "paused" in statuses:
+        return "paused"
+    if "stopped" in statuses:
+        return "stopped"
     return "review"

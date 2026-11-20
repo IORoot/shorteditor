@@ -22,6 +22,19 @@ class ScanSettings(CamelModel):
     skip_hidden_and_duplicates: bool = Field(True, title="Skip hidden and repeated names", description="Leaves out hidden files and a second clip with a name already used.")
 
 
+def describe_folder(folder: str) -> str:
+    """What this process can see at the folder, in words, so an empty scan can be explained from the log."""
+    volume = folder
+    while volume != os.sep and not os.path.ismount(volume):
+        volume = os.path.dirname(volume)
+    try:
+        names = os.listdir(folder)
+        listing = f"{len(names)} entries at the top level ({', '.join(sorted(names)[:5]) or 'none'})"
+    except OSError as error:
+        listing = f"cannot be listed: {error.strerror or error}"
+    return f"Looking in {folder}: it {'exists' if os.path.isdir(folder) else 'does not exist'}, {listing}. Volume: {volume}, mounted: {os.path.ismount(volume)}, user {os.getuid()}"
+
+
 class ScanFolder:
     key = "scan_folder"
     title = "Scan folder"
@@ -39,7 +52,9 @@ class ScanFolder:
         too_short: list[str] = []
         seen: set[str] = set()
         duplicates = 0
+        ctx.log(describe_folder(folder))
         files = self._files(folder, settings.include_subfolders, settings.max_files, ctx.log, settings.skip_hidden_and_duplicates)
+        ctx.log(f"Found {len(files)} file{'s' if len(files) != 1 else ''} in the folder and its subfolders")
         for path in files:
             name = os.path.basename(path)
             if os.path.splitext(path)[1].lower() not in wanted or not self._name_matches(name, settings):

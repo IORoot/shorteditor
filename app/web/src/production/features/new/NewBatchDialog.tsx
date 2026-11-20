@@ -93,7 +93,7 @@ export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, e
           <>
             <FormField label="Name" autoFocus placeholder="e.g. Coach Saturdays – 14 Nov" value={form.name} onChange={(event) => set({ name: event.target.value })} />
             <FolderField label="Input folder" value={form.inputFolder} onChange={(inputFolder) => set({ inputFolder })} browse={browse} />
-            <BatchSettingsFields value={form} onChange={set} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} />
+            <BatchSettingsFields value={form} onChange={set} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun={!watchingNow} />
           </>
         ) : (
           <ManyFoldersForm

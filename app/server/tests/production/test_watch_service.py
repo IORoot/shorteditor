@@ -260,7 +260,8 @@ def test_a_watch_and_a_manual_bulk_create_never_double_up(world):
     threads = [threading.Thread(target=bulk), threading.Thread(target=lambda: outcomes.append(len(world.ws.check(watch.id).created)))]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    assert sum(outcomes) == 6 and len(world.batches.list()) == 6
+    covered = sorted(c.folder for b in world.batches.list() for c in world.passes.for_batch(b.id))
+    assert covered == sorted(str(world.parent / f"2026-11-0{n}_x") for n in range(6))  # each folder is in exactly one batch
 
 
 @pytest.mark.full
