@@ -33,11 +33,41 @@ afterEach(() => {
 const page = () => screen.getByRole('main', { name: 'Review' });
 
 describe('ReviewRoute', () => {
-  it('shows the batch its address names, with a way back to the board', async () => {
-    const { onBack } = setup(11, [makeCard({ name: 'Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
+  it('shows the card with its path above it, and each level above the card goes back to it', async () => {
+    // the card's name is its batch's name; the page's title is the folder, not the batch
+    const { onBack } = setup(11, [makeCard({ name: 'Batch name', folder: '/clips/Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
     expect(await screen.findByRole('heading', { name: 'Coach Saturdays' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Production' }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(nav.textContent).toContain('Production');
+    fireEvent.click(screen.getByRole('button', { name: 'Production' }));
+    expect(onBack).toHaveBeenLastCalledWith(null);
+  });
+
+  it('shows the render timeline of this card, built from its stages', async () => {
+    const stages = [
+      { key: 'scan_folder', title: 'Scan folder', status: 'done', startedAt: '2026-11-20T10:00:00Z', finishedAt: null, details: { kind: 'clips', total: 300, clips: [{ name: 'class_01.mp4', start: 0, end: 300, length: 300 }] } },
+      { key: 'detect_action', title: 'Detect action', status: 'done', startedAt: '2026-11-20T10:00:00Z', finishedAt: null, details: { kind: 'clips', total: 60, clips: [{ name: 'class_01.mp4', start: 30, end: 90, length: 60 }] } },
+    ];
+    const card = makeCard({ name: 'Coach Saturdays', folder: '/clips/Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
+    const api = {
+      cards: vi.fn().mockResolvedValue([card]),
+      approve: vi.fn(), runAgain: vi.fn(), resolve: vi.fn(),
+      pipelines: vi.fn().mockResolvedValue([]),
+      outputUrl: (id: number) => `/api/production/passes/${id}/output`,
+      batchDetail: vi.fn().mockResolvedValue({ batch: { name: 'Coach Saturdays batch' }, passes: [{ id: 11, stages }] }),
+      passLog: vi.fn().mockResolvedValue({ lines: [], entries: [] }),
+    };
+    render(<ReviewRoute api={api as unknown as ProductionApi} cardId={11} onBack={vi.fn()} />);
+    const region = await screen.findByRole('region', { name: 'Render timeline' });
+    expect(within(region).getByText('class_01.mp4')).toBeInTheDocument();
+    expect(within(region).getAllByRole('img', { name: /^Action clip/ })).toHaveLength(1);
+  });
+
+  it('puts the batch between Production and the card in the path, and goes back to the batch', async () => {
+    const { onBack } = setup(11, [makeCard({ name: 'Coach Saturdays', folder: '/clips/Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 })]);
+    await screen.findByRole('heading', { name: 'Coach Saturdays' });
+    fireEvent.click(screen.getByRole('button', { name: 'Batch' }));
+    expect(onBack).toHaveBeenLastCalledWith(1);
   });
 
   it('approves the newest pass, reloads the batch and shows the new state', async () => {
@@ -108,5 +138,29 @@ describe('ReviewRoute', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('A newer pass exists');
     await act(async () => { await vi.advanceTimersByTimeAsync(10100); });
     expect(screen.queryByText(/A newer pass exists/)).toBeNull();
+  });
+
+  it('opens a clip from the library in the sidebar, and goes back to the output', async () => {
+    const stages = [
+      { key: 'scan_folder', title: 'Scan folder', status: 'done', startedAt: '2026-11-20T10:00:00Z', finishedAt: null, details: { kind: 'clips', total: 6, clips: [{ name: 'class_01.mp4', start: 0, end: 6, length: 6 }] } },
+      { key: 'detect_action', title: 'Detect action', status: 'done', startedAt: '2026-11-20T10:00:00Z', finishedAt: null, details: { kind: 'clips', total: 2, clips: [{ name: 'class_01.mp4', start: 1, end: 3, length: 2 }] } },
+    ];
+    const card = makeCard({ name: 'Coach Saturdays', folder: '/clips/Coach Saturdays', status: 'review', output, batchId: 1, passId: 11 });
+    const api = {
+      cards: vi.fn().mockResolvedValue([card]),
+      approve: vi.fn(), runAgain: vi.fn(), resolve: vi.fn(), cardActions: vi.fn(),
+      pipelines: vi.fn().mockResolvedValue([]),
+      outputUrl: (id: number) => `/api/production/passes/${id}/output`,
+      clipUrl: (id: number, clip: string) => `/api/production/passes/${id}/clip?clip=${clip}`,
+      saveTrims: vi.fn(), resetTrims: vi.fn(),
+      batchDetail: vi.fn().mockResolvedValue({ batch: { name: 'Coach Saturdays batch' }, passes: [{ id: 11, stages, overrides: {} }] }),
+      passLog: vi.fn().mockResolvedValue({ lines: [], entries: [] }),
+    };
+    render(<ReviewRoute api={api as unknown as ProductionApi} cardId={11} onBack={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: /class_01\.mp4/ }));
+    expect(await screen.findByRole('region', { name: 'Clip editor' })).toHaveTextContent('class_01.mp4');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to output' }));
+    expect(screen.queryByRole('region', { name: 'Clip editor' })).toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Output' })).toBeInTheDocument();
   });
 });

@@ -67,7 +67,7 @@ def test_a_join_batch_runs_to_review_is_approved_and_can_run_again(system):
     assert os.path.getsize(card["output"]["path"]) <= 5_000_000
     assert abs(card["output"]["duration"] - 6.0) < 0.5
     log = system.client.get("/api/production/passes/1/logs?kind=pipeline").json()["lines"]
-    assert sum(line.endswith(" done") for line in log) == 5
+    assert sum(line.endswith(" done") for line in log) == 6  # five pipeline stages, plus Apply my trims before Join
 
     handoff = system.client.post("/api/production/passes/1/approve").json()
     assert handoff["stage"] == "production" and handoff["folders"][0]["clips"][0]["name"] == "output.mp4"

@@ -97,7 +97,7 @@ export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, busy
           );
         })}
       </div>
-      <section aria-label="Batches" className="flex flex-col rounded-[20px] bg-surface p-3">
+      <section aria-label="Batches" className="flex flex-col gap-2 rounded-[20px] bg-surface p-3">
         <div role="row" className={`grid ${COLUMNS} gap-4 px-4 py-2 font-sans text-caption font-semibold uppercase tracking-wide text-text-3`}>
           <span>Batch</span><span>Pipeline</span><span>Cards</span><span>Status</span><span>Result</span><span>Last run</span>
           {onAct ? <span aria-hidden="true" /> : null}
@@ -107,13 +107,13 @@ export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, busy
           const picked = chosen?.has(item.id) ?? false;
           const icons = rowIcons(item.status);
           return (
-            <div key={item.id} className="flex items-center gap-2">
+            <div key={item.id} className={`flex items-center gap-2 rounded-xl pr-2 ${picked ? 'bg-accent-soft' : 'bg-fill-3 hover:brightness-95'}`}>
             <button
               type="button"
               aria-label={`${item.name}, ${LABEL[item.status]}`}
               aria-pressed={chosen ? picked : undefined}
               onClick={() => onOpen(item)}
-              className={`grid min-w-0 flex-1 ${COLUMNS} items-center gap-4 rounded-xl px-4 py-3 text-left hover:bg-fill-2 disabled:opacity-60 ${picked ? 'bg-accent-soft' : ''}`}
+              className={`grid min-w-0 flex-1 ${COLUMNS} items-center gap-4 rounded-xl px-4 py-3 text-left disabled:opacity-60`}
             >
               <span className="flex min-w-0 items-center gap-3">
                 {chosen ? (

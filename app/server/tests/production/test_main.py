@@ -34,7 +34,7 @@ def test_the_app_serves_the_pipeline_stage(tmp_path, monkeypatch):
     client = TestClient(create_default_app())
     [row] = client.get("/api/pipeline/pipelines").json()
     assert row["name"] == "Join clips"
-    assert len(client.get("/api/pipeline/stages").json()) == 8
+    assert len(client.get("/api/pipeline/stages").json()) == 9  # eight stages, plus Apply my trims
     assert client.get("/api/production/batches").json() == []
 
 

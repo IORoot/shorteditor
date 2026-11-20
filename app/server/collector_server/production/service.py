@@ -12,10 +12,11 @@ from collector_server.shared.pipeline import PipelineRef, PipelineSource
 from .catalog import StageLibrary
 from .output_paths import OutputFolderError, check_root
 from .folder_scan import Candidate, scan_parent
-from .models import ActionResult, Batch, BatchCard, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
+from .models import ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
 from .repositories import BatchRepository, LogRepository, PassRepository, RunRepository
 from .stage_api import StageStep
+from . import stills
 from .thumbnail import first_clip, make_thumbnail
 
 _WITH_STAGE = {"running", "blocked", "failed"}
@@ -68,6 +69,86 @@ class ProductionService:
         if clip is None or not make_thumbnail(clip, target):
             raise NotFoundError("There is no picture for this batch yet")
         return target
+
+    def still_path(self, pass_id: int, clip: str, at: float) -> str:
+        """A picture of one clip of the card at a time in it. Only clips the scan found are allowed; the file is made once and kept."""
+        card = self._need_pass(pass_id)
+        batch = self._need_batch(card.batch_id)
+        found = self._scanned_clip(card, clip)
+        if not 0 <= at < found["length"]:
+            raise InvalidInputError(f"{clip} is {found['length']:.1f} s long. Pick a time inside it")
+        source = stills.find_clip(card.folder or batch.input_folder, clip)
+        if source is None:
+            raise NotFoundError(f"{clip} is no longer in the card's folder")
+        target = stills.still_path(batch.output_root, pass_id, clip, at)
+        if os.path.isfile(target):
+            return target
+        if not stills.make_still(source, at, target):
+            raise NotFoundError("There is no picture at this time")
+        return target
+
+    def clip_path(self, pass_id: int, clip: str) -> str:
+        """The file of one clip of the card, for playing it in the editor. Only clips the scan found are served."""
+        card = self._need_pass(pass_id)
+        batch = self._need_batch(card.batch_id)
+        self._scanned_clip(card, clip)
+        source = stills.find_clip(card.folder or batch.input_folder, clip)
+        if source is None:
+            raise NotFoundError(f"{clip} is no longer in the card's folder")
+        return source
+
+    def save_trims(self, pass_id: int, clip: str, trims: list[TrimBody]) -> Pass:
+        """Replaces this clip's own trims on the card. They are checked against the clip's length and each other."""
+        with self._lock:
+            current = self._need_pass(pass_id)
+            self._need_newest(current)
+            if current.status == "running":
+                raise StateError("Wait for the card to stop before you change its trims")
+            length = self._scanned_clip(current, clip)["length"]
+            ranges = sorted(((t.start, t.end) for t in trims), key=lambda r: r[0])
+            for start, end in ranges:
+                if not 0 <= start < end <= length:
+                    raise InvalidInputError(f"A trim of {clip} must start and end inside the {length:.1f} s clip, and end after it starts")
+            for (_, first_end), (second_start, _) in zip(ranges, ranges[1:]):
+                if second_start < first_end:
+                    raise InvalidInputError(f"Two trims of {clip} overlap. Make them separate")
+            return self._write_trims(current, clip, [{"start": s, "end": e} for s, e in ranges])
+
+    def reset_trims(self, pass_id: int, clip: str) -> Pass:
+        """Drops this clip's own trims, so the render uses the AI's parts for it again."""
+        with self._lock:
+            current = self._need_pass(pass_id)
+            self._need_newest(current)
+            if current.status == "running":
+                raise StateError("Wait for the card to stop before you change its trims")
+            self._scanned_clip(current, clip)
+            return self._write_trims(current, clip, None)
+
+    def _write_trims(self, current: Pass, clip: str, ranges: list[dict] | None) -> Pass:
+        overrides = {key: dict(value) for key, value in current.overrides.items()}
+        kept = dict((overrides.get("apply_trims") or {}).get("trims", {}))
+        if ranges:
+            kept[clip] = ranges
+        else:
+            kept.pop(clip, None)
+        if kept:
+            overrides["apply_trims"] = {"trims": kept}
+        else:
+            overrides.pop("apply_trims", None)
+        updated = self._passes.update(current.id, overrides=overrides)
+        if updated is None:
+            raise StateError("The card changed while you were saving. Try again")
+        return updated
+
+    @staticmethod
+    def _scanned_clip(card: Pass, clip: str) -> dict:
+        """The scan's entry for one clip of the card, or NotFoundError when the card has no such clip."""
+        scan = next((stage for stage in card.stages if stage.key == "scan_folder"), None)
+        listed = (scan.details or {}).get("clips", []) if scan else []
+        found = next((item for item in listed if item["name"] == clip), None)
+        if found is None:
+            raise NotFoundError(f"{clip} is not a clip of this card")
+        return found
 
     def card_thumbnail_path(self, pass_id: int) -> str:
         """A still from the first clip in the card's own folder, made once and kept in the batch's output folder."""

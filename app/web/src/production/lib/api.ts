@@ -106,6 +106,30 @@ export class ProductionApi extends HttpClient {
   outputUrl(passId: number): string {
     return `${BASE}/passes/${passId}/output`;
   }
+
+  stillUrl(passId: number, clip: string, at: number): string {
+    return stillUrl(passId, clip, at);
+  }
+
+  /** The file of one clip of the card, for playing it. */
+  clipUrl(passId: number, clip: string): string {
+    return `${BASE}/passes/${passId}/clip?clip=${encodeURIComponent(clip)}`;
+  }
+
+  /** Replaces this clip's own trims on the card. An empty list keeps none. Answers the updated pass. */
+  saveTrims(passId: number, clip: string, trims: { start: number; end: number }[]): Promise<Pass> {
+    return this.send<Pass>(`${BASE}/passes/${passId}/trims`, 'PUT', { clip, trims });
+  }
+
+  /** Drops this clip's own trims, so the render uses the AI's parts for it again. Answers the updated pass. */
+  resetTrims(passId: number, clip: string): Promise<Pass> {
+    return this.request<Pass>(`${BASE}/passes/${passId}/trims/${encodeURIComponent(clip)}`, { method: 'DELETE' });
+  }
+}
+
+/** The picture of one clip of a card at a time in it. The clip is its file name, as the card's scan lists it. */
+export function stillUrl(passId: number, clip: string, at: number): string {
+  return `${BASE}/passes/${passId}/still?clip=${encodeURIComponent(clip)}&at=${at}`;
 }
 
 export const productionApi = new ProductionApi();

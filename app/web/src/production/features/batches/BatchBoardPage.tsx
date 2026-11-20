@@ -11,6 +11,7 @@ import { ACTION_LABEL, batchCan } from '../../lib/actions';
 import { subtitle } from '../../lib/board';
 import type { ActionName, ActionResult } from '../../lib/types';
 import { Board } from '../board/Board';
+import { Breadcrumbs } from '../shared/Breadcrumbs';
 import { ActionButtons, ChosenBar, ConfirmDialog, Outcome } from '../actions/ActionBar';
 
 export interface BatchBoardPageProps {
@@ -144,10 +145,7 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
     <main aria-label="Batch" className="flex flex-1 flex-col gap-5 px-2">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
-          <button type="button" onClick={onBack} className="flex w-fit items-center gap-2 rounded-full px-2 py-1 text-small font-medium text-text-2 hover:bg-fill-2">
-            <ArrowLeft size={15} aria-hidden="true" />
-            All batches
-          </button>
+          <Breadcrumbs crumbs={[{ label: 'Production', onOpen: onBack }, { label: batch?.name ?? 'Batch' }]} />
           <h1 className="text-h1 font-bold tracking-[-0.6px]">{batch?.name ?? 'Batch'}</h1>
           <p className="text-small text-text-2">{board.state.status === 'ready' ? subtitle(cards) : ' '}</p>
         </div>

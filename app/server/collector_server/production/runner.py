@@ -23,6 +23,20 @@ _FFMPEG_BATCH = 50
 _FFMPEG_LINES_KEPT = 3000
 
 
+
+TRIMS_STEP = "apply_trims"
+
+
+def with_trims_step(steps: list[StageStep]) -> list[StageStep]:
+    """A pass always applies the card's own trims before Join, even when its pipeline does not list the step."""
+    if any(step.key == TRIMS_STEP for step in steps):
+        return steps
+    at = next((i for i, step in enumerate(steps) if step.key == "join_pieces"), None)
+    if at is None:
+        return steps
+    return [*steps[:at], StageStep(key=TRIMS_STEP), *steps[at:]]
+
+
 class _Cancelled(Exception):
     """The card was paused, stopped or deleted while it ran. Its half-made files are removed; its status is already set."""
 
@@ -51,7 +65,7 @@ class PassRunner:
             if batch is None:
                 raise StageError("The batch no longer exists")
             root = batch.output_root
-            steps = self._steps_for(batch)
+            steps = with_trims_step(self._steps_for(batch))
             self._passes.update(pass_id, steps_used=[step.model_dump() for step in steps])  # kept with the pass, whatever changes later
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)

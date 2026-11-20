@@ -5,7 +5,7 @@ import { ReviewPage, type ReviewPageProps } from './ReviewPage';
 
 const output = { path: '/out/Coach-1/pass-1/coach-sat.mp4', duration: 58.4, sizeBytes: 48_450_000 };
 
-function drawer(overrides: Partial<ReviewPageProps> = {}, card = makeCard({ status: 'review', output, name: 'Coach Saturdays' })) {
+function drawer(overrides: Partial<ReviewPageProps> = {}, card = makeCard({ status: 'review', output, name: 'Coach Saturdays', folder: '/clips/Coach Saturdays' })) {
   const props: ReviewPageProps = {
     card, outputUrl: '/api/production/passes/9/output', busy: false, error: null, pipelines: [{ id: 1, name: 'Join clips', stageCount: 5 }],
     onApprove: vi.fn(), onRunAgain: vi.fn(), onResolve: vi.fn(), onBack: vi.fn(), ...overrides,
@@ -104,7 +104,8 @@ describe('ReviewPage', () => {
   });
 
   it('keeps the full name readable through a tooltip', { tags: ['full'] }, () => {
-    drawer({}, makeCard({ status: 'failed', name: 'N'.repeat(300), error: 'E' }));
-    expect(screen.getByTitle('N'.repeat(300))).toBeInTheDocument();
+    const folder = `/clips/${'N'.repeat(300)}`;
+    drawer({}, makeCard({ status: 'failed', folder, error: 'E' }));
+    expect(screen.getByTitle(folder)).toBeInTheDocument();
   });
 });

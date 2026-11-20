@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import ActionRequest, ActionResults, Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
+from .models import TrimsSave, ActionRequest, ActionResults, Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -24,6 +24,22 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     @router.get("/defaults", response_model=Defaults)
     def defaults() -> Defaults:
         return service.defaults()
+
+    @router.get("/passes/{pass_id}/still")
+    def still(pass_id: Id, clip: Annotated[str, Query(min_length=1, max_length=260)], at: Annotated[float, Query(ge=0, allow_inf_nan=False)]) -> FileResponse:
+        return FileResponse(guarded(lambda: service.still_path(pass_id, clip, at)), media_type="image/jpeg")
+
+    @router.put("/passes/{pass_id}/trims", response_model=Pass)
+    def save_trims(pass_id: Id, body: TrimsSave) -> Pass:
+        return guarded(lambda: service.save_trims(pass_id, body.clip, body.trims))
+
+    @router.delete("/passes/{pass_id}/trims/{clip}", response_model=Pass)
+    def reset_trims(pass_id: Id, clip: Annotated[str, Path(min_length=1, max_length=260)]) -> Pass:
+        return guarded(lambda: service.reset_trims(pass_id, clip))
+
+    @router.get("/passes/{pass_id}/clip")
+    def clip(pass_id: Id, clip: Annotated[str, Query(min_length=1, max_length=260)]) -> FileResponse:
+        return FileResponse(guarded(lambda: service.clip_path(pass_id, clip)), media_type="video/mp4")
 
     @router.get("/passes/{pass_id}/output")
     def output(pass_id: Id) -> FileResponse:

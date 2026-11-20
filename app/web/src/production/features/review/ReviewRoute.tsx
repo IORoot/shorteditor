@@ -1,14 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAction } from '../../../shared/hooks/useAction';
 import { useLoad } from '../../../shared/hooks/useLoad';
 import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
+import { lastSegment } from '../../lib/board';
+import { clipRows } from '../../lib/clips';
 import type { ActionName, PipelineChoice } from '../../lib/types';
-import { PassDetail } from './PassDetail';
+import { ClipEditor } from './ClipEditor';
+import { ClipLibrary } from './ClipLibrary';
+import { PassConsole } from './PassConsole';
+import { PassFlow } from './PassFlow';
+import { RenderTimeline } from './RenderTimeline';
 import { ReviewPage } from './ReviewPage';
+import { usePassLive } from './usePassLive';
 
 export interface ReviewRouteProps {
-  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'pipelines' | 'batchDetail' | 'passLog' | 'cardActions'>;
+  api: Pick<ProductionApi, 'cards' | 'approve' | 'runAgain' | 'resolve' | 'outputUrl' | 'pipelines' | 'batchDetail' | 'passLog' | 'cardActions' | 'saveTrims' | 'resetTrims' | 'clipUrl'>;
   /** The card whose review page this is. */
   cardId: number;
   /** Goes back to the batch's board; null when the card is no longer there. */
@@ -24,6 +31,14 @@ export function ReviewRoute({ api, cardId, onBack }: ReviewRouteProps) {
   const pipelines = useLoad(() => api.pipelines(), []);
   const cards = board.state.status === 'ready' ? board.state.data : [];
   const card = cards.find((c) => c.passId === cardId) ?? null;
+  // the batch gives the middle crumb, and the pass gives the stages, the timeline and the clips
+  const live = usePassLive(api, card);
+  // the clip open in the sidebar's editor, by file name
+  const [openClip, setOpenClip] = useState<string | null>(null);
+  const stages = live.pass?.stages ?? [];
+  const scanned = stages.find((stage) => stage.key === 'scan_folder')?.details;
+  const clipCount = scanned?.kind === 'clips' ? scanned.clips.length : undefined;
+  const editing = openClip === null || !live.pass ? null : (clipRows(stages, live.pass.overrides).find((row) => row.name === openClip) ?? null);
 
   // An error about an earlier state of the pass does not belong to its new state.
   useEffect(() => {
@@ -72,7 +87,19 @@ export function ReviewRoute({ api, cardId, onBack }: ReviewRouteProps) {
       }}
       onResolve={(choice, picks) => act(() => (picks ? api.resolve(card.passId, choice, picks) : api.resolve(card.passId, choice)))}
       onBack={() => onBack(card.batchId)}
-      detail={<PassDetail api={api} card={card} />}
+      crumbs={[
+        { label: 'Production', onOpen: () => onBack(null) },
+        { label: live.batchName ?? 'Batch', onOpen: () => onBack(card.batchId) },
+        { label: lastSegment(card.folder) },
+      ]}
+      clipCount={clipCount}
+      flow={<PassFlow card={card} pass={live.pass} now={live.now} />}
+      timeline={<RenderTimeline passId={card.passId} stages={stages} />}
+      clips={<ClipLibrary passId={card.passId} stages={stages} overrides={live.pass?.overrides ?? {}} selected={openClip} onSelect={setOpenClip} />}
+      editor={editing ? (
+        <ClipEditor api={api} passId={card.passId} row={editing} running={card.status === 'running'} onSaved={live.reload} onClose={() => setOpenClip(null)} />
+      ) : undefined}
+      console={<PassConsole api={api} card={card} now={live.now} />}
     />
   );
 }

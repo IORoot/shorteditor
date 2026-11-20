@@ -5,7 +5,7 @@ from collector_server.production.validation import validate_pipeline
 
 
 def test_builtin_registry_has_every_stage():
-    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output", "detect_action", "ffmpeg", "review_by_hand"])
+    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "apply_trims", "join_pieces", "render_output", "detect_action", "ffmpeg", "review_by_hand"])
 
 
 def test_join_pipeline_validates():
@@ -47,4 +47,4 @@ def test_a_stage_file_dropped_into_the_stages_package_is_registered_without_edit
 def test_builtin_order_is_the_library_order_and_new_files_follow():
     from collector_server.production.builtin import LIBRARY_ORDER
 
-    assert LIBRARY_ORDER == ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]
+    assert LIBRARY_ORDER == ["scan_folder", "order_clips", "limit_length", "apply_trims", "join_pieces", "render_output"]

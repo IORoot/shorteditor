@@ -154,6 +154,8 @@ export interface Pass {
   blockedItems: string[];
   error: string | null;
   output: VideoData | null;
+  /** Per-stage settings the user set: the trims of each clip sit under apply_trims. */
+  overrides: Record<string, Record<string, unknown>>;
   stages: StageRun[];
   createdAt: string;
   startedAt: string | null;

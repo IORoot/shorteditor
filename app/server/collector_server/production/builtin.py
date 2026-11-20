@@ -7,7 +7,7 @@ from .registry import StageRegistry
 
 PACKAGE = "collector_server.production.stages"
 # The order the library is shown in. Stage files not listed here are registered after these, by key.
-LIBRARY_ORDER = ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output"]
+LIBRARY_ORDER = ["scan_folder", "order_clips", "limit_length", "apply_trims", "join_pieces", "render_output"]
 
 
 def register_package(registry: StageRegistry, package: str, first: list[str] = LIBRARY_ORDER) -> None:

@@ -217,3 +217,13 @@ class BulkCreate(CamelModel):
 class BulkResult(CamelModel):
     created: list[Batch]
     skipped: list[PreviewItem]
+
+
+class TrimBody(CamelModel):
+    start: float = Field(ge=0, allow_inf_nan=False)
+    end: float = Field(gt=0, allow_inf_nan=False)
+
+
+class TrimsSave(CamelModel):
+    clip: str = Field(min_length=1, max_length=260)
+    trims: list[TrimBody] = Field(max_length=200)
