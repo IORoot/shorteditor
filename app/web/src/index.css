@@ -80,6 +80,7 @@
   --color-text-3: #a1a1a6;
   --color-line: #ececef;
   --color-fill-2: #f2f2f4;
+  --color-fill-3: #e5e5ea;
   --color-accent-soft: #e8f1fd;
   --color-ok: #1a7f37;
   --color-ok-soft: #e3f5e8;
@@ -113,6 +114,7 @@
     --color-text-3: #a1a1a6;
     --color-line: #ececef;
     --color-fill-2: #f2f2f4;
+    --color-fill-3: #e5e5ea;
     --color-accent-soft: #e8f1fd;
     --color-ok: #1a7f37;
     --color-ok-soft: #e3f5e8;
@@ -127,6 +129,7 @@
     --color-text-3: #636366;
     --color-line: #2c2c2e;
     --color-fill-2: #2c2c2e;
+    --color-fill-3: #3a3a3c;
     --color-accent-soft: #10263f;
     --color-ok: #30d158;
     --color-ok-soft: #11301b;
