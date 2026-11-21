@@ -5,6 +5,7 @@ import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl
 import { Toggle } from '../../../shared/components/ui/Toggle';
 import { fieldsOf, toText, type Field } from '../../lib/schemaForm';
 import { PairsEditor } from './PairsEditor';
+import { PostizChannelsField, PostizFolderField, type ChannelChoice } from './PostizPickers';
 import { iconOf } from '../../lib/stageMeta';
 import type { StageInfo, StageStep } from '../../lib/types';
 
@@ -114,6 +115,12 @@ function switchRow(field: Field, checked: boolean, onChange: (on: boolean) => vo
 
 function renderField(field: Field, step: StageStep, drafts: Record<string, string>, problems: Record<string, string>, onText: (field: Field, text: string) => void, onValue: (field: Field, value: unknown) => void): ReactNode {
   const value = step.settings[field.name];
+  if (field.kind === 'widget' && field.widget === 'postiz_folder') {
+    return <PostizFolderField key={field.name} label={field.label} help={field.help} value={(value as string | null | undefined) ?? null} onChange={(next) => onValue(field, next)} />;
+  }
+  if (field.kind === 'widget' && field.widget === 'postiz_channels') {
+    return <PostizChannelsField key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? []) as ChannelChoice[]} onChange={(next) => onValue(field, next)} />;
+  }
   if (field.kind === 'pairs') {
     return <PairsEditor key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? {}) as Record<string, string>} onChange={(next) => onValue(field, next)} />;
   }
@@ -146,7 +153,7 @@ function renderField(field: Field, step: StageStep, drafts: Record<string, strin
       </label>
     );
   }
-  if (field.kind === 'readonly') {
+  if (field.kind === 'readonly' || field.kind === 'widget') {
     return (
       <div key={field.name} className="flex flex-col gap-1.5">
         <span className={LABEL}>{field.label}</span>

@@ -85,7 +85,7 @@ export function ReviewRoute({ api, cardId, onBack }: ReviewRouteProps) {
         // a new run replaces this card, so the batch's board is the place to go next
         if (await action.run(() => api.runAgain(card.batchId, pipelineId))) onBack(card.batchId);
       }}
-      onResolve={(choice, picks) => act(() => (picks ? api.resolve(card.passId, choice, picks) : api.resolve(card.passId, choice)))}
+      onResolve={(choice, picks, caption) => act(() => (caption !== undefined ? api.resolve(card.passId, choice, picks, caption) : picks ? api.resolve(card.passId, choice, picks) : api.resolve(card.passId, choice)))}
       onBack={() => onBack(card.batchId)}
       crumbs={[
         { label: 'Production', onOpen: () => onBack(null) },

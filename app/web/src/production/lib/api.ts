@@ -32,8 +32,8 @@ export class ProductionApi extends HttpClient {
   }
 
   /** Answers a blocked pass. picks are the clips kept, when the stop was Review by hand. */
-  resolve(passId: number, choice: string, picks?: number[]): Promise<Pass> {
-    return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', picks === undefined ? { choice } : { choice, picks });
+  resolve(passId: number, choice: string, picks?: number[], caption?: string): Promise<Pass> {
+    return this.send<Pass>(`${BASE}/passes/${passId}/resolve`, 'POST', { choice, ...(picks === undefined ? {} : { picks }), ...(caption === undefined ? {} : { caption }) });
   }
 
   /** A new run of the batch: one card per folder, from the original folders. Replaces the previous run. */

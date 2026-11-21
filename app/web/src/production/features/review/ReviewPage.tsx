@@ -20,7 +20,7 @@ export interface ReviewPageProps {
   pipelines: PipelineChoice[];
   onApprove: () => void;
   onRunAgain: (pipelineId: number) => void;
-  onResolve: (choice: string, picks?: number[]) => void;
+  onResolve: (choice: string, picks?: number[], caption?: string) => void;
   onBack: () => void;
   /** The path to this card: Production › batch › card. When given, it replaces the back button. */
   crumbs?: Crumb[];

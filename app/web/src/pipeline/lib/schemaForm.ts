@@ -1,5 +1,5 @@
 /** A settings form drawn from a stage's JSON schema, so a new stage needs no web change. */
-export type FieldKind = 'boolean' | 'number' | 'integer' | 'choice' | 'text' | 'list' | 'pairs' | 'readonly';
+export type FieldKind = 'boolean' | 'number' | 'integer' | 'choice' | 'text' | 'list' | 'pairs' | 'widget' | 'readonly';
 
 export interface Field {
   name: string;
@@ -15,6 +15,8 @@ export interface Field {
   min?: number;
   max?: number;
   defaultValue: unknown;
+  /** For kind 'widget': the name of the custom control the server asked for, for example postiz_folder. */
+  widget?: string;
 }
 
 type Prop = Record<string, unknown>;
@@ -28,6 +30,7 @@ const strings = (value: unknown): string[] | null => (Array.isArray(value) && va
 
 function fieldOf(name: string, prop: Prop): Field {
   const base: Field = { name, label: typeof prop.title === 'string' ? prop.title : labelOf(name), kind: 'readonly', choices: [], nullable: false, multiline: false, help: typeof prop.description === 'string' ? prop.description : '', defaultValue: prop.default };
+  if (typeof prop.widget === 'string') return { ...base, kind: 'widget', widget: prop.widget };
   let shape = prop;
   const options = Array.isArray(prop.anyOf) ? (prop.anyOf as Prop[]) : null;
   if (options) {
@@ -98,7 +101,7 @@ export function defaultsOf(schema: Record<string, unknown>): Record<string, unkn
 export function summaryOf(info: { settingsSchema: Record<string, unknown> }, step: { settings: Record<string, unknown> }): string {
   return fieldsOf(info.settingsSchema).flatMap((field) => {
     const value = step.settings[field.name];
-    if (value === undefined || value === null || field.kind === 'readonly') return [];
+    if (value === undefined || value === null || field.kind === 'readonly' || field.kind === 'widget') return [];
     if (field.kind === 'boolean') return value === true ? [field.label] : [];
     return [`${field.label} ${toText(field, value).replace(/_/g, ' ')}`];
   }).join(' · ');

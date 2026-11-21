@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultsOf, fieldsOf, fromText, toText } from './schemaForm';
+import { defaultsOf, fieldsOf, fromText, summaryOf, toText } from './schemaForm';
 
 const schema = {
   properties: {
@@ -67,5 +67,14 @@ describe('toText and defaultsOf', () => {
     expect(defaults.maxSeconds).toBe(900);
     expect('choice' in defaults).toBe(false);
     expect(defaults.maxSizeMb).toBe(150);
+  });
+});
+
+describe('widget fields', () => {
+  it('a property with a widget becomes a widget field, and is left out of the summary', () => {
+    const schema = { properties: { folderId: { anyOf: [{ type: 'string' }, { type: 'null' }], title: 'Media folder', widget: 'postiz_folder' } } };
+    const [field] = fieldsOf(schema);
+    expect(field).toMatchObject({ name: 'folderId', kind: 'widget', widget: 'postiz_folder', label: 'Media folder' });
+    expect(summaryOf({ settingsSchema: schema }, { settings: { folderId: 'f1' } })).toBe('');
   });
 });

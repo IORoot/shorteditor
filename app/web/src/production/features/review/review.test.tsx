@@ -108,4 +108,25 @@ describe('ReviewPage', () => {
     drawer({}, makeCard({ status: 'failed', folder, error: 'E' }));
     expect(screen.getByTitle(folder)).toBeInTheDocument();
   });
+
+  it('shows the caption of a blocked Post-iz card and sends it with Post it', () => {
+    const card = makeCard({ status: 'blocked', blockedReason: 'Ready to post', blockedChoices: ['Post it'], blockedItems: ['Hello Saturday class'] });
+    const { props } = drawer({}, card);
+    const caption = screen.getByLabelText('Caption');
+    expect(caption).toHaveValue('Hello Saturday class');
+    fireEvent.click(screen.getByRole('button', { name: 'Post it' }));
+    expect(props.onResolve).toHaveBeenLastCalledWith('Post it', undefined, 'Hello Saturday class');
+    fireEvent.change(caption, { target: { value: 'My own words' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Post it' }));
+    expect(props.onResolve).toHaveBeenLastCalledWith('Post it', undefined, 'My own words');
+  });
+
+  it('shows no caption box for a blocked card of any other stage, or for the try again choice', () => {
+    const { rerender, props } = drawer({}, makeCard({ status: 'blocked', blockedReason: 'Over', blockedChoices: ['keep_first'], blockedItems: [] }));
+    expect(screen.queryByLabelText('Caption')).toBeNull();
+    rerender(<ReviewPage {...props} card={makeCard({ status: 'blocked', blockedReason: 'Postiz may already have this video', blockedChoices: ['I checked Postiz: try again'], blockedItems: [] })} />);
+    expect(screen.queryByLabelText('Caption')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'I checked Postiz: try again' }));
+    expect(props.onResolve).toHaveBeenLastCalledWith('I checked Postiz: try again');
+  });
 });
