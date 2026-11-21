@@ -157,7 +157,8 @@ describe('ReviewRoute', () => {
       passLog: vi.fn().mockResolvedValue({ lines: [], entries: [] }),
     };
     render(<ReviewRoute api={api as unknown as ProductionApi} cardId={11} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: /class_01\.mp4/ }));
+    // the clip list row (inside its list item), not the timeline's bar for the same video
+    fireEvent.click((await screen.findAllByRole('button', { name: /class_01\.mp4/ })).find((button) => button.closest('li')) as HTMLElement);
     expect(await screen.findByRole('region', { name: 'Clip editor' })).toHaveTextContent('class_01.mp4');
     fireEvent.click(screen.getByRole('button', { name: 'Back to output' }));
     expect(screen.queryByRole('region', { name: 'Clip editor' })).toBeNull();

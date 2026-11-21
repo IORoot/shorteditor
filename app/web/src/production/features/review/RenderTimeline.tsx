@@ -8,6 +8,10 @@ export interface RenderTimelineProps {
   passId: number;
   /** The pass's stages, as the batch detail returns them. */
   stages: StageRun[];
+  /** The clip open in the editor, by name: its video is outlined. */
+  selected?: string | null;
+  /** Called with a video's name when its bar is clicked: that clip is selected in the clip list. */
+  onSelect?: (name: string) => void;
 }
 
 /** Scale used for the layout. Positions come out as tenths of a percent, so the strip fills whatever width it has. */
@@ -20,7 +24,7 @@ const percentOf = (px: number, videoPx: number): number => (videoPx > 0 ? (px / 
  * Every source video of the card back to back at its true length, with its name and start and end times,
  * and a blue box over each action clip the render keeps. Shown only once the scan has listed the videos.
  */
-export function RenderTimeline({ passId, stages }: RenderTimelineProps) {
+export function RenderTimeline({ passId, stages, selected = null, onSelect }: RenderTimelineProps) {
   const source = timelineSource(stages);
   if (source.videos.length === 0) return null;
   // no gaps between videos: each one is separated by a border, so the widths add up to the whole strip
@@ -43,7 +47,14 @@ export function RenderTimeline({ passId, stages }: RenderTimelineProps) {
             className={`flex min-w-0 flex-col gap-1.5 ${index > 0 ? 'border-l-2 border-surface' : ''}`}
           >
             <span title={video.name} className="truncate px-1 text-caption font-semibold text-text">{video.name}</span>
-            <div className="relative h-16 overflow-hidden rounded-lg bg-fill-2">
+            <button
+              type="button"
+              aria-label={`Select clip ${video.name}`}
+              aria-pressed={selected === video.name}
+              disabled={!onSelect}
+              onClick={() => onSelect?.(video.name)}
+              className={`relative block h-16 w-full overflow-hidden rounded-lg bg-fill-2 text-left disabled:cursor-default ${selected === video.name ? 'ring-2 ring-accent' : ''}`}
+            >
               {video.blocks.map((block) => (
                 <div
                   key={`${block.start}-${block.end}`}
@@ -56,7 +67,7 @@ export function RenderTimeline({ passId, stages }: RenderTimelineProps) {
                   <img src={stillUrl(passId, video.name, block.start)} alt="" loading="lazy" className="h-full w-full object-cover" />
                 </div>
               ))}
-            </div>
+            </button>
             <div className="flex justify-between px-0.5 text-caption text-text-3">
               <span>{video.startLabel}</span>
               <span>{video.endLabel}</span>

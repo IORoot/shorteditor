@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { StageRun } from '../../lib/types';
 import { RenderTimeline } from './RenderTimeline';
 
@@ -85,5 +85,14 @@ describe('RenderTimeline', () => {
     const box = screen.getAllByRole('img', { name: /^Action clip/ })[0];
     expect(box.querySelector('img')).toHaveAttribute('src', expect.stringContaining('/api/production/passes/9/still?clip='));
     expect(container.querySelector('img')).not.toBeNull();
+  });
+
+  it('selects the clip under a video when its bar is clicked, and outlines the selected one', () => {
+    const onSelect = vi.fn();
+    render(<RenderTimeline passId={9} stages={stages} selected="class_02.mp4" onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Select clip class_03.mp4' }));
+    expect(onSelect).toHaveBeenCalledWith('class_03.mp4');
+    expect(screen.getByRole('button', { name: 'Select clip class_02.mp4' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Select clip class_01.mp4' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

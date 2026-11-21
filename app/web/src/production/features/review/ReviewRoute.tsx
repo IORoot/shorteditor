@@ -94,7 +94,7 @@ export function ReviewRoute({ api, cardId, onBack }: ReviewRouteProps) {
       ]}
       clipCount={clipCount}
       flow={<PassFlow card={card} pass={live.pass} now={live.now} />}
-      timeline={<RenderTimeline passId={card.passId} stages={stages} />}
+      timeline={<RenderTimeline passId={card.passId} stages={stages} selected={openClip} onSelect={setOpenClip} />}
       clips={<ClipLibrary passId={card.passId} stages={stages} overrides={live.pass?.overrides ?? {}} selected={openClip} onSelect={setOpenClip} />}
       editor={editing ? (
         <ClipEditor api={api} passId={card.passId} row={editing} running={card.status === 'running'} onSaved={live.reload} onClose={() => setOpenClip(null)} />
