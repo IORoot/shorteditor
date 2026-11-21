@@ -3,9 +3,10 @@ import { Button } from '../shared/components/ui/Button';
 import { FormField } from '../shared/components/ui/FormField';
 import { SectionCard } from '../shared/components/ui/SectionCard';
 import { type AiKeyState, type SettingsApi } from './lib/api';
+import { PostizSection } from './PostizSection';
 
 export interface SettingsPageProps {
-  api: Pick<SettingsApi, 'aiKey' | 'saveAiKey' | 'saveAiModel'>;
+  api: Pick<SettingsApi, 'aiKey' | 'saveAiKey' | 'saveAiModel' | 'postiz' | 'savePostiz' | 'testPostiz'>;
 }
 
 const DEFAULT_MODEL = 'nvidia/nemotron-3.5-super-vl';
@@ -60,6 +61,7 @@ export function SettingsPage({ api }: SettingsPageProps) {
           {error ? <p role="alert" className="text-small text-bad">{error}</p> : null}
         </div>
       </SectionCard>
+      <PostizSection api={api} />
     </main>
   );
 }
