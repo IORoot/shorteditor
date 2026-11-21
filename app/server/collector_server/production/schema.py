@@ -49,7 +49,11 @@ CREATE TABLE IF NOT EXISTS production_logs (
 );
 CREATE TABLE IF NOT EXISTS production_exports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    card_id INTEGER NOT NULL REFERENCES production_cards(id) ON DELETE CASCADE,
+    card_id INTEGER REFERENCES production_cards(id) ON DELETE SET NULL,
+    batch_id INTEGER NOT NULL DEFAULT 0,
+    source_folder TEXT NOT NULL DEFAULT '',
+    batch_name TEXT NOT NULL DEFAULT '',
+    card_number INTEGER NOT NULL DEFAULT 0,
     sha256 TEXT NOT NULL,
     status TEXT NOT NULL,
     media_id TEXT,
@@ -74,6 +78,7 @@ _NEW_COLUMNS = {
     "production_batches": {"pipeline_id": "INTEGER", "folder_pattern": "TEXT", "auto_run": "INTEGER NOT NULL DEFAULT 1", "folder_template": "TEXT NOT NULL DEFAULT '{{name}}-{{id}}'", "ignore_subfolders": "INTEGER NOT NULL DEFAULT 0"},
     "production_cards": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
     "production_watches": {"pipeline_id": "INTEGER"},
+    "production_exports": {"batch_id": "INTEGER NOT NULL DEFAULT 0", "source_folder": "TEXT NOT NULL DEFAULT ''", "batch_name": "TEXT NOT NULL DEFAULT ''", "card_number": "INTEGER NOT NULL DEFAULT 0"},  # for a table made before records outlived their cards
 }
 
 
@@ -107,6 +112,7 @@ def ensure_schema(db: Database) -> None:
     if "folder" not in _columns(db, "production_cards"):
         db.execute("ALTER TABLE production_cards ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
     db.execute("CREATE INDEX IF NOT EXISTS production_cards_by_run ON production_cards (run_id, number)")
+    db.execute("CREATE INDEX IF NOT EXISTS production_exports_by_source ON production_exports (batch_id, source_folder)")  # after the columns it names exist
     if renamed:
         _give_each_card_a_run(db)
 

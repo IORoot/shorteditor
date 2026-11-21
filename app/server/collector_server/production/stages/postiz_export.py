@@ -10,10 +10,7 @@ from collector_server.shared.camel_model import CamelModel
 
 from ..pieces import VideoData
 from ..postiz_client import ChannelPost, PostizError, PostizUnclear
-from ..stage_api import BlockedError, StageContext, StageError
-
-POST_IT = "Post it"  # the choice that approves a post in manual mode
-TRY_AGAIN = "I checked Postiz: try again"  # the choice after Postiz gave no readable answer
+from ..stage_api import POST_IT, TRY_AGAIN, BlockedError, StageContext, StageError
 _TAG = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 _TAGS = {"name", "id", "date"}
 _YOUTUBE_TITLE = 100
@@ -81,6 +78,7 @@ class PostizExport:
     settings_model = PostizSettings
     transitions = {"video": "video"}
     position = "last"
+    export = True  # an export stage comes after every other stage that must be last, and a pipeline may hold only one
 
     def run(self, data: VideoData, settings: PostizSettings, ctx: StageContext) -> VideoData:
         postiz, exports = ctx.postiz(), ctx.exports
@@ -89,11 +87,12 @@ class PostizExport:
         sha = _sha256(data.path)
         earlier = exports.for_card(ctx.card_id)
         posted = (earlier if earlier and earlier.status in ("uploaded", "queued") else None) or exports.by_sha(sha)
-        if posted:
-            raise StageError(f"Already posted: {'queue ID ' + posted.queue_id if posted.queue_id else 'media ID ' + str(posted.media_id)}. Nothing was sent again")
+        if posted:  # the new video still goes on to review; it is just not sent again
+            ctx.log(f"Already posted ({'queue ID ' + posted.queue_id if posted.queue_id else 'media ID ' + str(posted.media_id)}). Not sent again")
+            return data
         if earlier and earlier.status == "unclear":
-            if settings.choice != TRY_AGAIN:
-                raise BlockedError("Postiz may already have this video. Check Postiz first", [TRY_AGAIN])
+            raise BlockedError("Postiz may already have this video. Check Postiz first", [TRY_AGAIN])  # choosing try again marks it checked
+        if earlier and earlier.status == "checked":
             exports.delete(earlier.id)
         caption = settings.caption_override or render_caption(settings.caption, ctx.labels)
         if settings.approval == "manual" and settings.choice not in (POST_IT, TRY_AGAIN):

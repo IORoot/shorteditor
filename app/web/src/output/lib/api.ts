@@ -1,11 +1,12 @@
 import { HttpClient } from '../../shared/lib/http';
 
-export type ExportStatus = 'uploading' | 'uploaded' | 'queued' | 'unclear' | 'failed';
+export type ExportStatus = 'uploading' | 'uploaded' | 'queued' | 'unclear' | 'checked' | 'failed';
 
 /** One try at sending a card's finished video to Postiz. */
 export interface ExportRecord {
   id: number;
-  cardId: number;
+  /** null once the card is gone (Run again or delete): the record stays. */
+  cardId: number | null;
   sha256: string;
   status: ExportStatus;
   mediaId: string | null;

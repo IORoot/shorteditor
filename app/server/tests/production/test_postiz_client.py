@@ -156,3 +156,25 @@ def test_upload_without_ready_media_is_an_error(tmp_path):
     postiz, _ = client({"status": "failed"})
     with pytest.raises(PostizError):
         postiz.upload(str(video))
+
+
+def http_error(code):
+    return urllib.error.HTTPError("u", code, "x", {}, io.BytesIO(b"gateway"))
+
+
+@pytest.mark.parametrize("code", [500, 502, 504, 524, 408])
+def test_a_server_error_after_a_post_is_unclear(code):
+    postiz, _ = client(http_error(code))
+    with pytest.raises(PostizUnclear):
+        postiz.enqueue("p1", "draft", "Hi", Media("m1", "p"), [])
+
+
+def test_a_server_error_on_a_read_and_a_429_on_a_post_are_plain_refusals():
+    postiz, _ = client(http_error(502))
+    with pytest.raises(PostizError) as caught:
+        postiz.channels()
+    assert not isinstance(caught.value, PostizUnclear)
+    postiz, _ = client(http_error(429))
+    with pytest.raises(PostizError) as caught:
+        postiz.enqueue("p1", "draft", "Hi", Media("m1", "p"), [])
+    assert not isinstance(caught.value, PostizUnclear)

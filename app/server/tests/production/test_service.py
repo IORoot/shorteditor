@@ -95,6 +95,37 @@ def test_resolve_block_saves_a_caption_override(parts):
     assert after.overrides == {"limit_length": {"choice": "keep_first", "caption_override": "My own words"}}
 
 
+def test_resolve_block_keeps_the_caption_the_user_edited(parts):
+    service, passes, _, inbox, _ = parts
+    made = blocked(service, passes, inbox)
+    passes.update(made.id, overrides={"limit_length": {"choice": "keep_first", "caption_override": "My words"}})
+    after = service.resolve_block(made.id, "drop_shortest")
+    assert after.overrides == {"limit_length": {"choice": "drop_shortest", "caption_override": "My words"}}
+
+
+def test_the_try_again_choice_marks_the_unclear_export_as_checked(parts):
+    from collector_server.production.export_repository import ExportRepository
+
+    service, passes, _, inbox, _ = parts
+    made = blocked(service, passes, inbox)
+    exports = ExportRepository(passes.db, lambda: "2026-11-21T10:00:00+00:00")
+    record = exports.start(made.id, "abc", "")
+    exports.update(record, status="unclear")
+    passes.update(made.id, blocked_choices=["I checked Postiz: try again"])
+    service.resolve_block(made.id, "I checked Postiz: try again")
+    assert exports.for_card(made.id).status == "checked"
+
+
+def test_run_again_drops_the_post_it_choice_and_caption_but_keeps_other_choices(parts):
+    service, passes, _, inbox, _ = parts
+    batch = create(service, inbox)
+    made = passes.for_batch(batch.id)[0]
+    passes.update(made.id, status="failed", overrides={"postiz_export": {"choice": "Post it", "caption_override": "x"}, "limit_length": {"choice": "keep_first"}})
+    service.run_again(batch.id, None)
+    [fresh] = [c for c in passes.for_batch(batch.id) if c.id != made.id]
+    assert fresh.overrides == {"limit_length": {"choice": "keep_first"}}
+
+
 @pytest.mark.full
 @pytest.mark.full
 def test_resolve_block_rejects_a_choice_that_was_not_offered(parts):

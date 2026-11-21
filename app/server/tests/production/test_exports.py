@@ -74,10 +74,28 @@ def test_list_all_has_batch_name_and_card_number(world):
     assert (record.batch_name, record.card_number) == ("Saturday class", world.card.number)
 
 
-def test_deleting_a_card_removes_its_records(world):
+def test_deleting_a_card_keeps_its_records_and_what_names_them(world):
     world.exports.start(world.card.id, "abc", "")
     world.passes.delete(world.card.id)
-    assert world.exports.list_all() == []
+    [record] = world.exports.list_all()
+    assert (record.card_id, record.batch_name, record.card_number) == (None, "Saturday class", world.card.number)
+
+
+def test_a_later_card_of_the_same_batch_and_folder_finds_the_record(world):
+    record_id = world.exports.start(world.card.id, "abc", "")
+    world.exports.update(record_id, status="queued", queue_id="q1")
+    world.passes.delete(world.card.id)  # what Run again does to the old run's cards
+    newer = world.passes.create(world.batch.id, NOW)
+    assert world.exports.for_card(newer.id).queue_id == "q1"
+
+
+def test_mark_checked_turns_only_an_unclear_record_into_checked(world):
+    record_id = world.exports.start(world.card.id, "abc", "")
+    world.exports.mark_checked(world.card.id)
+    assert world.exports.for_card(world.card.id).status == "uploading"
+    world.exports.update(record_id, status="unclear")
+    world.exports.mark_checked(world.card.id)
+    assert world.exports.for_card(world.card.id).status == "checked"
 
 
 def test_exports_endpoint_lists_records(world):
@@ -86,3 +104,14 @@ def test_exports_endpoint_lists_records(world):
     body = world.client.get("/api/production/exports").json()
     assert len(body) == 1
     assert body[0]["status"] == "queued" and body[0]["queueId"] == "q1" and body[0]["batchName"] == "Saturday class"
+
+
+def test_a_table_made_before_records_outlived_their_cards_is_upgraded(db):
+    db.execute("CREATE TABLE production_batches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, input_folder TEXT NOT NULL, steps TEXT NOT NULL, run_on TEXT NOT NULL DEFAULT 'any', output_root TEXT NOT NULL, created_at TEXT NOT NULL)")
+    db.execute(
+        "CREATE TABLE production_exports (id INTEGER PRIMARY KEY AUTOINCREMENT, card_id INTEGER NOT NULL, sha256 TEXT NOT NULL, status TEXT NOT NULL, media_id TEXT, queue_id TEXT, "
+        "pipeline_id TEXT, folder TEXT, post_type TEXT, caption TEXT NOT NULL DEFAULT '', message TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
+    )
+    ensure_schema(db)
+    columns = {row["name"] for row in db.query("PRAGMA table_info(production_exports)")}
+    assert {"batch_id", "source_folder", "batch_name", "card_number"} <= columns

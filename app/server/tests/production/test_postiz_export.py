@@ -48,7 +48,7 @@ class Env:
         batch = BatchRepository(db).create("Saturday class", str(tmp_path), 1, [], "any", str(tmp_path / "o"), NOW)
         self.passes = PassRepository(db)
         self.card = self.passes.create(batch.id, NOW)
-        self.other = self.passes.create(batch.id, NOW)
+        self.other = self.passes.create(batch.id, NOW, folder=str(tmp_path / "other"))
         self.exports = ExportRepository(db, lambda: NOW)
         self.client = FakeClient()
         self.log = []
@@ -162,10 +162,11 @@ def test_unclear_blocks_and_second_run_without_choice_calls_nothing(env):
     assert env.client.calls == []
 
 
-def test_try_again_clears_unclear_record_and_posts(env):
+def test_try_again_after_the_user_checked_clears_the_record_and_posts(env):
     env.client.enqueue_error = PostizUnclear("no queue id")
     with pytest.raises(BlockedError):
         env.run()
+    env.exports.mark_checked(env.card.id)  # what choosing the try again option does
     env.client.enqueue_error = None
     env.client.calls.clear()
     env.run(choice=TRY_AGAIN)
@@ -173,29 +174,54 @@ def test_try_again_clears_unclear_record_and_posts(env):
     assert env.exports.for_card(env.card.id).status == "queued"
 
 
+def test_a_choice_that_stays_on_the_card_never_skips_the_check_of_a_later_unclear_result(env):
+    env.client.enqueue_error = PostizUnclear("no queue id")
+    with pytest.raises(BlockedError):
+        env.run()
+    env.exports.mark_checked(env.card.id)
+    with pytest.raises(BlockedError):
+        env.run(choice=TRY_AGAIN)  # unclear again
+    env.client.calls.clear()
+    with pytest.raises(BlockedError):
+        env.run(choice=TRY_AGAIN)  # the choice is still saved on the card, but nobody checked this time
+    assert env.client.calls == []
+
+
 def test_try_again_also_counts_as_the_approval_in_manual_mode(env):
     env.client.upload_error = PostizUnclear("no answer")
     with pytest.raises(BlockedError):
         env.run(approval="manual", choice=POST_IT)
     env.client.upload_error = None
+    env.exports.mark_checked(env.card.id)
     env.run(approval="manual", choice=TRY_AGAIN)
     assert env.exports.for_card(env.card.id).status == "queued"
 
 
-def test_already_queued_card_is_refused(env):
+def test_an_already_posted_card_passes_its_new_video_on_without_posting(env):
     env.run()
     env.client.calls.clear()
+    env.log.clear()
     env.video_path.write_bytes(b"re-rendered, so different bytes")
-    with pytest.raises(StageError, match="Already posted.*q1"):
-        env.run()
-    assert env.client.calls == []
+    result = env.run()
+    assert result.path == env.video.path
+    assert env.client.calls == [] and any("Already posted" in line and "q1" in line for line in env.log)
 
 
-def test_same_fingerprint_on_another_card_is_refused(env):
+def test_the_same_fingerprint_on_another_card_is_not_posted_again(env):
     env.run()
     env.client.calls.clear()
-    with pytest.raises(StageError, match="Already posted"):
-        env.run(card=env.other)
+    env.log.clear()
+    env.run(card=env.other)
+    assert env.client.calls == [] and any("Already posted" in line for line in env.log)
+
+
+def test_a_card_of_a_new_run_of_the_same_folder_is_not_posted_again(env):
+    env.run()
+    env.client.calls.clear()
+    env.passes.delete(env.card.id)  # Run again removes the old run's cards
+    newer = env.passes.create(env.other.batch_id, NOW)
+    env.video_path.write_bytes(b"another render")
+    env.run(card=newer, approval="manual")  # manual, but already posted, so it never asks again
     assert env.client.calls == []
 
 
@@ -230,3 +256,14 @@ def test_a_pipeline_may_end_with_render_then_post_iz():
     keys = ["scan_folder", "order_clips", "limit_length", "join_pieces", "render_output", "postiz_export"]
     assert validate_pipeline(registry, [StageStep(key=k) for k in keys]) == []
     assert any("must be last" in m for m in validate_pipeline(registry, [StageStep(key=k) for k in [*keys, "ffmpeg"]]))
+
+
+def test_export_stages_come_after_every_other_last_stage_and_only_once():
+    from collector_server.production.builtin import build_registry
+    from collector_server.production.stage_api import StageStep
+    from collector_server.production.validation import validate_pipeline
+
+    registry = build_registry()
+    base = ["scan_folder", "order_clips", "limit_length", "join_pieces"]
+    assert any("must be last" in m for m in validate_pipeline(registry, [StageStep(key=k) for k in [*base, "postiz_export", "render_output"]]))
+    assert any("only be used once" in m for m in validate_pipeline(registry, [StageStep(key=k) for k in [*base, "render_output", "postiz_export", "postiz_export"]]))

@@ -131,7 +131,10 @@ class PostizClient:
                 detail = error.read(400).decode("utf-8", "replace")
             except OSError:
                 detail = ""
-            raise PostizError(self._clean(f"Postiz said {error.code} for {path}: {detail}".strip())) from None
+            message = self._clean(f"Postiz said {error.code} for {path}: {detail}".strip())
+            if not reading and (error.code >= 500 or error.code == 408):  # a gateway can answer after Postiz has already acted
+                raise PostizUnclear(message + "; the request may have been processed") from None
+            raise PostizError(message) from None
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             reason = f"Postiz could not be reached for {path} ({type(error).__name__})"
             raise (PostizError(reason) if reading else PostizUnclear(reason + "; the request may have been processed")) from None

@@ -5,7 +5,7 @@ export interface OutputPageProps {
   api: Pick<OutputApi, 'exports'>;
 }
 
-const STATUS: Record<ExportStatus, string> = { uploading: 'Uploading', uploaded: 'Uploaded', queued: 'Queued', unclear: 'Unclear', failed: 'Failed' };
+const STATUS: Record<ExportStatus, string> = { uploading: 'Uploading', uploaded: 'Uploaded', queued: 'Queued', unclear: 'Unclear', checked: 'Checked', failed: 'Failed' };
 const CELL = 'px-3 py-2 text-left align-top';
 
 export function OutputPage({ api }: OutputPageProps) {

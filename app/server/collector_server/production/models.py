@@ -233,9 +233,11 @@ class ExportRecord(CamelModel):
     """One try at sending a card's finished video to Postiz, for the Output tab and for refusing a second post."""
 
     id: int
-    card_id: int
+    card_id: int | None = None  # None once the card has gone (Run again, delete): the record stays
+    batch_id: int = 0
+    source_folder: str = ""
     sha256: str
-    status: Literal["uploading", "uploaded", "queued", "unclear", "failed"]
+    status: Literal["uploading", "uploaded", "queued", "unclear", "checked", "failed"]
     media_id: str | None = None
     queue_id: str | None = None
     pipeline_id: str | None = None

@@ -14,6 +14,10 @@ if TYPE_CHECKING:
     from .postiz_client import PostizClient
 
 
+POST_IT = "Post it"  # the choice that approves a post in manual mode
+TRY_AGAIN = "I checked Postiz: try again"  # the choice after Postiz gave no readable answer
+
+
 class BlockedError(Exception):
     """A stage cannot finish without the user choosing what to do. items are the clips the user may pick from."""
 

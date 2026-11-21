@@ -11,11 +11,18 @@ from .stage_api import Stage, StageError, StageStep
 _MAKES = {"video": "a video", "pieces": "pieces", "none": "nothing"}
 
 
-def _position(registry: StageRegistry, step: StageStep) -> str | None:
+def _stage(registry: StageRegistry, step: StageStep):  # noqa: ANN202
     try:
-        return registry.get(step.key).position
+        return registry.get(step.key)
     except KeyError:
         return None
+
+
+def _may_follow(stage, later) -> bool:  # noqa: ANN001
+    """A last stage may be followed only by other last stages. An export stage only by other export stages."""
+    if later is None or later.position != "last":
+        return False
+    return getattr(later, "export", False) if getattr(stage, "export", False) else True
 
 
 def validate_pipeline(registry: StageRegistry, steps: list[StageStep]) -> list[str]:
@@ -32,8 +39,10 @@ def validate_pipeline(registry: StageRegistry, steps: list[StageStep]) -> list[s
             continue
         if stage.position == "first" and index != 0:
             errors.append(f"{stage.title} must be first")
-        if stage.position == "last" and any(_position(registry, later) != "last" for later in active[index + 1:]):
-            errors.append(f"{stage.title} must be last")  # only other last stages (an export after the render) may follow it
+        if stage.position == "last" and any(not _may_follow(stage, _stage(registry, later)) for later in active[index + 1:]):
+            errors.append(f"{stage.title} must be last")  # only other last stages may follow it, and only exports follow an export
+        if getattr(stage, "export", False) and any(earlier.key == step.key for earlier in active[:index]):
+            errors.append(f"{stage.title} can only be used once")
         if kind not in stage.transitions:
             needs = " or ".join(stage.transitions)
             before = "nothing comes before it" if kind == "none" else f"the step before it makes {_MAKES[kind]}"

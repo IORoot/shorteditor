@@ -15,6 +15,7 @@ from .folder_scan import Candidate, scan_parent
 from .models import DEFAULT_FOLDER_TEMPLATE, ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, ExportRecord, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
 from .export_repository import ExportRepository
+from .stage_api import POST_IT, TRY_AGAIN
 from .repositories import BatchRepository, LogRepository, PassRepository, RunRepository
 from .stage_api import StageStep
 from . import stills
@@ -37,6 +38,19 @@ _PAST = {"pause": "paused", "resume": "resumed", "stop": "stopped", "rerun": "ru
 # the card's fields back to a fresh queued card; its folder, choices and output folder stay
 _FRESH = {"stage_index": 0, "stage_key": "", "stages": [], "blocked_reason": None, "blocked_choices": [], "blocked_items": [],
           "error": None, "output": None, "started_at": None, "finished_at": None}
+
+
+def _inherited(overrides: dict[str, dict]) -> dict[str, dict]:
+    """What a card's folder keeps into a new run: its choices, except picks (for one run's clips) and an export's approval and caption."""
+    kept = {}
+    for stage, setting in overrides.items():
+        if "picks" in setting:
+            continue
+        if "caption_override" in setting or setting.get("choice") in (POST_IT, TRY_AGAIN):
+            setting = {name: value for name, value in setting.items() if name not in ("choice", "caption_override")}
+        if setting:
+            kept[stage] = setting
+    return kept
 
 
 class ProductionService:
@@ -381,7 +395,7 @@ class ProductionService:
             elif batch.pipeline_id is None:
                 raise InvalidInputError("Choose a pipeline for this batch first")
             # Each card keeps its folder's choices, except picks, which were for one run's clips.
-            inherited = {c.folder: {stage: setting for stage, setting in c.overrides.items() if "picks" not in setting} for c in cards}
+            inherited = {c.folder: _inherited(c.overrides) for c in cards}
             return self._start_run(batch, self._batch_folders(batch), inherited)
 
     def resolve_block(self, pass_id: int, choice: str, picks: list[int] | None = None, caption: str | None = None) -> Pass:
@@ -397,10 +411,12 @@ class ProductionService:
             setting = {"picks": sorted(set(picks))} if picks is not None else {"choice": choice}
             if caption is not None:
                 setting["caption_override"] = caption
-            overrides = {**current.overrides, current.stage_key: setting}
+            overrides = {**current.overrides, current.stage_key: {**current.overrides.get(current.stage_key, {}), **setting}}  # a caption edited earlier stays
             updated = self._passes.update(pass_id, only_if_status="blocked", status="queued", overrides=overrides, blocked_reason=None, blocked_choices=[], blocked_items=[])
             if updated is None:
                 raise StateError("The pass changed while you were choosing")
+            if choice == TRY_AGAIN:
+                self._exports.mark_checked(pass_id)
             return updated
 
     def approve(self, pass_id: int) -> StageHandoff:
