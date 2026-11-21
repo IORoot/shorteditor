@@ -118,6 +118,7 @@ class RunAgain(CamelModel):
 class Resolve(CamelModel):
     choice: str
     picks: list[int] | None = None  # the clips kept, for a Review by hand stop
+    caption: str | None = Field(None, max_length=2000)  # the caption for one card, for a Post-iz stop
 
 
 class BatchListItem(CamelModel):

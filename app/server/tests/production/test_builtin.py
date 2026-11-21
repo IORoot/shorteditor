@@ -5,7 +5,7 @@ from collector_server.production.validation import validate_pipeline
 
 
 def test_builtin_registry_has_every_stage():
-    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "apply_trims", "join_pieces", "render_output", "detect_action", "ffmpeg", "review_by_hand"])
+    assert sorted(s.key for s in build_registry().all()) == sorted(["scan_folder", "order_clips", "limit_length", "apply_trims", "join_pieces", "render_output", "detect_action", "ffmpeg", "review_by_hand", "postiz_export"])
 
 
 def test_join_pipeline_validates():

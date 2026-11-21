@@ -384,7 +384,7 @@ class ProductionService:
             inherited = {c.folder: {stage: setting for stage, setting in c.overrides.items() if "picks" not in setting} for c in cards}
             return self._start_run(batch, self._batch_folders(batch), inherited)
 
-    def resolve_block(self, pass_id: int, choice: str, picks: list[int] | None = None) -> Pass:
+    def resolve_block(self, pass_id: int, choice: str, picks: list[int] | None = None, caption: str | None = None) -> Pass:
         with self._lock:
             current = self._need_pass(pass_id)
             self._need_newest(current)
@@ -395,6 +395,8 @@ class ProductionService:
             if picks is not None and (not picks or not all(0 <= i < len(current.blocked_items) for i in picks)):
                 raise InvalidInputError("Pick clips from the list shown")
             setting = {"picks": sorted(set(picks))} if picks is not None else {"choice": choice}
+            if caption is not None:
+                setting["caption_override"] = caption
             overrides = {**current.overrides, current.stage_key: setting}
             updated = self._passes.update(pass_id, only_if_status="blocked", status="queued", overrides=overrides, blocked_reason=None, blocked_choices=[], blocked_items=[])
             if updated is None:

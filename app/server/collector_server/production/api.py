@@ -110,7 +110,7 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.post("/passes/{pass_id}/resolve", response_model=Pass)
     def resolve(pass_id: Id, request: Resolve) -> Pass:
-        return guarded(lambda: service.resolve_block(pass_id, request.choice, request.picks))
+        return guarded(lambda: service.resolve_block(pass_id, request.choice, request.picks, request.caption))
 
     @router.post("/passes/{pass_id}/approve", response_model=StageHandoff)
     def approve(pass_id: Id) -> StageHandoff:

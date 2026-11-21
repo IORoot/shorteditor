@@ -11,6 +11,13 @@ from .stage_api import Stage, StageError, StageStep
 _MAKES = {"video": "a video", "pieces": "pieces", "none": "nothing"}
 
 
+def _position(registry: StageRegistry, step: StageStep) -> str | None:
+    try:
+        return registry.get(step.key).position
+    except KeyError:
+        return None
+
+
 def validate_pipeline(registry: StageRegistry, steps: list[StageStep]) -> list[str]:
     active = [step for step in steps if step.enabled]
     if not active:
@@ -25,8 +32,8 @@ def validate_pipeline(registry: StageRegistry, steps: list[StageStep]) -> list[s
             continue
         if stage.position == "first" and index != 0:
             errors.append(f"{stage.title} must be first")
-        if stage.position == "last" and index != len(active) - 1:
-            errors.append(f"{stage.title} must be last")
+        if stage.position == "last" and any(_position(registry, later) != "last" for later in active[index + 1:]):
+            errors.append(f"{stage.title} must be last")  # only other last stages (an export after the render) may follow it
         if kind not in stage.transitions:
             needs = " or ".join(stage.transitions)
             before = "nothing comes before it" if kind == "none" else f"the step before it makes {_MAKES[kind]}"

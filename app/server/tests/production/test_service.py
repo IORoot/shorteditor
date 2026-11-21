@@ -88,6 +88,13 @@ def test_resolve_block_requeues_with_choice(parts):
     assert after.status == "queued" and after.overrides == {"limit_length": {"choice": "keep_first"}}
 
 
+def test_resolve_block_saves_a_caption_override(parts):
+    service, passes, _, inbox, _ = parts
+    made = blocked(service, passes, inbox)
+    after = service.resolve_block(made.id, "keep_first", caption="My own words")
+    assert after.overrides == {"limit_length": {"choice": "keep_first", "caption_override": "My own words"}}
+
+
 @pytest.mark.full
 @pytest.mark.full
 def test_resolve_block_rejects_a_choice_that_was_not_offered(parts):
