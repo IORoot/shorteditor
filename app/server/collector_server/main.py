@@ -25,7 +25,9 @@ from .collection.source_checker import LocalSourceChecker
 from .collection.undo import UndoService
 from .pipeline.wiring import build_pipeline
 from .settings.app_settings import OPENROUTER_KEY, OPENROUTER_MODEL, AppSettings, build_settings_router
+from .production.postiz_client import PostizClient
 from .production.stage_api import DEFAULT_AI_MODEL
+from .settings.postiz_settings import POSTIZ_KEY, POSTIZ_URL, build_postiz_router
 from .production.wiring import build_library, build_production, build_usage
 
 TICK_SECONDS = 30
@@ -52,7 +54,12 @@ def create_default_app() -> FastAPI:
     library = build_library()
     pipeline = build_pipeline(db, library, build_usage(db))  # Pipeline reads production's usage and stage library
     app_settings = AppSettings(db)
-    production = build_production(db, output_root, library, pipeline.service, ai_key=lambda: app_settings.get(OPENROUTER_KEY), ai_model=lambda: app_settings.get(OPENROUTER_MODEL) or DEFAULT_AI_MODEL)
+
+    def postiz_client() -> PostizClient | None:
+        url, key = app_settings.get(POSTIZ_URL), app_settings.get(POSTIZ_KEY)
+        return PostizClient(url, key) if url and key else None  # read when a card starts, so a saved change applies to the next card
+
+    production = build_production(db, output_root, library, pipeline.service, ai_key=lambda: app_settings.get(OPENROUTER_KEY), ai_model=lambda: app_settings.get(OPENROUTER_MODEL) or DEFAULT_AI_MODEL, postiz=postiz_client)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -81,6 +88,7 @@ def create_default_app() -> FastAPI:
     app.include_router(pipeline.router)
     app.include_router(production.router)
     app.include_router(build_settings_router(app_settings))
+    app.include_router(build_postiz_router(app_settings))
     return app
 
 

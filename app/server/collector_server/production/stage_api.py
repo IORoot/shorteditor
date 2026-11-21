@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, Protocol
 
 from collector_server.shared.camel_model import CamelModel
@@ -11,6 +11,7 @@ from .pieces import Kind, StageData
 
 if TYPE_CHECKING:
     from .ffmpeg import FfmpegRunner
+    from .postiz_client import PostizClient
 
 
 class BlockedError(Exception):
@@ -41,6 +42,9 @@ class StageContext:
     ai_key: str | None = None  # the OpenRouter key from Settings, for the AI stages only
     ai_model: str = DEFAULT_AI_MODEL  # the OpenRouter model from Settings, for the AI stages only
     exports: ExportStore | None = None  # the records of tries to send a video out, for the export stages only
+    postiz: Callable[[], PostizClient | None] = lambda: None  # the Postiz connection from Settings, for the export stages only
+    card_id: int = 0  # the card being run
+    labels: dict[str, str] = field(default_factory=dict)  # name, id and date of this run, for the tags in stage text
 
 
 class ExportStore(Protocol):

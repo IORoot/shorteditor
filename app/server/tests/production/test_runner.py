@@ -354,3 +354,25 @@ def test_a_failing_stage_is_recorded_with_its_start_and_end_and_the_reason(db, t
     [stage] = done.stages
     assert (stage.key, stage.status) == ("boom", "failed")
     assert stage.started_at and stage.finished_at
+
+
+def test_stage_context_has_labels_card_and_postiz(db, tmp_path):
+    seen = {}
+
+    class Probe:
+        key, title, settings_model, transitions, position = "probe", "Probe", FakeStage("x", "x", {}).settings_model, {"none": "video"}, "any"
+
+        def run(self, data, settings, ctx):
+            seen.update(labels=dict(ctx.labels), card_id=ctx.card_id, client=ctx.postiz(), exports=ctx.exports)
+            return VideoData(path=str(tmp_path / "x.mp4"), duration=1.0, size_bytes=1)
+
+    registry = StageRegistry()
+    registry.register(Probe())
+    env = Env(db, tmp_path, registry)
+    sentinel_client, sentinel_exports = object(), object()
+    env.runner = PassRunner(env.batches, env.passes, env.logs, registry, FakePipelines(), lambda: NOW, postiz=lambda: sentinel_client, exports=sentinel_exports)
+    card = env.queue(["probe"], name="Saturday class")
+    env.run(card)
+    batch = env.batches.get(card.batch_id)
+    assert seen["labels"] == {"name": "Saturday class", "id": str(batch.id), "date": "2026-11-17"}
+    assert seen["card_id"] == card.id and seen["client"] is sentinel_client and seen["exports"] is sentinel_exports

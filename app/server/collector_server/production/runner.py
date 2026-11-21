@@ -14,7 +14,8 @@ from .registry import StageRegistry
 from .repositories import BatchRepository, LogRepository, PassRepository
 from collector_server.shared.pipeline import PipelineSource
 
-from .stage_api import DEFAULT_AI_MODEL, BlockedError, StageContext, StageError, StageStep
+from .postiz_client import PostizClient
+from .stage_api import DEFAULT_AI_MODEL, BlockedError, ExportStore, StageContext, StageError, StageStep
 from .stage_details import describe
 from .validation import build_settings, validate_pipeline
 from .worker import Worker
@@ -44,10 +45,12 @@ class _Cancelled(Exception):
 class PassRunner:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, registry: StageRegistry, pipelines: PipelineSource,
                  now: Callable[[], str], ai_key: Callable[[], str | None] = lambda: None,
-                 ai_model: Callable[[], str] = lambda: DEFAULT_AI_MODEL) -> None:
+                 ai_model: Callable[[], str] = lambda: DEFAULT_AI_MODEL, postiz: Callable[[], PostizClient | None] = lambda: None,
+                 exports: ExportStore | None = None) -> None:
         self._batches, self._passes, self._logs, self._registry, self._pipelines, self._now = batches, passes, logs, registry, pipelines, now
         self._ai_key = ai_key  # read at the start of each pass, so a key saved in Settings is used by the next pass
         self._ai_model = ai_model
+        self._postiz, self._exports = postiz, exports
 
     def run(self, pass_id: int, worker: Worker) -> None:
         claimed = self._passes.update(
@@ -70,7 +73,9 @@ class PassRunner:
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
             self._prepare(root, output_dir, work_dir)
             made_dir = output_dir  # only now is the result folder this run's own
-            ctx = StageContext(claimed.folder or batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model())
+            ctx = StageContext(claimed.folder or batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model(),
+                             exports=self._exports, postiz=self._postiz, card_id=claimed.id,
+                             labels={"name": batch.name, "id": str(batch.id), "date": self._now()[:10]})
             video = self._execute(claimed, steps, ctx)
             if not self._finish(pass_id, "review", pipeline, output=video):
                 self._discard(root, made_dir)  # changed while it ran: the result is not kept

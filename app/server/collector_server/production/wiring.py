@@ -14,6 +14,8 @@ from collector_server.shared.pipeline import PipelineSource
 from .api import build_router
 from .builtin import build_registry
 from .catalog import StageLibrary
+from .export_repository import ExportRepository
+from .postiz_client import PostizClient
 from .pipeline_usage import ProductionUsage
 from .queue import JobQueue
 from .repositories import BatchRepository, LogRepository, PassRepository
@@ -71,14 +73,16 @@ def build_usage(db: Database) -> ProductionUsage:
 
 
 def build_production(db: Database, default_output_root: str, library: StageLibrary, pipelines: PipelineSource, ai_key: Callable[[], str | None] = lambda: None,
-                     ai_model: Callable[[], str] = lambda: DEFAULT_AI_MODEL) -> Production:
+                     ai_model: Callable[[], str] = lambda: DEFAULT_AI_MODEL,
+                     postiz: Callable[[], PostizClient | None] = lambda: None) -> Production:
     """Everything production needs, connected. Starts with one worker: this computer."""
     ensure_schema(db)
     batches, passes, logs = BatchRepository(db), PassRepository(db), LogRepository(db)
+    exports = ExportRepository(db, _now)
     workers = {"local": LocalWorker("local")}
     labels = {"local": "This computer"}
-    queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, library.registry, pipelines, _now, ai_key, ai_model), workers, _now)
-    service = ProductionService(batches, passes, logs, library, pipelines, _now, default_output_root, list(workers), labels)
+    queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, library.registry, pipelines, _now, ai_key, ai_model, postiz, exports), workers, _now)
+    service = ProductionService(batches, passes, logs, library, pipelines, _now, default_output_root, list(workers), labels, exports=exports)
     watches = WatchRepository(db)
     watch_service = WatchService(watches, service, time.time)
     return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time))
