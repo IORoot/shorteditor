@@ -107,7 +107,7 @@ export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, busy
           const picked = chosen?.has(item.id) ?? false;
           const icons = rowIcons(item.status);
           return (
-            <div key={item.id} className={`flex items-center gap-2 rounded-xl pr-2 ${picked ? 'bg-accent-soft' : 'bg-fill-3 hover:brightness-95'}`}>
+            <div key={item.id} className={`flex items-center gap-2 rounded-xl pr-2 ${picked ? 'bg-accent-soft' : 'bg-fill-2 hover:bg-fill-3'}`}>
             <button
               type="button"
               aria-label={`${item.name}, ${LABEL[item.status]}`}
