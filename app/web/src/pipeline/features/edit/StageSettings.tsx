@@ -119,7 +119,7 @@ function renderField(field: Field, step: StageStep, drafts: Record<string, strin
     return <PostizFolderField key={field.name} label={field.label} help={field.help} value={(value as string | null | undefined) ?? null} onChange={(next) => onValue(field, next)} />;
   }
   if (field.kind === 'widget' && field.widget === 'postiz_channels') {
-    return <PostizChannelsField key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? []) as ChannelChoice[]} onChange={(next) => onValue(field, next)} />;
+    return <PostizChannelsField key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? []) as ChannelChoice[]} unset={value === undefined} onChange={(next) => onValue(field, next)} />;
   }
   if (field.kind === 'pairs') {
     return <PairsEditor key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? {}) as Record<string, string>} onChange={(next) => onValue(field, next)} />;

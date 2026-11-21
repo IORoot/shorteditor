@@ -72,15 +72,22 @@ export interface PostizChannelsFieldProps {
   help: string;
   value: ChannelChoice[];
   onChange: (value: ChannelChoice[]) => void;
+  /** True until the user has ever set the channels: then every live channel starts on. */
+  unset?: boolean;
   api?: PostizLookupApi;
 }
 
-export function PostizChannelsField({ label, help, value, onChange, api = postizLookup }: PostizChannelsFieldProps) {
+export function PostizChannelsField({ label, help, value, onChange, unset = false, api = postizLookup }: PostizChannelsFieldProps) {
   const [live, setLive] = useState<LiveChannel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     api.channels().then(setLive).catch((failure) => setError(failure instanceof Error ? failure.message : 'Could not load the channels'));
   }, [api]);
+  // A stage never configured starts with every live channel on; once the user has set the list, it is theirs.
+  useEffect(() => {
+    if (unset && live !== null) onChange(live.map((channel) => ({ id: channel.id, identifier: channel.identifier, name: channel.name, settings: channelDefaults(channel.identifier) })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the first load of an unset field enables everything
+  }, [unset, live]);
   const listed: LiveChannel[] = [...(live ?? []), ...value.filter((chosen) => !(live ?? []).some((channel) => channel.id === chosen.id)).map(({ id, name, identifier }) => ({ id, name, identifier }))];
   const toggle = (channel: LiveChannel, on: boolean) =>
     onChange(on ? [...value, { id: channel.id, identifier: channel.identifier, name: channel.name, settings: channelDefaults(channel.identifier) }] : value.filter((chosen) => chosen.id !== channel.id));
@@ -109,7 +116,7 @@ function ChannelOptions({ choice, onChange }: { choice: ChannelChoice; onChange:
   if (choice.identifier === 'instagram') {
     const collaborators = Array.isArray(options.collaborators) ? (options.collaborators as string[]).join(', ') : '';
     return (
-      <div className="ml-7 flex flex-col gap-3 rounded-xl bg-fill-2 p-3">
+      <div className="ml-7 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3">
         <SegmentedControl label={`${name} post type`} options={[{ value: 'post', label: 'Post' }, { value: 'story', label: 'Story' }]} value={String(options.post_type)} onChange={(next) => onChange({ post_type: next })} />
         <FormField label={`${name} collaborators`} value={collaborators} helper="Instagram handles, separated by commas." onChange={(event) => onChange({ collaborators: event.target.value.split(',').map((part) => part.trim()).filter((part) => part !== '') })} />
         <Checkbox label={`${name} trial reel`} checked={options.is_trial_reel === true} onChange={(on) => onChange({ is_trial_reel: on })} />
@@ -118,7 +125,7 @@ function ChannelOptions({ choice, onChange }: { choice: ChannelChoice; onChange:
   }
   if (choice.identifier === 'youtube') {
     return (
-      <div className="ml-7 flex flex-col gap-3 rounded-xl bg-fill-2 p-3">
+      <div className="ml-7 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3">
         <FormField label={`${name} title`} value={String(options.title ?? '')} helper="Empty uses the start of the caption." onChange={(event) => onChange({ title: event.target.value })} />
         <SegmentedControl label={`${name} visibility`} options={[{ value: 'public', label: 'Public' }, { value: 'unlisted', label: 'Unlisted' }, { value: 'private', label: 'Private' }]} value={String(options.type)} onChange={(next) => onChange({ type: next })} />
       </div>

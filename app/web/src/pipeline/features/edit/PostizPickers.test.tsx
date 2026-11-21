@@ -15,6 +15,31 @@ const api = (over = {}) => ({ channels: vi.fn().mockResolvedValue(CHANNELS), fol
 
 afterEach(() => vi.restoreAllMocks());
 
+describe('PostizChannelsField defaults and contrast', () => {
+  it('turns every live channel on when the stage has never had channels set', async () => {
+    const onChange = vi.fn();
+    render(<PostizChannelsField label="Channels" help="help" value={[]} unset onChange={onChange} api={api()} />);
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+    expect(onChange.mock.calls[0][0].map((c: ChannelChoice) => c.id)).toEqual(['c1', 'c2', 'c3']);
+  });
+
+  it('leaves an empty list empty once the user has set the channels', async () => {
+    const onChange = vi.fn();
+    render(<PostizChannelsField label="Channels" help="help" value={[]} onChange={onChange} api={api()} />);
+    await screen.findByLabelText('ldnpk (facebook)');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('puts the options of an enabled channel on a surface, not the same grey as its fields', async () => {
+    const onChange = vi.fn();
+    const chosen: ChannelChoice = { id: 'c1', identifier: 'instagram', name: 'London Parkour', settings: channelDefaults('instagram') };
+    render(<PostizChannelsField label="Channels" help="help" value={[chosen]} onChange={onChange} api={api()} />);
+    const options = (await screen.findByLabelText('London Parkour post type')).closest('div.ml-7');
+    expect(options?.className).toContain('bg-surface');
+    expect(options?.className).not.toContain('bg-fill-2');
+  });
+});
+
 describe('PostizFolderField', () => {
   it('lists the live folders with the Postiz root first and sends the chosen ID', async () => {
     const onChange = vi.fn();
@@ -102,8 +127,7 @@ describe('Post-iz settings in the stage form', () => {
     const onValue = vi.fn();
     const step: StageStep = { key: 'postiz_export', enabled: true, settings: {} };
     render(<StageSettings step={step} info={info} position={4} total={4} drafts={{}} problems={{}} onText={vi.fn()} onValue={onValue} onToggle={vi.fn()} onRemove={vi.fn()} />);
-    fireEvent.click(await screen.findByLabelText('London Parkour (instagram)'));
-    expect(onValue).toHaveBeenCalledWith(expect.objectContaining({ name: 'channels', kind: 'widget' }), [expect.objectContaining({ id: 'c1', settings: { post_type: 'post', collaborators: [], is_trial_reel: false } })]);
+    await waitFor(() => expect(onValue).toHaveBeenCalledWith(expect.objectContaining({ name: 'channels', kind: 'widget' }), [expect.objectContaining({ id: 'c1' }), expect.objectContaining({ id: 'c2' }), expect.objectContaining({ id: 'c3' })]));
     fireEvent.change(await screen.findByLabelText('Media folder'), { target: { value: 'f1' } });
     expect(onValue).toHaveBeenCalledWith(expect.objectContaining({ name: 'folderId' }), 'f1');
     expect(screen.queryByText(/This setting cannot be edited here yet/)).toBeNull();
