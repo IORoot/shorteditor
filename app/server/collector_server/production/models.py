@@ -228,6 +228,26 @@ class BulkResult(CamelModel):
     skipped: list[PreviewItem]
 
 
+class ExportRecord(CamelModel):
+    """One try at sending a card's finished video to Postiz, for the Output tab and for refusing a second post."""
+
+    id: int
+    card_id: int
+    sha256: str
+    status: Literal["uploading", "uploaded", "queued", "unclear", "failed"]
+    media_id: str | None = None
+    queue_id: str | None = None
+    pipeline_id: str | None = None
+    folder: str | None = None
+    post_type: str | None = None
+    caption: str = ""
+    message: str = ""
+    created_at: str
+    updated_at: str
+    batch_name: str = ""
+    card_number: int = 0
+
+
 class TrimBody(CamelModel):
     start: float = Field(ge=0, allow_inf_nan=False)
     end: float = Field(gt=0, allow_inf_nan=False)

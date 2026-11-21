@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from collector_server.shared.handoff import StageHandoff
 
-from .models import TrimsSave, ActionRequest, ActionResults, Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
+from .models import ExportRecord, TrimsSave, ActionRequest, ActionResults, Batch, BatchesDelete, BatchesDeleted, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, FolderPreviewRequest, BatchCard, BatchCreate, BatchDetail, LogEntry, LogKind, LogLines, Pass, PipelineChoice, Resolve, RunAgain
 from collector_server.shared.errors import guarded
 
 from .service import ProductionService
@@ -52,6 +52,10 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
     @router.get("/batches/{batch_id}/thumbnail")
     def thumbnail(batch_id: Id) -> FileResponse:
         return FileResponse(guarded(lambda: service.thumbnail_path(batch_id)), media_type="image/jpeg")
+
+    @router.get("/exports", response_model=list[ExportRecord])
+    def exports() -> list[ExportRecord]:
+        return service.exports()
 
     @router.get("/pipelines", response_model=list[PipelineChoice])
     def pipelines() -> list[PipelineChoice]:

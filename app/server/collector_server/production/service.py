@@ -12,8 +12,9 @@ from collector_server.shared.pipeline import PipelineRef, PipelineSource
 from .catalog import StageLibrary
 from .output_paths import OutputFolderError, check_folder_template, check_root
 from .folder_scan import Candidate, scan_parent
-from .models import DEFAULT_FOLDER_TEMPLATE, ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
+from .models import DEFAULT_FOLDER_TEMPLATE, ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, ExportRecord, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
+from .export_repository import ExportRepository
 from .repositories import BatchRepository, LogRepository, PassRepository, RunRepository
 from .stage_api import StageStep
 from . import stills
@@ -41,11 +42,15 @@ _FRESH = {"stage_index": 0, "stage_key": "", "stages": [], "blocked_reason": Non
 class ProductionService:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, library: StageLibrary, pipelines: PipelineSource,
                  now: Callable[[], str], default_output_root: str, worker_ids: list[str], worker_labels: dict[str, str] | None = None,
-                 runs: RunRepository | None = None) -> None:
+                 runs: RunRepository | None = None, exports: ExportRepository | None = None) -> None:
         self._batches, self._passes, self._logs, self._library, self._pipelines, self._now = batches, passes, logs, library, pipelines, now
         self._runs = runs or RunRepository(passes.db)
+        self._exports = exports or ExportRepository(passes.db, now)
         self._default_root, self._workers, self._labels = default_output_root, worker_ids, worker_labels or {}
         self._lock = threading.RLock()  # two clicks at once must not make two passes
+
+    def exports(self) -> list[ExportRecord]:
+        return self._exports.list_all()
 
     def defaults(self) -> Defaults:
         return Defaults(output_root=self._default_root, workers=[WorkerInfo(id=w, label=self._labels.get(w, w)) for w in self._workers])

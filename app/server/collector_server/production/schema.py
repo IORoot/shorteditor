@@ -47,6 +47,23 @@ CREATE TABLE IF NOT EXISTS production_logs (
     at TEXT NOT NULL,
     text TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS production_exports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    card_id INTEGER NOT NULL REFERENCES production_cards(id) ON DELETE CASCADE,
+    sha256 TEXT NOT NULL,
+    status TEXT NOT NULL,
+    media_id TEXT,
+    queue_id TEXT,
+    pipeline_id TEXT,
+    folder TEXT,
+    post_type TEXT,
+    caption TEXT NOT NULL DEFAULT '',
+    message TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS production_exports_by_card ON production_exports (card_id, id);
+CREATE INDEX IF NOT EXISTS production_exports_by_sha ON production_exports (sha256);
 CREATE INDEX IF NOT EXISTS production_cards_by_status ON production_cards (status, id);
 CREATE INDEX IF NOT EXISTS production_logs_by_card ON production_logs (card_id, kind, id);
 """
