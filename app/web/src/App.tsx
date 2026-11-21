@@ -10,15 +10,17 @@ import { ReviewRoute } from './production/features/review/ReviewRoute';
 import { batchHash, batchIdFromHash, cardIdFromHash, goTo, useHash } from './shared/lib/route';
 import { BatchBoardPage } from './production/features/batches/BatchBoardPage';
 import { settingsApi } from './settings/lib/api';
+import { OutputPage } from './output/OutputPage';
+import { outputApi } from './output/lib/api';
 
 const TABS = [
   { id: 'collection', label: 'Collection', enabled: true },
   { id: 'pipeline', label: 'Pipeline', enabled: true },
   { id: 'production', label: 'Production', enabled: true },
-  { id: 'output', label: 'Output', enabled: false },
+  { id: 'output', label: 'Output', enabled: true },
 ];
 
-type Section = 'collection' | 'pipeline' | 'production' | 'settings';
+type Section = 'collection' | 'pipeline' | 'production' | 'output' | 'settings';
 
 export default function App() {
   const [section, setSection] = useState<Section>('collection');
@@ -46,6 +48,7 @@ export default function App() {
         <CollectionPage active={section === 'collection'} />
       </div>
       {section === 'pipeline' ? <PipelinePage api={pipelineApi} /> : null}
+      {section === 'output' ? <OutputPage api={outputApi} /> : null}
       {section === 'settings' ? <SettingsPage api={settingsApi} /> : null}
       {section === 'production' && cardId !== null ? (
         <ReviewRoute api={productionApi} cardId={cardId} onBack={(batch) => goTo(batch === null ? '' : batchHash(batch))} />
