@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Checkbox } from '../../../shared/components/ui/Checkbox';
 import { FormField } from '../../../shared/components/ui/FormField';
 import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl';
-import { postizLookup, type LiveChannel, type LiveFolder, type PostizLookupApi } from '../../lib/postizApi';
+import { postizLookup, type LiveFolder, type LivePipeline, type PostizLookupApi } from '../../lib/postizApi';
 
 const LABEL = 'font-sans text-caption font-semibold text-text-2';
 const HELP = 'text-caption text-text-3';
@@ -67,44 +67,91 @@ export function PostizFolderField({ label, help, value, onChange, api = postizLo
   );
 }
 
+export interface PostizPipelineFieldProps {
+  label: string;
+  help: string;
+  value: string | null;
+  onChange: (value: string | null) => void;
+  api?: PostizLookupApi;
+}
+
+/** Picks the Postiz pipeline by name. If the list cannot be loaded, the ID can be typed instead. */
+export function PostizPipelineField({ label, help, value, onChange, api = postizLookup }: PostizPipelineFieldProps) {
+  const [pipelines, setPipelines] = useState<LivePipeline[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api.pipelines().then(setPipelines).catch((failure) => setError(failure instanceof Error ? failure.message : 'Could not load the pipelines'));
+  }, [api]);
+  if (error) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <FormField label={`${label} ID`} value={value ?? ''} onChange={(event) => onChange(event.target.value.trim() === '' ? null : event.target.value.trim())} helper={help} />
+        <span role="alert" className="text-caption text-bad">{error}</span>
+      </div>
+    );
+  }
+  const listed = pipelines ?? [];
+  const unknown = value !== null && pipelines !== null && !listed.some((pipeline) => pipeline.id === value);
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className={LABEL}>{label}</span>
+      <select
+        aria-label={label}
+        value={value ?? ''}
+        disabled={pipelines === null}
+        onChange={(event) => onChange(event.target.value === '' ? null : event.target.value)}
+        className="w-full rounded-[10px] bg-fill-2 px-3 py-2 text-small focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40"
+      >
+        <option value="">No pipeline (upload only)</option>
+        {unknown ? <option value={value as string}>{`Unknown pipeline (${value})`}</option> : null}
+        {listed.map((pipeline) => (
+          <option key={pipeline.id} value={pipeline.id}>{pipeline.name}</option>
+        ))}
+      </select>
+      <span className={HELP}>{help}</span>
+    </label>
+  );
+}
+
 export interface PostizChannelsFieldProps {
   label: string;
   help: string;
   value: ChannelChoice[];
   onChange: (value: ChannelChoice[]) => void;
-  /** True until the user has ever set the channels: then every live channel starts on. */
-  unset?: boolean;
+  /** The chosen pipeline: its channels are the ones the post goes to. */
+  pipelineId: string | null;
   api?: PostizLookupApi;
 }
 
-export function PostizChannelsField({ label, help, value, onChange, unset = false, api = postizLookup }: PostizChannelsFieldProps) {
-  const [live, setLive] = useState<LiveChannel[] | null>(null);
+/** The channels of the chosen pipeline, each with its own options. They cannot be turned off here: the pipeline decides them. */
+export function PostizChannelsField({ label, help, value, onChange, pipelineId, api = postizLookup }: PostizChannelsFieldProps) {
+  const [pipelines, setPipelines] = useState<LivePipeline[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    api.channels().then(setLive).catch((failure) => setError(failure instanceof Error ? failure.message : 'Could not load the channels'));
+    api.pipelines().then(setPipelines).catch((failure) => setError(failure instanceof Error ? failure.message : 'Could not load the channels'));
   }, [api]);
-  // A stage never configured starts with every live channel on; once the user has set the list, it is theirs.
+  const pipeline = pipelineId === null ? undefined : pipelines?.find((item) => item.id === pipelineId);
+  // The pipeline's channels, each keeping the options already set for it.
+  const shown: ChannelChoice[] = (pipeline?.channels ?? []).map((channel) => value.find((chosen) => chosen.id === channel.id) ?? { id: channel.id, identifier: channel.identifier, name: channel.name, settings: channelDefaults(channel.identifier) });
+  const same = shown.length === value.length && shown.every((channel, index) => channel.id === value[index].id);
   useEffect(() => {
-    if (unset && live !== null) onChange(live.map((channel) => ({ id: channel.id, identifier: channel.identifier, name: channel.name, settings: channelDefaults(channel.identifier) })));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the first load of an unset field enables everything
-  }, [unset, live]);
-  const listed: LiveChannel[] = [...(live ?? []), ...value.filter((chosen) => !(live ?? []).some((channel) => channel.id === chosen.id)).map(({ id, name, identifier }) => ({ id, name, identifier }))];
-  const toggle = (channel: LiveChannel, on: boolean) =>
-    onChange(on ? [...value, { id: channel.id, identifier: channel.identifier, name: channel.name, settings: channelDefaults(channel.identifier) }] : value.filter((chosen) => chosen.id !== channel.id));
-  const change = (id: string, settings: Record<string, unknown>) => onChange(value.map((chosen) => (chosen.id === id ? { ...chosen, settings: { ...chosen.settings, ...settings } } : chosen)));
+    if (pipeline && !same) onChange(shown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a change of pipeline or of its channels rewrites the list
+  }, [pipeline, same]);
+  const change = (id: string, settings: Record<string, unknown>) => onChange(shown.map((chosen) => (chosen.id === id ? { ...chosen, settings: { ...chosen.settings, ...settings } } : chosen)));
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className={LABEL}>{label}</legend>
-      {error ? <span role="alert" className="text-caption text-bad">{error}</span> : live === null ? <span className={HELP}>Loading the channels…</span> : null}
-      {listed.map((channel) => {
-        const chosen = value.find((item) => item.id === channel.id);
-        return (
-          <div key={channel.id} className="flex flex-col gap-3">
-            <Checkbox label={`${channel.name} (${channel.identifier})`} checked={chosen !== undefined} onChange={(on) => toggle(channel, on)} />
-            {chosen ? <ChannelOptions choice={chosen} onChange={(settings) => change(chosen.id, settings)} /> : null}
-          </div>
-        );
-      })}
+      {error ? <span role="alert" className="text-caption text-bad">{error}</span> : null}
+      {!error && pipelineId === null ? <span className={HELP}>Choose a pipeline to see its channels.</span> : null}
+      {!error && pipelineId !== null && pipelines === null ? <span className={HELP}>Loading the channels…</span> : null}
+      {!error && pipelineId !== null && pipelines !== null && !pipeline ? <span role="alert" className="text-caption text-bad">Postiz has no pipeline with that ID any more.</span> : null}
+      {shown.map((channel) => (
+        <div key={channel.id} className="flex flex-col gap-3">
+          <span className="text-small font-medium">{`${channel.name} (${channel.identifier})`}</span>
+          <ChannelOptions choice={channel} onChange={(settings) => change(channel.id, settings)} />
+        </div>
+      ))}
       <span className={HELP}>{help}</span>
     </fieldset>
   );

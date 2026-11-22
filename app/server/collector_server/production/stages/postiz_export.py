@@ -26,8 +26,8 @@ class ChannelChoice(CamelModel):
 class PostizSettings(CamelModel):
     mode: Literal["upload_only", "upload_and_queue"] = Field("upload_and_queue", title="What to do", description="Upload only puts the video in your Postiz media library. Upload and queue also adds it to a Postiz pipeline.")
     folder_id: str | None = Field(None, max_length=100, title="Media folder", description="The Postiz media folder for the video. Empty uses the Postiz root.", json_schema_extra={"widget": "postiz_folder"})
-    pipeline_id: str | None = Field(None, max_length=100, title="Postiz pipeline ID", description="The Postiz pipeline whose queue gets the post. Empty skips the queue.")
-    channels: list[ChannelChoice] = Field([], max_length=20, title="Channels", description="Where the post goes. Empty skips the queue.", json_schema_extra={"widget": "postiz_channels"})
+    pipeline_id: str | None = Field(None, max_length=100, title="Postiz pipeline", description="The Postiz pipeline whose queue gets the post. Empty skips the queue.", json_schema_extra={"widget": "postiz_pipeline"})
+    channels: list[ChannelChoice] = Field([], max_length=20, title="Channels", description="The channels come from the pipeline. Set each channel's options here.", json_schema_extra={"widget": "postiz_channels"})
     caption: str = Field("{{name}}", max_length=2000, title="Caption", description="The text sent with the post. Tags: {{name}}, {{id}}, {{date}}.")
     approval: Literal["auto", "manual"] = Field("auto", title="Approval", description="Auto posts when the card reaches this stage. Manual waits for you to approve each post.")
     post_type: Literal["schedule", "draft"] = Field("schedule", title="Post type", description="Schedule puts the post in the next free slot of the Postiz pipeline. Draft saves it for you to schedule in Postiz.")

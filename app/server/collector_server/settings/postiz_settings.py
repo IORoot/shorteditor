@@ -33,6 +33,12 @@ class ChannelView(CamelModel):
     identifier: str
 
 
+class PipelineView(CamelModel):
+    id: str
+    name: str
+    channels: list[ChannelView]
+
+
 class FolderView(CamelModel):
     id: str
     name: str
@@ -95,6 +101,10 @@ def build_postiz_router(settings: AppSettings, make_client: Callable[[str, str],
     @router.get("/channels", response_model=list[ChannelView])
     def channels() -> list[ChannelView]:
         return asked(lambda postiz: [ChannelView(id=c.id, name=c.name, identifier=c.identifier) for c in postiz.channels()])
+
+    @router.get("/pipelines", response_model=list[PipelineView])
+    def pipelines() -> list[PipelineView]:
+        return asked(lambda postiz: [PipelineView(id=p.id, name=p.name, channels=[ChannelView(id=c.id, name=c.name, identifier=c.identifier) for c in p.channels]) for p in postiz.pipelines()])
 
     @router.get("/folders", response_model=list[FolderView])
     def folders() -> list[FolderView]:

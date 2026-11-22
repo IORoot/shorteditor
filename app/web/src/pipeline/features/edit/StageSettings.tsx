@@ -5,7 +5,7 @@ import { SegmentedControl } from '../../../shared/components/ui/SegmentedControl
 import { Toggle } from '../../../shared/components/ui/Toggle';
 import { fieldsOf, toText, type Field } from '../../lib/schemaForm';
 import { PairsEditor } from './PairsEditor';
-import { PostizChannelsField, PostizFolderField, type ChannelChoice } from './PostizPickers';
+import { PostizChannelsField, PostizFolderField, PostizPipelineField, type ChannelChoice } from './PostizPickers';
 import { iconOf } from '../../lib/stageMeta';
 import type { StageInfo, StageStep } from '../../lib/types';
 
@@ -118,8 +118,11 @@ function renderField(field: Field, step: StageStep, drafts: Record<string, strin
   if (field.kind === 'widget' && field.widget === 'postiz_folder') {
     return <PostizFolderField key={field.name} label={field.label} help={field.help} value={(value as string | null | undefined) ?? null} onChange={(next) => onValue(field, next)} />;
   }
+  if (field.kind === 'widget' && field.widget === 'postiz_pipeline') {
+    return <PostizPipelineField key={field.name} label={field.label} help={field.help} value={(value as string | null | undefined) ?? null} onChange={(next) => onValue(field, next)} />;
+  }
   if (field.kind === 'widget' && field.widget === 'postiz_channels') {
-    return <PostizChannelsField key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? []) as ChannelChoice[]} unset={value === undefined} onChange={(next) => onValue(field, next)} />;
+    return <PostizChannelsField key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? []) as ChannelChoice[]} pipelineId={(step.settings.pipelineId as string | null | undefined) ?? null} onChange={(next) => onValue(field, next)} />;
   }
   if (field.kind === 'pairs') {
     return <PairsEditor key={field.name} label={field.label} help={field.help} value={(value ?? field.defaultValue ?? {}) as Record<string, string>} onChange={(next) => onValue(field, next)} />;

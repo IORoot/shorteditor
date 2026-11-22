@@ -178,3 +178,11 @@ def test_a_server_error_on_a_read_and_a_429_on_a_post_are_plain_refusals():
     with pytest.raises(PostizError) as caught:
         postiz.enqueue("p1", "draft", "Hi", Media("m1", "p"), [])
     assert not isinstance(caught.value, PostizUnclear)
+
+
+def test_pipelines_are_listed_with_their_channels():
+    postiz, opener = client([{"id": "p1", "name": "Coach Diaries", "channels": [{"id": "c1", "name": "LP", "identifier": "youtube", "settings": {"rules": "x"}}]}])
+    (pipeline,) = postiz.pipelines()
+    assert (pipeline.id, pipeline.name) == ("p1", "Coach Diaries")
+    assert [(c.id, c.identifier) for c in pipeline.channels] == [("c1", "youtube")]
+    assert opener.requests[0].full_url == "https://postiz.example/api/public/v1/pipelines"

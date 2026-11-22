@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from collector_server.production.postiz_client import Channel, Folder, PostizError
+from collector_server.production.postiz_client import Channel, Folder, Pipeline, PostizError
 from collector_server.settings.app_settings import AppSettings
 from collector_server.settings.postiz_settings import POSTIZ_KEY, POSTIZ_URL, build_postiz_router
 
@@ -19,6 +19,9 @@ class FakeClient:
         if FakeClient.refuse:
             raise PostizError(FakeClient.refuse)
         return [Channel("c1", "London Parkour", "instagram"), Channel("c2", "ldnpk", "facebook")]
+
+    def pipelines(self):
+        return [Pipeline("p1", "Class Highlights", [Channel("c1", "London Parkour", "instagram")])]
 
     def folders(self):
         return [Folder("f1", "Class Clips - Sat")]
@@ -81,3 +84,9 @@ def test_a_postiz_refusal_is_a_400_with_its_message(api):
     FakeClient.refuse = "Postiz said 401 for /x"
     response = api.client.get("/api/settings/postiz/channels")
     assert response.status_code == 400 and response.json()["detail"] == "Postiz said 401 for /x"
+
+
+def test_pipelines_list_names_with_their_channels(api):
+    assert api.client.get("/api/settings/postiz/pipelines").status_code == 409
+    api.client.put("/api/settings/postiz", json={"url": "postiz.example", "key": "abcd1234"})
+    assert api.client.get("/api/settings/postiz/pipelines").json() == [{"id": "p1", "name": "Class Highlights", "channels": [{"id": "c1", "name": "London Parkour", "identifier": "instagram"}]}]

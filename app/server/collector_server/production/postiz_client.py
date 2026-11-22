@@ -30,6 +30,13 @@ class Channel:
 
 
 @dataclass(frozen=True)
+class Pipeline:
+    id: str
+    name: str
+    channels: list[Channel]  # the channels the pipeline posts to
+
+
+@dataclass(frozen=True)
 class Folder:
     id: str
     name: str
@@ -82,6 +89,15 @@ class PostizClient:
         if not isinstance(rows, list):
             raise PostizError("Postiz sent an unexpected list of channels")
         return [Channel(id=r["id"], name=r.get("name", ""), identifier=r.get("identifier", ""), disabled=bool(r.get("disabled"))) for r in rows if not r.get("disabled")]
+
+    def pipelines(self) -> list[Pipeline]:
+        rows = self._request("GET", "/public/v1/pipelines")
+        if not isinstance(rows, list):
+            raise PostizError("Postiz sent an unexpected list of pipelines")
+        return [
+            Pipeline(id=r["id"], name=r.get("name", ""), channels=[Channel(id=c["id"], name=c.get("name", ""), identifier=c.get("identifier", "")) for c in r.get("channels") or []])
+            for r in rows
+        ]
 
     def folders(self) -> list[Folder]:
         rows = self._request("GET", "/media/folders")
