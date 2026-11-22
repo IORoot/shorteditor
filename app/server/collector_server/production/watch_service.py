@@ -116,7 +116,7 @@ class WatchService:
                     elif len(created) < watch.max_per_check:
                         try:
                             batch = self._service.create_batch(render_name(watch.name_template, c.match, c.name), c.path, watch.pipeline_id,
-                                                               watch.run_on, watch.output_root, steps=watch.steps)
+                                                               watch.run_on, watch.output_root or self._service.default_output_for(watch.parent_folder), steps=watch.steps)
                         except (InvalidInputError, OSError) as problem:  # one bad folder must not starve the rest
                             problems.append(f"{c.name}: {str(problem).rstrip('.')}")
                             continue

@@ -35,7 +35,7 @@ def test_create_batch_makes_queued_pass_one(parts):
     batch = create(service, inbox)
     [only] = passes.for_batch(batch.id)
     assert (only.number, only.status) == (1, "queued")
-    assert batch.output_root == str(tmp / "out")  # the default when none is given
+    assert batch.output_root == str(tmp / "output")  # none given: an "output" folder beside the input folder
 
 
 @pytest.mark.full

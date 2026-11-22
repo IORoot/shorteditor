@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PATTERN_PRESETS, batchesNow, createCount, defaultManyForm, formFromWatch, manyIsValid, toBulkRequest, toWatchRequest, watchNameOf, wholeHint, type ManyForm } from './presets';
+import { PATTERN_PRESETS, outputBeside, batchesNow, createCount, defaultManyForm, formFromWatch, manyIsValid, toBulkRequest, toWatchRequest, watchNameOf, wholeHint, type ManyForm } from './presets';
 import type { WatchView } from './types';
 
 const many = (over: Partial<ManyForm> = {}): ManyForm => ({ ...defaultManyForm(), parentFolder: '/Volumes/Edit/Collected', pipelineId: 1, ...over });
@@ -110,5 +110,15 @@ describe('createCount', () => {
   it('is one batch when any folder will be created, and none when every folder is already batched or empty', { tags: ['full'] }, () => {
     expect(createCount(preview(['will_create', 'will_create', 'already_batched', 'no_videos', 'unreadable']))).toBe(1);
     expect(createCount(preview(['already_batched', 'no_videos']))).toBe(0);
+  });
+});
+
+describe('the default output folder', () => {
+  it('is an "output" folder beside the input folder, and nothing when there is no beside', () => {
+    expect(outputBeside('/Volumes/Edit/Collected')).toBe('/Volumes/Edit/output');
+    expect(outputBeside('/Volumes/Edit/Collected/')).toBe('/Volumes/Edit/output');
+    expect(outputBeside('/Collected')).toBe('');
+    expect(outputBeside('')).toBe('');
+    expect(outputBeside('relative/x')).toBe('');
   });
 });

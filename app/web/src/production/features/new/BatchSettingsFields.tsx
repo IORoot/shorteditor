@@ -1,7 +1,7 @@
 import { Button } from '../../../shared/components/ui/Button';
 import { Toggle } from '../../../shared/components/ui/Toggle';
 import type { BrowseResult } from '../../../shared/lib/types';
-import type { SettingsForm } from '../../lib/presets';
+import { outputBeside, type SettingsForm } from '../../lib/presets';
 import type { Defaults, PipelineChoice } from '../../lib/types';
 import { FolderField } from './FolderField';
 import { FolderNameField } from './FolderNameField';
@@ -19,10 +19,12 @@ export interface BatchSettingsFieldsProps {
   showAutoRun?: boolean;
   /** Shows the folder name field. Watches do not have one: the batches they make use the default name. */
   showFolderTemplate?: boolean;
+  /** The batch's input folder: the default output folder sits beside it. */
+  inputFolder?: string;
 }
 
 /** What every batch in the form shares: its pipeline, where it runs and where the result goes. */
-export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse, showAutoRun = false, showFolderTemplate = false }: BatchSettingsFieldsProps) {
+export function BatchSettingsFields({ value, onChange, defaults, pipelines, onManagePipelines, browse, showAutoRun = false, showFolderTemplate = false, inputFolder = '' }: BatchSettingsFieldsProps) {
   return (
     <>
       {pipelines.length === 0 ? (
@@ -40,8 +42,8 @@ export function BatchSettingsFields({ value, onChange, defaults, pipelines, onMa
         <option value="any">Any worker</option>
         {defaults.workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.label}</option>)}
       </Select>
-      <FolderField label="Output folder" value={value.outputRoot} onChange={(outputRoot) => onChange({ outputRoot })} browse={browse} placeholder={defaults.outputRoot} />
-      <p className="text-small text-text-2">Leave the output folder empty to use the default. It must be new or empty, and separate from the input folder.</p>
+      <FolderField label="Output folder" value={value.outputRoot} onChange={(outputRoot) => onChange({ outputRoot })} browse={browse} placeholder={outputBeside(inputFolder) || defaults.outputRoot} />
+      <p className="text-small text-text-2">Leave the output folder empty to use an “output” folder beside the input folder. It must be new or empty, and separate from the input folder.</p>
       {showFolderTemplate ? <FolderNameField value={value.folderTemplate} onChange={(folderTemplate) => onChange({ folderTemplate })} outputRoot={value.outputRoot} /> : null}
       {showAutoRun ? (
         <label className="flex items-center gap-3 text-small text-text-2">

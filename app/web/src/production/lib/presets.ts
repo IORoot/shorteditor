@@ -70,6 +70,13 @@ export function wholeHint(text: string, min: number, max: number): string | null
 
 const MAX_NAME = 120;
 /** The last part of a folder path: the folder's own name. */
+/** The default output folder: an "output" folder beside the input folder. Mirrors the server. Empty when the folder has no parent to sit beside. */
+export const outputBeside = (inputFolder: string): string => {
+  const trimmed = inputFolder.trim().replace(/[\\/]+$/, '');
+  const cut = trimmed.lastIndexOf('/');
+  return trimmed.startsWith('/') && cut > 0 ? `${trimmed.slice(0, cut)}/output` : '';
+};
+
 export const folderNameOf = (path: string): string => path.split(/[\\/]/).filter((part) => part !== '').pop() ?? '';
 
 /** The watch's name: the typed one, or the parent folder's name. */

@@ -283,7 +283,7 @@ class ProductionService:
 
     def _check_settings(self, steps: list[StageStep], run_on: str, output_root: str | None, *paths: str) -> str:
         """The checks every new batch needs, before anything is created. Returns the output folder to use."""
-        root = output_root or self._default_root
+        root = output_root or (self.default_output_for(paths[0]) if paths else self._default_root)
         if max(len(root), len(run_on), *(len(p) for p in paths)) > _MAX_TEXT:
             raise InvalidInputError("A path or worker name is too long")
         try:
@@ -294,6 +294,11 @@ class ProductionService:
             raise InvalidInputError(f"There is no worker called {run_on}")
         self._require_valid(steps)
         return root
+
+    def default_output_for(self, input_folder: str) -> str:
+        """Where output goes when none is chosen: an "output" folder beside the input folder, never inside it."""
+        parent = os.path.dirname(os.path.normpath(input_folder))
+        return os.path.join(parent, "output") if parent and parent != os.sep else self._default_root
 
     @staticmethod
     def _check_apart(input_folder: str, root: str) -> None:

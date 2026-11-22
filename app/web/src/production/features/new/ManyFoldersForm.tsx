@@ -85,7 +85,7 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
       )}
       {watch !== undefined ? <WatchOptions value={form} onChange={onChange} mode={watch} folderCount={willCreate} /> : null}
       <p className="text-caption font-semibold tracking-wide text-text-3">Settings for every batch</p>
-      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun={watch === undefined} showFolderTemplate={!watching} />
+      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun={watch === undefined} showFolderTemplate={!watching} inputFolder={form.parentFolder} />
     </>
   );
 }

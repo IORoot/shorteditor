@@ -452,3 +452,10 @@ def test_a_watch_deleted_during_its_check_is_handled(world, monkeypatch):
     monkeypatch.setattr(world.service, "create_batch", create_then_delete)
     result = world.ws.check(watch.id)
     assert result.error and len(result.created) == 1
+
+
+def test_a_watch_without_an_output_folder_puts_the_output_beside_the_watched_folder_not_inside_it(world):
+    watch = world.ws.create(world.data())
+    world.folder("2026-11-07_a")
+    [batch] = world.ws.check(watch.id).created
+    assert batch.output_root == str(world.parent.parent / "output")

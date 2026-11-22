@@ -19,6 +19,12 @@ function show(over: Partial<ManyForm> = {}, preview: PreviewState = { status: 'i
 }
 
 describe('ManyFoldersForm', () => {
+  it('hints that the output goes in an "output" folder beside the parent folder', () => {
+    show({ parentFolder: '/Volumes/Edit/Sat' });
+    expect(screen.getByLabelText('Output folder')).toHaveAttribute('placeholder', '/Volumes/Edit/output');
+  });
+
+
   it('asks for the parent folder, the pattern, the preset and the name template', { tags: ['full'] }, () => {
     show({ parentFolder: '/c' });
     expect(screen.getByLabelText('Parent folder')).toHaveValue('/c');
