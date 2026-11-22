@@ -18,3 +18,8 @@ export function suffixAdded(folder: string): string {
 export function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
+
+/** A size in decimal megabytes (1 MB = 1,000,000 bytes), the unit the Render stage's limit uses. */
+export function formatMegabytes(bytes: number): string {
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}

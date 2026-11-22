@@ -27,5 +27,7 @@ def describe(key: str, before, after, settings, ffmpeg) -> dict | None:  # noqa:
         details = {"kind": "video", "name": os.path.basename(after.path), "duration": after.duration, "sizeBytes": after.size_bytes, **ffmpeg.video_info(after.path)}
         if key == "join_pieces":
             details["target"] = {"width": settings.width, "height": settings.height, "fps": settings.fps}
+        if key == "render_output":
+            details["attempts"] = after.attempts
         return details
     return None

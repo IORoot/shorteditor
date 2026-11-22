@@ -50,7 +50,7 @@ describe('BatchCard', () => {
 
   it('shows the size and length of a finished video, and nothing odd when there is no output', { tags: ['full'] }, () => {
     const { rerender, container } = render(<BatchCard card={makeCard({ status: 'review', output })} selected={false} onOpen={() => undefined} />);
-    expect(screen.getByText('46.2 MB · 00:58')).toBeInTheDocument();
+    expect(screen.getByText('48.5 MB · 00:58')).toBeInTheDocument();
     rerender(<BatchCard card={makeCard({ status: 'review', output: null })} selected={false} onOpen={() => undefined} />);
     expect(container.textContent).not.toMatch(/NaN|undefined|null/);
   });

@@ -99,7 +99,7 @@ def test_work_folder_is_removed_and_output_stays(env):
     two_clips(env)
     done = env.run(env.queue(settings=SMALL))
     folder = os.path.dirname(done.output.path)
-    assert os.listdir(folder) == ["output.mp4"]
+    assert sorted(f for f in os.listdir(folder) if f != ".short-editor-pass") == ["output.mp4"]
 
 
 @pytest.mark.full
@@ -241,11 +241,11 @@ def test_an_unusable_output_folder_gives_a_plain_message(db, tmp_path):
 @pytest.mark.full
 @pytest.mark.full
 @requires_ffmpeg
-def test_blocked_run_cleans_up_after_itself(env):
+def test_blocked_run_keeps_its_folder_and_leaves_no_partial_files(env):
     two_clips(env, seconds=3)
     blocked = env.run(env.queue(settings={**SMALL, "limit_length": {"maxSeconds": 4}}))
     assert blocked.status == "blocked"
-    assert [p.name for p in (env.root / "out").rglob("*") if p.is_file()] == [".short-editor-output"]
+    assert [p.name for p in (env.root / "out").rglob("*") if p.is_file() and p.name != ".short-editor-pass"] == [".short-editor-output"]
 
 
 @pytest.mark.full

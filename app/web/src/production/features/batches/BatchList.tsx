@@ -1,4 +1,4 @@
-import { Check, Pause, Pencil, Play, RotateCw, Square, Trash2 } from 'lucide-react';
+import { Check, Eraser, Pause, Pencil, Play, RotateCw, Square, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { FILTERS, inFilter, type BatchFilter } from '../../lib/batchList';
 import type { ActionName, BatchListItem } from '../../lib/types';
@@ -52,12 +52,13 @@ export function rowIcons(status: BatchListItem['status']): { toggle: 'pause' | '
   return { toggle, second };
 }
 
-const ICON_LABEL: Record<ActionName, string> = { pause: 'Pause', resume: 'Resume', stop: 'Stop', rerun: 'Run again', delete: 'Delete' };
+const ICON_LABEL: Record<ActionName, string> = { pause: 'Pause', resume: 'Resume', stop: 'Stop', rerun: 'Run again', delete: 'Delete', clear_output: 'Clear output' };
 const ICON: Record<ActionName, ReactNode> = {
   pause: <Pause size={15} aria-hidden="true" />,
   resume: <Play size={15} aria-hidden="true" />,
   stop: <Square size={14} aria-hidden="true" />,
   rerun: <RotateCw size={15} aria-hidden="true" />,
+  clear_output: <Eraser size={15} aria-hidden="true" />,
   delete: <Trash2 size={15} aria-hidden="true" />,
 };
 

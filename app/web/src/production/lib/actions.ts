@@ -3,7 +3,7 @@ import type { ActionName, ActionResult, PassStatus } from './types';
 /** The order the actions are shown in. */
 export const ACTIONS: ActionName[] = ['pause', 'resume', 'stop', 'rerun', 'delete'];
 
-export const ACTION_LABEL: Record<ActionName, string> = { pause: 'Pause', resume: 'Resume', stop: 'Stop', rerun: 'Run again', delete: 'Delete' };
+export const ACTION_LABEL: Record<ActionName, string> = { pause: 'Pause', resume: 'Resume', stop: 'Stop', rerun: 'Run again', delete: 'Delete', clear_output: 'Clear output' };
 
 /** Which actions apply to a card in this status. It mirrors the server's rules; the server still decides. */
 export function cardCan(status: PassStatus, action: ActionName): boolean {
@@ -13,6 +13,7 @@ export function cardCan(status: PassStatus, action: ActionName): boolean {
     case 'stop': return status === 'queued' || status === 'running' || status === 'paused' || status === 'blocked' || status === 'held';
     case 'rerun': return status !== 'queued' && status !== 'running';
     case 'delete': return status !== 'running';
+    case 'clear_output': return status === 'failed' || status === 'approved';
   }
 }
 

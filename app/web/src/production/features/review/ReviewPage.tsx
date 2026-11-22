@@ -43,7 +43,7 @@ export interface ReviewPageProps {
 /** The actions this card can take, as buttons. Delete asks first. */
 function CardActions({ card, busy, onAct }: { card: BatchCard; busy: boolean; onAct: (action: ActionName) => void }) {
   const [confirming, setConfirming] = useState(false);
-  const actions: ActionName[] = (['pause', 'resume', 'stop', 'rerun'] as ActionName[]).filter((action) => cardCan(card.status, action));
+  const actions: ActionName[] = (['pause', 'resume', 'stop', 'rerun', 'clear_output'] as ActionName[]).filter((action) => cardCan(card.status, action));
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       {actions.map((action) => (
@@ -51,11 +51,12 @@ function CardActions({ card, busy, onAct }: { card: BatchCard; busy: boolean; on
           {action === 'rerun' ? 'Run this card again' : action === 'resume' && card.status === 'held' ? 'Start' : ACTION_LABEL[action]}
         </Button>
       ))}
+      {actions.includes('clear_output') ? <p className="basis-full text-caption text-text-3">Clear output deletes this card’s kept video folder. The card stays, so it can run again.</p> : null}
       {cardCan(card.status, 'delete') ? <Button variant="danger" disabled={busy} onClick={() => setConfirming(true)}>{ACTION_LABEL.delete}</Button> : null}
       {confirming ? (
         <ConfirmDialog
           title="Delete this card?"
-          body="The card leaves the board with its logs. Its output video on disk is kept. This can’t be undone."
+          body="The card leaves the board with its logs. Its output folder on disk is deleted too. This can’t be undone."
           confirmLabel="Delete card"
           busy={busy}
           error={null}

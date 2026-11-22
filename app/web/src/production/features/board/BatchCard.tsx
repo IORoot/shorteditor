@@ -1,7 +1,7 @@
 import { Check, Film } from 'lucide-react';
 import { useState } from 'react';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
-import { formatBytes } from '../../../shared/lib/format';
+import { formatMegabytes } from '../../../shared/lib/format';
 import { chipLabel, clock, lastSegment, queueCaption, stageSegments, toneOf } from '../../lib/board';
 import type { BatchCard as Card } from '../../lib/types';
 import { StageStrip } from './StageStrip';
@@ -29,7 +29,7 @@ function caption(card: Card): string {
     case 'failed':
       return card.error ?? '';
     default:
-      return card.output ? `${formatBytes(card.output.sizeBytes)} · ${clock(card.output.duration)}` : '';
+      return card.output ? `${formatMegabytes(card.output.sizeBytes)} · ${clock(card.output.duration)}` : '';
   }
 }
 

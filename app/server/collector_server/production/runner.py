@@ -22,7 +22,15 @@ from .worker import Worker
 
 _FFMPEG_BATCH = 50
 _FFMPEG_LINES_KEPT = 3000
+OWNER_MARKER = ".short-editor-pass"  # written into a pass's result folder: which pass made it
 
+
+def _read_owner(folder: str) -> str | None:
+    try:
+        with open(os.path.join(folder, OWNER_MARKER)) as marker:
+            return marker.read()
+    except OSError:
+        return None
 
 
 TRIMS_STEP = "apply_trims"
@@ -71,33 +79,33 @@ class PassRunner:
             steps = with_trims_step(self._steps_for(batch))
             self._passes.update(pass_id, steps_used=[step.model_dump() for step in steps])  # kept with the pass, whatever changes later
             output_dir, work_dir = output_paths(batch, pass_id, claimed.number)
-            self._prepare(root, output_dir, work_dir)
+            self._prepare(root, output_dir, work_dir, owner=f"{batch.id}:{pass_id}")
             made_dir = output_dir  # only now is the result folder this run's own
             ctx = StageContext(claimed.folder or batch.input_folder, work_dir, output_dir, FfmpegRunner(worker, ffmpeg), pipeline, cache_root=os.path.join(root, ".detect-cache"), ai_key=self._ai_key(), ai_model=self._ai_model(),
                              exports=self._exports, postiz=self._postiz, card_id=claimed.id,
                              labels={"name": batch.name, "id": str(batch.id), "date": self._now()[:10]})
             video = self._execute(claimed, steps, ctx)
             if not self._finish(pass_id, "review", pipeline, output=video):
-                self._discard(root, made_dir)  # changed while it ran: the result is not kept
+                self._discard(root, made_dir)  # changed while it ran: the result is not valid, so it is not kept
         except _Cancelled:
             pipeline("Stopped: the card was paused, stopped or deleted while it ran")
-            self._discard(root, made_dir)
+            self._discard_if_deleted(pass_id, root, made_dir)
         except BlockedError as blocked:
             pipeline(f"Blocked: {blocked.reason}")
-            self._discard(root, made_dir)
+            self._discard_if_deleted(pass_id, root, made_dir)
             self._finish(pass_id, "blocked", pipeline, blocked_reason=blocked.reason, blocked_choices=blocked.choices, blocked_items=blocked.items, finished_at=None)
         except FfmpegError as error:
             pipeline(f"Failed: {error}")
-            self._discard(root, made_dir)
+            self._discard_if_deleted(pass_id, root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=f"FFmpeg stopped (code {error.code}). The log has the details.")
         except StageError as error:
             pipeline(f"Failed: {error}")
-            self._discard(root, made_dir)
+            self._discard_if_deleted(pass_id, root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=str(error))
         except Exception as error:  # noqa: BLE001 - anything else is a bug; keep it in the log, not on screen
             for line in traceback.format_exc().splitlines():
                 pipeline(line)
-            self._discard(root, made_dir)
+            self._discard_if_deleted(pass_id, root, made_dir)
             self._finish(pass_id, "failed", pipeline, error=f"Something went wrong: {type(error).__name__}")
         finally:
             if root:
@@ -107,22 +115,34 @@ class PassRunner:
                 ffmpeg.flush()
 
     @staticmethod
-    def _prepare(root: str, output_dir: str, work_dir: str) -> None:
+    def _prepare(root: str, output_dir: str, work_dir: str, owner: str) -> None:
         try:
             claim_root(root)  # refuses a folder that holds someone else's files
             if os.path.isdir(output_dir) and os.listdir(output_dir):
-                # Passes that did not finish clear their folder, so this is a finished video, for example
-                # from before a database reset started the ids again. Never wipe it.
-                raise StageError(f"{output_dir} already holds files from an earlier run")
+                # A re-run of this pass reuses its own folder and replaces what it kept. A folder that
+                # this pass did not make (for example from before a database reset started the ids again)
+                # is never wiped.
+                if _read_owner(output_dir) != owner:
+                    raise StageError(f"{output_dir} already holds files from an earlier run")
+                remove_inside(root, output_dir)  # only inside the claimed output folder
+            os.makedirs(output_dir, exist_ok=True)
+            with open(os.path.join(output_dir, OWNER_MARKER), "w") as marker:
+                marker.write(owner)
             os.makedirs(work_dir, exist_ok=True)
         except (OutputFolderError, OSError) as error:
             raise StageError(f"Cannot write to the output folder: {getattr(error, 'strerror', None) or error}") from error
 
     @staticmethod
     def _discard(root: str | None, output_dir: str | None) -> None:
-        """A pass that did not finish leaves no half-made files behind."""
+        """Remove a pass's result folder. Used only when its result is not valid."""
         if root:
             remove_inside(root, output_dir)
+
+    def _discard_if_deleted(self, pass_id: int, root: str | None, output_dir: str | None) -> None:
+        """A pass that stopped keeps its result folder, so the video can be inspected and its stages need not run again.
+        Only a deleted card's folder goes; the card's own delete also clears it."""
+        if self._passes.get(pass_id) is None:
+            self._discard(root, output_dir)
 
     def _finish(self, pass_id: int, status: str, pipeline: LogSink, **fields) -> bool:  # noqa: ANN003
         saved = self._passes.update(pass_id, only_if_status="running", status=status, **{"finished_at": self._now(), **fields})

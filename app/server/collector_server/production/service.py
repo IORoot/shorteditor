@@ -11,7 +11,7 @@ from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHan
 from collector_server.shared.errors import InvalidInputError, NotFoundError, StateError
 from collector_server.shared.pipeline import PipelineRef, PipelineSource
 from .catalog import StageLibrary
-from .output_paths import OutputFolderError, check_folder_template, check_root
+from .output_paths import OutputFolderError, check_folder_template, check_root, output_paths, remove_inside
 from .folder_scan import Candidate, scan_parent
 from .models import DEFAULT_FOLDER_TEMPLATE, ActionResult, Batch, BatchCard, TrimBody, BatchListItem, BulkCreate, BulkResult, Defaults, ExportRecord, FolderPreview, LogKind, Pass, PipelineChoice, PreviewItem, Run, WorkerInfo
 from .pattern import check_template, compile_pattern, render_name
@@ -34,8 +34,10 @@ _ACTS_ON = {
     "paused": ("resume", "stop"),
     "stopped": ("resume",),
     "blocked": ("stop",),
+    "failed": ("clear_output",),
+    "approved": ("clear_output",),
 }
-_PAST = {"pause": "paused", "resume": "resumed", "stop": "stopped", "rerun": "run again", "delete": "deleted"}
+_PAST = {"pause": "paused", "resume": "resumed", "stop": "stopped", "rerun": "run again", "delete": "deleted", "clear_output": "cleared"}
 # the card's fields back to a fresh queued card; its folder, choices and output folder stay
 _FRESH = {"stage_index": 0, "stage_key": "", "stages": [], "blocked_reason": None, "blocked_choices": [], "blocked_items": [],
           "error": None, "output": None, "started_at": None, "finished_at": None}
@@ -597,8 +599,14 @@ class ProductionService:
         elif action == "delete":
             if status == "running":
                 raise StateError("A running card cannot be deleted. Stop it first")
+            self._clear_output(card)
             self._passes.delete(card.id)
             return "Deleted"
+        elif action == "clear_output":
+            self._clear_output(card)
+            if self._passes.update(card.id, only_if_status=status, output=None) is None:
+                raise StateError("The card changed while you acted on it. Try again")
+            return "Output cleared"
         else:
             target = {"pause": "paused", "resume": "queued", "stop": "stopped"}[action]
             updated = self._passes.update(card.id, only_if_status=status, status=target)
@@ -607,16 +615,33 @@ class ProductionService:
         return _PAST[action].capitalize()
 
     def delete_batches(self, batch_ids: list[int]) -> int:
-        """Removes batches with their passes and logs. Output videos on disk are kept. Refuses the whole request
+        """Removes batches with their passes, logs and kept output folders. Refuses the whole request
         when any of them has a pass that is waiting or running, so nothing is half deleted."""
         with self._lock:
             for batch_id in batch_ids:
                 self._need_batch(batch_id)
                 if any(p.status in ("queued", "running") for p in self._passes.for_batch(batch_id)):
                     raise StateError("A batch that is waiting or running cannot be deleted. Wait for it to finish, then delete it")
+            folders = [folder for batch_id in batch_ids for folder in self._output_folders(batch_id)]
             for batch_id in batch_ids:
                 self._batches.delete(batch_id)
+            for batch_root, output_dir in folders:  # the rows go first, so a folder problem cannot leave a half-deleted batch
+                remove_inside(batch_root, output_dir)
             return len(batch_ids)
+
+    def _output_folders(self, batch_id: int) -> list[tuple[str, str]]:
+        batch = self._batches.get(batch_id)
+        if batch is None:
+            return []
+        return [(batch.output_root, output_paths(batch, card.id, card.number)[0]) for card in self._passes.for_batch(batch_id)]
+
+    def _clear_output(self, card: Pass) -> None:
+        """Removes the card's kept result folder. Only that folder, and only inside an output folder this app made."""
+        batch = self._batches.get(card.batch_id)
+        if batch is None:
+            return
+        output_dir, _ = output_paths(batch, card.id, card.number)
+        remove_inside(batch.output_root, output_dir)
 
     def cards(self) -> list[BatchCard]:
         """Every card of every batch's newest run, for the board."""

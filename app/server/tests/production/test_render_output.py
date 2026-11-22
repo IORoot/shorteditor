@@ -149,3 +149,50 @@ def test_social_preset_ignores_typed_frame_rate_and_audio(tmp_path):
     assert "fps=30" in argv and "128k" in argv
     custom = render_argv(tmp_path, preset="custom", fps=60, audio_kbps=256, max_size_mb=None)
     assert "fps=60" in custom and "256k" in custom
+
+
+class SizedFfmpeg(RecordingFfmpeg):
+    """Each encode writes the next size from the list, so the size check can be tested without real video."""
+
+    def __init__(self, sizes):
+        super().__init__()
+        self.sizes = list(sizes)
+
+    def run(self, args):
+        self.calls.append(args)
+        with open(args[-1], "wb") as out:
+            out.write(b"x" * self.sizes.pop(0))
+
+
+def render_sized(tmp_path, sizes, **settings):
+    from collector_server.production.stage_api import StageContext
+
+    fake = SizedFfmpeg(sizes)
+    lines = []
+    ctx = StageContext(str(tmp_path), str(tmp_path), str(tmp_path / "out"), fake, lines.append)
+    video = VideoData(path=str(tmp_path / "joined.mp4"), duration=60.0, size_bytes=1)
+    return STAGE.run(video, STAGE.settings_model(**settings), ctx), fake, lines
+
+
+def test_render_over_the_limit_is_encoded_once_more_at_a_lower_bitrate(tmp_path):
+    result, fake, lines = render_sized(tmp_path, [25_000_000, 19_000_000], max_size_mb=20)
+    assert len(fake.calls) == 2
+    first, second = (int(c[c.index("-b:v") + 1]) for c in fake.calls)
+    assert second < first
+    assert result.size_bytes == 19_000_000 and result.attempts == 2
+    assert any("re-rendering once" in line for line in lines)
+
+
+def test_render_still_over_the_limit_after_the_retry_fails_with_both_sizes(tmp_path):
+    with pytest.raises(StageError, match="over the 20 MB limit"):
+        render_sized(tmp_path, [25_000_000, 21_000_000], max_size_mb=20)
+
+
+def test_render_within_the_limit_is_encoded_once(tmp_path):
+    result, fake, _ = render_sized(tmp_path, [19_000_000], max_size_mb=20)
+    assert len(fake.calls) == 1 and result.attempts == 1
+
+
+def test_render_without_a_limit_never_re_renders(tmp_path):
+    result, fake, _ = render_sized(tmp_path, [90_000_000], max_size_mb=None)
+    assert len(fake.calls) == 1 and result.attempts == 1

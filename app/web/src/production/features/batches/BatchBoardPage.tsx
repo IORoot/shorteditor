@@ -185,7 +185,7 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
       {confirm === 'batch' ? (
         <ConfirmDialog
           title={`Delete “${batch?.name ?? 'this batch'}”?`}
-          body="The batch leaves the board with its cards and logs. The output videos on disk are kept. This can’t be undone."
+          body="The batch leaves the board with its cards and logs. Its output folders on disk are deleted too. This can’t be undone."
           confirmLabel="Delete batch"
           busy={act.busy}
           error={act.error}
@@ -196,7 +196,7 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
       {confirm === 'cards' ? (
         <ConfirmDialog
           title={`Delete ${chosenSet.size} ${chosenSet.size === 1 ? 'card' : 'cards'}?`}
-          body="They leave the board with their logs. The output videos on disk are kept. This can’t be undone."
+          body="They leave the board with their logs. Their output folders on disk are deleted too. This can’t be undone."
           confirmLabel={`Delete ${chosenSet.size === 1 ? 'card' : `${chosenSet.size} cards`}`}
           busy={act.busy}
           error={act.error}

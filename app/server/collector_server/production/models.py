@@ -12,7 +12,7 @@ from collector_server.shared.pipeline import StageStep
 DEFAULT_FOLDER_TEMPLATE = "{{name}}-{{id}}"  # the batch's folder under its output folder, unless its template says otherwise
 
 PassStatus = Literal["queued", "held", "paused", "running", "review", "blocked", "failed", "stopped", "approved"]
-ActionName = Literal["pause", "resume", "stop", "rerun", "delete"]
+ActionName = Literal["pause", "resume", "stop", "rerun", "delete", "clear_output"]
 LogKind = Literal["pipeline", "ffmpeg"]
 
 

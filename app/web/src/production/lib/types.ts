@@ -1,7 +1,7 @@
 export type PassStatus = 'queued' | 'held' | 'paused' | 'running' | 'review' | 'blocked' | 'failed' | 'stopped' | 'approved';
 
 /** What can be done to a batch or a card. */
-export type ActionName = 'pause' | 'resume' | 'stop' | 'rerun' | 'delete';
+export type ActionName = 'pause' | 'resume' | 'stop' | 'rerun' | 'delete' | 'clear_output';
 
 export interface ActionResult {
   id: number;
@@ -147,7 +147,7 @@ export interface ClipDetail {
 /** What a stage made: a list of clips, or the video it wrote. */
 export type StageDetails =
   | { kind: 'clips'; clips: ClipDetail[]; total: number; before?: number | null; limit?: number; choice?: string | null }
-  | { kind: 'video'; name: string; duration: number; sizeBytes: number; width: number | null; height: number | null; fps: number | null; target?: { width: number; height: number; fps: number } };
+  | { kind: 'video'; name: string; duration: number; sizeBytes: number; width: number | null; height: number | null; fps: number | null; attempts?: number; target?: { width: number; height: number; fps: number } };
 
 export interface StageRun {
   key: string;

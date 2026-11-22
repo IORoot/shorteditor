@@ -1,5 +1,7 @@
 import { ArrowDownUp, ChevronRight, Clapperboard, Film, FolderSearch, Hand, LucideIcon, Pencil, ScanEye, Scissors, ListOrdered, Circle } from 'lucide-react';
+import { useState } from 'react';
 import { StatusChip } from '../../../shared/components/ui/StatusChip';
+import { formatMegabytes } from '../../../shared/lib/format';
 import { clock, elapsed, span, timelineRows, type TimelineRow } from '../../lib/passDetail';
 import { stageSummary } from '../../lib/stageSummary';
 import type { BatchCard, Pass } from '../../lib/types';
@@ -40,7 +42,8 @@ export function PassFlow({ card, pass, now }: PassFlowProps) {
   const failed = pass?.stages.find((stage) => stage.status === 'failed');
   const running = card.status === 'running';
   const taken = pass?.startedAt && (pass.finishedAt || running) ? elapsed(pass.startedAt, pass.finishedAt, now) : null;
-  const detailed = rows.flatMap((row) => (row.details ? [{ key: row.key, title: row.title, details: row.details }] : []));
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const open = rows.find((row) => row.key === openKey) ?? null;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -66,9 +69,12 @@ export function PassFlow({ card, pass, now }: PassFlowProps) {
         <ol aria-label="Stages" className="flex min-w-0 items-center gap-0 overflow-x-auto pb-1">
           {rows.map((row, index) => {
             const Icon = ICON[row.key] ?? Circle;
+            const isOpen = open === row;
+            const video = row.details?.kind === 'video' ? row.details : null;
+            const rerendered = video?.attempts !== undefined && video.attempts > 1;
             return (
-              <li key={row.key} aria-current={row.status === 'running' ? 'step' : undefined} className="flex min-w-[150px] flex-1 items-center">
-                <div className={`flex min-w-0 flex-1 flex-col gap-1.5 rounded-[14px] px-3 py-2.5 ${row.status === 'running' ? 'border-2 border-accent bg-accent-soft' : 'bg-fill-2'}`}>
+              <li key={`${row.key}-${index}`} aria-current={row.status === 'running' ? 'step' : undefined} className="flex min-w-[150px] flex-1 items-center">
+                <div className={`flex min-w-0 flex-1 flex-col gap-1.5 rounded-[14px] px-3 py-2.5 ${row.status === 'running' ? 'border-2 border-accent bg-accent-soft' : 'bg-fill-2'} ${isOpen ? 'ring-2 ring-accent' : ''}`}>
                   <div className="flex min-w-0 items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-2">
                       <Icon size={15} aria-hidden="true" className="shrink-0" />
@@ -77,6 +83,19 @@ export function PassFlow({ card, pass, now }: PassFlowProps) {
                     <StatusChip tone={CHIP[row.status].tone}>{CHIP[row.status].label}</StatusChip>
                   </div>
                   <span className="text-caption text-text-2 tabular-nums">{stageSummary(row, now)}</span>
+                  {video ? <span className="text-caption font-semibold tabular-nums">{formatMegabytes(video.sizeBytes)}</span> : null}
+                  {rerendered ? <span className="text-caption font-semibold text-text-2">Re-rendered once to fit the limit</span> : null}
+                  {row.details ? (
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls="stage-details-panel"
+                      onClick={() => setOpenKey(isOpen ? null : row.key)}
+                      className="self-start text-caption font-semibold text-accent"
+                    >
+                      {isOpen ? 'Hide details' : 'Details'}
+                    </button>
+                  ) : null}
                 </div>
                 {index < rows.length - 1 ? (
                   <span aria-hidden="true" className="flex w-6 shrink-0 items-center justify-center">
@@ -87,18 +106,11 @@ export function PassFlow({ card, pass, now }: PassFlowProps) {
             );
           })}
         </ol>
-        {detailed.length > 0 ? (
-          <details className="text-small">
-            <summary className="cursor-pointer font-semibold text-text-2">Stage details</summary>
-            <div className="mt-2 flex flex-col gap-3">
-              {detailed.map((row) => (
-                <div key={row.key} className="flex flex-col gap-1.5">
-                  <p className="font-semibold">{row.title}</p>
-                  <StageDetailsView details={row.details} />
-                </div>
-              ))}
-            </div>
-          </details>
+        {open?.details ? (
+          <section id="stage-details-panel" aria-label={`${open.title} details`} className="flex w-full flex-col gap-2 rounded-[14px] bg-fill-2 p-3.5 text-small">
+            <p className="font-semibold">{open.title}</p>
+            <StageDetailsView details={open.details} />
+          </section>
         ) : null}
       </section>
     </div>

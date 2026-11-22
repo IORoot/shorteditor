@@ -1,5 +1,6 @@
 import type { StageDetails } from '../../lib/types';
 import { span } from '../../lib/passDetail';
+import { formatMegabytes } from '../../../shared/lib/format';
 
 const LABEL = 'text-label font-semibold uppercase tracking-[0.8px] text-text-3';
 
@@ -12,9 +13,10 @@ export function StageDetailsView({ details }: { details: StageDetails }) {
     return (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-surface px-3 py-2 text-caption sm:grid-cols-4">
         <div><dt className={LABEL}>Length</dt><dd className="font-semibold tabular-nums">{span(details.duration * 1000)}</dd></div>
-        <div><dt className={LABEL}>Size</dt><dd className="font-semibold tabular-nums">{(details.sizeBytes / 1_000_000).toFixed(1)} MB</dd></div>
+        <div><dt className={LABEL}>Size</dt><dd className="font-semibold tabular-nums">{formatMegabytes(details.sizeBytes)}</dd></div>
         <div><dt className={LABEL}>Picture</dt><dd className="font-semibold tabular-nums">{details.width && details.height ? `${details.width} × ${details.height}` : '—'}</dd></div>
         <div><dt className={LABEL}>Frame rate</dt><dd className="font-semibold tabular-nums">{details.fps ? `${details.fps} fps` : '—'}</dd></div>
+        {details.attempts ? <div><dt className={LABEL}>Encodes</dt><dd className="font-semibold tabular-nums">{details.attempts}</dd></div> : null}
         {target ? <p className="col-span-full text-text-3">Shaped to {target.width} × {target.height} at {target.fps} fps</p> : null}
       </dl>
     );

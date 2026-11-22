@@ -40,6 +40,7 @@ class VideoData(CamelModel):
     path: str
     duration: float = Field(ge=0, allow_inf_nan=False)
     size_bytes: int = Field(ge=0)
+    attempts: int = Field(1, ge=1)  # how many encodes made this file (the render stage may encode twice to fit its limit)
     kind: Literal["video"] = "video"
 
 

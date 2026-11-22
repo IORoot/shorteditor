@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '../../test/fixtures';
 import type { Pass } from '../../lib/types';
@@ -50,5 +50,29 @@ describe('PassFlow', () => {
     const card = makeCard({ status: 'running', pipeline: ['Scan folder', 'Detect action', 'Render'], stageTitle: 'Detect action' });
     render(<PassFlow card={card} pass={pass()} now={Date.parse('2026-11-19T10:00:10Z')} />);
     expect(screen.getByText('Not started')).toBeInTheDocument();
+  });
+
+  it('opens one stage at a time: each stage with details has its own toggle and the panel shows only that stage', () => {
+    const done = pass({ status: 'review', stageKey: 'render_output', stageIndex: 1, finishedAt: '2026-11-19T10:01:00Z', stages: [
+      { key: 'scan_folder', title: 'Scan folder', status: 'done', startedAt: '2026-11-19T10:00:00Z', finishedAt: '2026-11-19T10:00:02Z',
+        details: { kind: 'clips', clips: [{ name: 'a.mp4', start: 0, end: 5, length: 5 }], total: 5 } },
+      { key: 'render_output', title: 'Render', status: 'done', startedAt: '2026-11-19T10:00:02Z', finishedAt: '2026-11-19T10:01:00Z',
+        details: { kind: 'video', name: 'output.mp4', duration: 58, sizeBytes: 149_000_000, width: 1080, height: 1920, fps: 30, attempts: 2 } },
+    ] });
+    const card = makeCard({ status: 'review', pipeline: ['Scan folder', 'Render'], stageTitle: 'Render' });
+    render(<PassFlow card={card} pass={done} now={Date.parse('2026-11-19T10:02:00Z')} />);
+    const toggles = screen.getAllByRole('button', { name: 'Details' });
+    expect(toggles).toHaveLength(2);
+    expect(screen.getByText('149.0 MB')).toBeInTheDocument();
+    expect(screen.getByText('Re-rendered once to fit the limit')).toBeInTheDocument();
+
+    fireEvent.click(toggles[1]);
+    const panel = screen.getByRole('region', { name: 'Render details' });
+    expect(panel).toHaveTextContent('1080 × 1920');
+    expect(screen.queryByRole('region', { name: 'Scan folder details' })).toBeNull();
+    expect(toggles[1]).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide details' }));
+    expect(screen.queryByRole('region', { name: 'Render details' })).toBeNull();
   });
 });
