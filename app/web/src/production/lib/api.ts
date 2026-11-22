@@ -1,6 +1,6 @@
 import { HttpClient } from '../../shared/lib/http';
 import type { StageHandoff } from '../../shared/contracts/handoff';
-import type { ActionName, ActionResults, Batch, BatchCard, BatchCreate, BatchListItem, BatchUpdate, BulkCreate, BulkResult, CheckResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice, WatchCreate, WatchView } from './types';
+import type { ActionName, ActionResults, Batch, BatchCard, BatchCreate, BatchListItem, BatchUpdate, BulkCreate, BulkResult, Defaults, FolderPreview, LogLines, Pass, PipelineChoice } from './types';
 
 const BASE = '/api/production';
 
@@ -51,7 +51,7 @@ export class ProductionApi extends HttpClient {
     return this.send<ActionResults>(`${BASE}/passes/actions`, 'POST', { ids, action });
   }
 
-  /** The switched-on pipelines a batch or watch can use. */
+  /** The switched-on pipelines a batch can use. */
   pipelines(): Promise<PipelineChoice[]> {
     return this.request<PipelineChoice[]>(`${BASE}/pipelines`);
   }
@@ -64,33 +64,9 @@ export class ProductionApi extends HttpClient {
     return this.send<BulkResult>(`${BASE}/batches/bulk`, 'POST', body);
   }
 
-  watches(): Promise<WatchView[]> {
-    return this.request<WatchView[]>(`${BASE}/watches`);
-  }
-
-  createWatch(body: WatchCreate): Promise<WatchView> {
-    return this.send<WatchView>(`${BASE}/watches`, 'POST', body);
-  }
-
-  updateWatch(id: number, body: WatchCreate): Promise<WatchView> {
-    return this.send<WatchView>(`${BASE}/watches/${id}`, 'PUT', body);
-  }
-
   /** Removes the batches with their passes and logs. Refused, with nothing deleted, if one is waiting or running. */
   deleteBatches(batchIds: number[]): Promise<{ deleted: number }> {
     return this.send<{ deleted: number }>(`${BASE}/batches/delete`, 'POST', { batchIds });
-  }
-
-  deleteWatch(id: number): Promise<void> {
-    return this.remove(`${BASE}/watches/${id}`);
-  }
-
-  setWatchEnabled(id: number, enabled: boolean): Promise<WatchView> {
-    return this.send<WatchView>(`${BASE}/watches/${id}/enabled`, 'POST', { enabled });
-  }
-
-  checkWatch(id: number): Promise<CheckResult> {
-    return this.send<CheckResult>(`${BASE}/watches/${id}/check`, 'POST', {});
   }
 
   /** The batch with the cards of its newest run. */

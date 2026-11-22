@@ -34,19 +34,19 @@ class CountingPart:
 @pytest.mark.full
 @pytest.mark.full
 def test_the_queue_and_the_watches_can_be_ticked_separately_and_together():
-    production = Production(router=None, queue=CountingPart(), scheduler=CountingPart())
+    production = Production(router=None, queue=CountingPart(), batch_watcher=CountingPart())
     production.tick_queue()
-    assert (production.queue.calls, production.scheduler.calls) == (1, 0)
+    assert (production.queue.calls, production.batch_watcher.calls) == (1, 0)
     production.tick_watches()
-    assert (production.queue.calls, production.scheduler.calls) == (1, 1)
+    assert (production.queue.calls, production.batch_watcher.calls) == (1, 1)
     production.tick()
-    assert (production.queue.calls, production.scheduler.calls) == (2, 2)
+    assert (production.queue.calls, production.batch_watcher.calls) == (2, 2)
 
 
 @pytest.mark.full
 @pytest.mark.full
 def test_a_failing_watch_check_does_not_stop_the_queue_tick(caplog):
-    production = Production(router=None, queue=CountingPart(), scheduler=CountingPart(fail=True))
+    production = Production(router=None, queue=CountingPart(), batch_watcher=CountingPart(fail=True))
     production.tick()
     assert production.queue.calls == 1 and "production tick failed" in caplog.text
 

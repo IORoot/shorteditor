@@ -209,3 +209,11 @@ def test_the_batch_list_says_how_a_watching_batch_is_doing(world):
     world.clock.advance(30)
     world.watcher.check(batch.id)
     assert world.service.batch_list()[0].watch_line == "Watching · checks every 5 min"
+
+
+def test_a_watching_batch_can_start_in_a_folder_with_nothing_in_it_yet(world):
+    batch = world.make()  # watch_existing is on by default, and there is nothing there
+    assert world.cards(batch) == [] and batch.watching is True
+    new = world.folder("2026-11-14_b")
+    world.watcher.check(batch.id)
+    assert world.cards(batch) == [new]

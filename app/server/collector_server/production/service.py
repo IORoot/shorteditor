@@ -363,7 +363,7 @@ class ProductionService:
             folders = [f for f in folders if os.path.realpath(f) not in taken]  # a folder already in a batch stays in that batch
             if request.watching and not request.watch_existing:
                 folders = []  # the folders already there are skipped for good; only ones that appear later become cards
-            elif not folders:
+            elif not folders and not request.watching:  # a watching batch can start with nothing there yet
                 raise InvalidInputError("Nothing to create: no folder that matches the pattern has videos or is not already batched")
             batch = self.create_batch(name, request.parent_folder, request.pipeline_id, request.run_on, request.output_root,
                                       folders=folders, folder_pattern=None if request.ignore_subfolders else request.pattern, auto_run=request.auto_run,

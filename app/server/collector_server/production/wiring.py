@@ -25,8 +25,7 @@ from .stage_api import DEFAULT_AI_MODEL
 from .service import ProductionService
 from .watch_repository import WatchRepository
 from .batch_watch import BatchWatcher
-from .watch_scheduler import WatchScheduler
-from .watch_service import WatchService
+from .watch_conversion import convert_watches
 from .worker import LocalWorker
 
 
@@ -34,7 +33,6 @@ from .worker import LocalWorker
 class Production:
     router: APIRouter
     queue: JobQueue
-    scheduler: WatchScheduler | None = None
     batch_watcher: BatchWatcher | None = None
 
     def tick(self) -> None:
@@ -47,7 +45,6 @@ class Production:
 
     def tick_watches(self) -> None:
         """Scanning folders can be slow on a network drive, so the server runs this on its own thread."""
-        self._guarded(self.scheduler)
         self._guarded(self.batch_watcher)
 
     @staticmethod
@@ -72,7 +69,7 @@ def build_library() -> StageLibrary:
 
 def build_usage(db: Database) -> ProductionUsage:
     """What production uses from pipelines. Needs only the database, so it can be made before production itself."""
-    return ProductionUsage(BatchRepository(db), PassRepository(db), WatchRepository(db))
+    return ProductionUsage(BatchRepository(db), PassRepository(db))
 
 
 def build_production(db: Database, default_output_root: str, library: StageLibrary, pipelines: PipelineSource, ai_key: Callable[[], str | None] = lambda: None,
@@ -86,6 +83,7 @@ def build_production(db: Database, default_output_root: str, library: StageLibra
     labels = {"local": "This computer"}
     queue = JobQueue(passes, batches, PassRunner(batches, passes, logs, library.registry, pipelines, _now, ai_key, ai_model, postiz, exports), workers, _now)
     service = ProductionService(batches, passes, logs, library, pipelines, _now, default_output_root, list(workers), labels, exports=exports)
-    watches = WatchRepository(db)
-    watch_service = WatchService(watches, service, time.time)
-    return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time), BatchWatcher(service, batches, passes, time.time))
+    converted = convert_watches(WatchRepository(db), service, batches)  # separate watches from before batches could watch become watching batches
+    if converted:
+        logging.getLogger(__name__).info("converted %s watches into watching batches", converted)
+    return Production(build_router(service), queue, BatchWatcher(service, batches, passes, time.time))

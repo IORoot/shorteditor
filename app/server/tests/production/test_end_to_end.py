@@ -118,33 +118,37 @@ def test_an_empty_folder_fails_with_a_readable_message(system):
 
 @pytest.mark.full
 @pytest.mark.full
-def test_a_new_folder_appears_is_batched_runs_and_reaches_review(system, tmp_path):
+def test_a_new_folder_appears_becomes_a_card_of_the_watching_batch_runs_and_reaches_review(system, tmp_path):
     import os
     import time
 
     parent = tmp_path / "collected"
     parent.mkdir()
-    watch = system.client.post("/api/production/watches", json={
-        "name": "Coach", "parentFolder": str(parent), "pattern": r"^\d{4}-\d{2}-\d{2}_.+$", "pipelineId": 1, "settleMinutes": 10,
+    made = system.client.post("/api/production/batches/bulk", json={
+        "name": "Coach", "parentFolder": str(parent), "pattern": r"^\d{4}-\d{2}-\d{2}_.+$", "pipelineId": 1, "autoRun": True,
+        "watching": True, "watchSettleMinutes": 10,
     })
-    assert watch.status_code == 201 and watch.json()["status"] == "watching"
+    assert made.status_code == 201, made.text
+    batch_id = made.json()["created"][0]["id"]
+    [row] = system.client.get("/api/production/batch-list").json()
+    assert row["watching"] is True and row["folderCount"] == 0
 
     new = parent / "2026-11-07_Sat_coach"
     new.mkdir()
     for n in range(2):
         make_clip(new / f"c{n}.mp4", seconds=2)
-    system.production.tick()  # the folder was only just written, so the watch waits
+    system.production.batch_watcher.check(batch_id)  # the folder was only just written, so the watch waits
     assert system.board() == []
-    assert system.client.get("/api/production/watches").json()[0]["status"] == "waiting"
+    assert "waiting for 2026-11-07_Sat_coach" in system.client.get("/api/production/batch-list").json()[0]["watchLine"]
 
     old = time.time() - 3600
     for path in [new, *new.iterdir()]:
         os.utime(path, (old, old))
-    system.client.post(f"/api/production/watches/{watch.json()['id']}/check")
+    system.production.batch_watcher.check(batch_id)
     [card] = system.board()
-    assert card["name"] == "2026-11-07_Sat_coach" and card["status"] == "queued"
+    assert card["status"] == "queued" and card["batchId"] == batch_id
 
     system.go()
     [card] = system.board()
     assert card["status"] == "review"
-    assert system.client.get("/api/production/watches").json()[0]["createdTotal"] == 1
+    assert len(system.client.get("/api/production/batch-list").json()) == 1  # the same batch, not a new one

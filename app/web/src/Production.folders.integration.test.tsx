@@ -2,33 +2,23 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { makeCollector } from './collection/test/fixtures';
-import type { BatchCard, FolderPreview, WatchView } from './production/lib/types';
+import type { BatchCard, FolderPreview } from './production/lib/types';
 import { listRowsFor, makeCard } from './production/test/fixtures';
 
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
-const noContent = () => Promise.resolve(new Response(null, { status: 204 }));
 
 const DATE_PATTERN = '^\\d{4}-\\d{2}-\\d{2}_.+$';
 
-function watch(over: Partial<WatchView> = {}): WatchView {
-  return {
-    id: 1, name: 'Coach', parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', steps: [], pipelineId: 1, pipelineName: 'Join clips', runOn: 'any', outputRoot: null,
-    intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: '2026-11-17T10:00:00', lastCheckedAt: '2026-11-17T10:42:00', lastError: null,
-    waiting: [], createdTotal: 2, status: 'watching', statusLine: 'Last checked 10:42 · created 2 batches in total · next check in 3 minutes', ...over,
-  };
-}
 
 interface Request { url: string; method: string; body: unknown }
 
-/** A fake server for the folders and watches features. Every request is recorded; the board and the watches can change between requests. */
+/** A fake server for the folders features. Every request is recorded; the board can change between requests. */
 function folderServer() {
   const state = {
     cards: [makeCard({ name: 'Done', status: 'review', output: { path: '/out/done.mp4', duration: 58, sizeBytes: 46_000_000 } })] as BatchCard[],
-    watches: [watch()],
     preview: { matches: [], notMatching: 0, truncated: false } as FolderPreview,
     previewError: null as string | null,
-    checkCreates: [] as BatchCard[],
-    requests: [] as Request[],
+        requests: [] as Request[],
   };
   let nextId = 20;
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -49,34 +39,6 @@ function folderServer() {
       const folders = state.preview.matches.filter((m) => m.status === 'will_create');
       state.cards = [...state.cards, ...folders.map((m) => makeCard({ batchId: id, name: parentName, folder: m.path, status: 'queued', queuePosition: 0 }))];
       return json({ created: [{ id, name: parentName, inputFolder: body.parentFolder }], skipped: [] }, 201);
-    }
-    if (url === '/api/production/watches' && method === 'GET') return json(state.watches);
-    if (url === '/api/production/watches' && method === 'POST') {
-      const created = watch({ id: nextId++, name: body.name, parentFolder: body.parentFolder, pattern: body.pattern, enabled: body.enabled, status: 'watching', statusLine: 'Not checked yet' });
-      state.watches.push(created);
-      return json(created, 201);
-    }
-    const one = /^\/api\/production\/watches\/(\d+)(\/enabled|\/check)?$/.exec(url);
-    if (one) {
-      const id = Number(one[1]);
-      const found = state.watches.find((w) => w.id === id);
-      if (!found) return json({ detail: 'That watch no longer exists' }, 404);
-      if (one[2] === '/check') {
-        state.cards = [...state.cards, ...state.checkCreates];
-        return json({ created: state.checkCreates, waiting: [], error: null });
-      }
-      if (one[2] === '/enabled' && method === 'POST') {
-        Object.assign(found, { enabled: body.enabled, status: body.enabled ? 'watching' : 'paused' });
-        return json(found);
-      }
-      if (!one[2] && method === 'PUT') {
-        Object.assign(found, body);
-        return json(found);
-      }
-      if (!one[2] && method === 'DELETE') {
-        state.watches = state.watches.filter((w) => w.id !== id);
-        return noContent();
-      }
     }
     return json({ detail: 'not found' }, 404);
   });
@@ -106,7 +68,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('Production folders and watches, end to end', () => {
+describe('Production folders and watching batches, end to end', () => {
   it('creates one batch for the parent folder, with a card for each new folder, and the list shows it as Queued', async () => {
     const backend = folderServer();
     backend.state.preview = settledPreview();

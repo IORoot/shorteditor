@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PATTERN_PRESETS, outputBeside, batchesNow, createCount, defaultManyForm, formFromWatch, manyIsValid, toBulkRequest, toWatchRequest, watchNameOf, wholeHint, type ManyForm } from './presets';
-import type { WatchView } from './types';
+import { PATTERN_PRESETS, outputBeside, batchesNow, createCount, defaultManyForm, manyIsValid, toBulkRequest, wholeHint, type ManyForm } from './presets';
 
 const many = (over: Partial<ManyForm> = {}): ManyForm => ({ ...defaultManyForm(), parentFolder: '/Volumes/Edit/Collected', pipelineId: 1, ...over });
 
@@ -34,7 +33,7 @@ describe('defaultManyForm', () => {
     expect(defaultManyForm()).toEqual({
       parentFolder: '', presetId: 'date', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', batchName: '', ignoreSubfolders: false,
       outputRoot: '', folderTemplate: '{{name}}-{{id}}', runOn: 'any', pipelineId: null, autoRun: false,
-      watching: false, watchName: '', watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
+      watching: false, watchExisting: false, intervalMinutes: '5', settleMinutes: '10', maxPerCheck: '20',
     });
   });
 });
@@ -47,11 +46,6 @@ describe('watch fields', () => {
     expect(wholeHint(' 7 ', 1, 100)).toBeNull();
   });
 
-  it('names the watch after its folder when no name is typed', { tags: ['full'] }, () => {
-    expect(watchNameOf(many({ watchName: '  Coach  ' }))).toBe('Coach');
-    expect(watchNameOf(many({ parentFolder: '/Volumes/Edit/Collected/' }))).toBe('Collected');
-  });
-
   it('needs valid watch numbers only while watching, and a pipeline always', () => {
     expect(manyIsValid(many({ intervalMinutes: '0' }))).toBe(true);
     expect(manyIsValid(many({ watching: true, intervalMinutes: '0' }))).toBe(false);
@@ -59,27 +53,6 @@ describe('watch fields', () => {
     expect(manyIsValid(many({ pipelineId: null }))).toBe(false);
   });
 
-  it('sends a watch with its pipeline, pattern and settings, and keeps the output folder optional', { tags: ['full'] }, () => {
-    const request = toWatchRequest(many({ watching: true, watchName: ' Coach ', maxPerCheck: '15', runOn: 'studio' }), true, false);
-    expect(request).toEqual({
-      name: 'Coach', parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', pipelineId: 1, runOn: 'studio',
-      intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 15, includeExisting: true, enabled: false,
-    });
-    expect(toWatchRequest(many({ outputRoot: '/out' }), false).outputRoot).toBe('/out');
-    expect('outputRoot' in toWatchRequest(many({ outputRoot: ' ' }), false)).toBe(false);
-  });
-
-  it('reads a saved watch back into the form, including its pipeline', { tags: ['full'] }, () => {
-    const watch = {
-      id: 3, name: 'Coach', parentFolder: '/c', pattern: '^.+$', nameTemplate: '{1} reel', pipelineId: 4, pipelineName: 'Short', runOn: 'studio', outputRoot: '/out',
-      steps: [], intervalMinutes: 7, settleMinutes: 3, maxPerCheck: 9, enabled: false, createdAt: 'x', lastCheckedAt: null, lastError: null, waiting: [], createdTotal: 0,
-      status: 'paused', statusLine: '',
-    } as WatchView;
-    expect(formFromWatch(watch)).toMatchObject({
-      parentFolder: '/c', presetId: 'any', pattern: '^.+$', nameTemplate: '{1} reel', pipelineId: 4, runOn: 'studio', outputRoot: '/out', watching: true,
-      watchName: 'Coach', intervalMinutes: '7', settleMinutes: '3', maxPerCheck: '9', watchExisting: false,
-    });
-  });
 });
 
 describe('batchesNow', () => {

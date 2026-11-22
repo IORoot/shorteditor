@@ -11,9 +11,6 @@ from collector_server.production.runner import PassRunner
 from collector_server.production.schema import ensure_schema
 from collector_server.production.service import ProductionService
 from collector_server.production.stage_api import StageStep
-from collector_server.production.watch_models import WatchCreate
-from collector_server.production.watch_repository import WatchRepository
-from collector_server.production.watch_service import WatchService
 from collector_server.production.worker import LocalWorker
 from collector_server.shared.pipeline import PipelineRef
 from tests.production.helpers import FakePipelines, fake_registry
@@ -32,14 +29,13 @@ def world(db, tmp_path):
     inbox, parent = tmp_path / "in", tmp_path / "parent"
     inbox.mkdir()
     parent.mkdir()
-    batches, passes, watches, logs = BatchRepository(db), PassRepository(db), WatchRepository(db), LogRepository(db)
+    batches, passes, logs = BatchRepository(db), PassRepository(db), LogRepository(db)
     pipelines = FakePipelines()
     put(pipelines, 1)
     service = ProductionService(batches, passes, logs, StageLibrary(fake_registry()), pipelines, lambda: NOW, str(tmp_path / "out"), ["local"])
     runner = PassRunner(batches, passes, logs, fake_registry(), pipelines, lambda: NOW)
-    watch_service = WatchService(watches, service, lambda: 1_000_000.0)
     return {"service": service, "passes": passes, "batches": batches, "pipelines": pipelines, "runner": runner,
-            "inbox": inbox, "parent": parent, "usage": ProductionUsage(batches, passes, watches), "watch_service": watch_service}
+            "inbox": inbox, "parent": parent, "usage": ProductionUsage(batches, passes)}
 
 
 def test_a_batch_cannot_use_a_switched_off_or_missing_pipeline(world):
@@ -77,21 +73,12 @@ def test_run_again_can_switch_to_another_pipeline_and_a_custom_batch_must_choose
         world["service"].run_again(custom.id, None)
 
 
-def test_usage_counts_the_batches_and_watches_that_a_switch_would_stop(world):
+def test_usage_counts_the_batches_and_the_watching_ones_that_a_switch_would_stop(world):
     world["service"].create_batch("Coach", str(world["inbox"]), 1, "any", None)
-    world["watch_service"].create(WatchCreate(name="Watch", parent_folder=str(world["parent"]), pattern=r"^\d{4}-.+$", pipeline_id=1))
+    watching = world["service"].create_batch("Sat", str(world["parent"]), 1, "any", None, folders=[], folder_pattern=r"^\d{4}-.+$", watching=True)
     impact = world["usage"].off_impact(1)
     assert (impact.watches, impact.waiting_batches) == (1, 1)
-    assert sorted(item.kind for item in world["usage"].users_of(1)) == ["batch", "watch"]
-
-
-def test_a_watch_is_paused_while_its_pipeline_is_off(world):
-    watch = world["watch_service"].create(WatchCreate(name="Watch", parent_folder=str(world["parent"]), pattern=r"^\d{4}-.+$", pipeline_id=1))
-    put(world["pipelines"], 1, enabled=False)
-    view = world["watch_service"].get(watch.id)
-    assert view.status == "paused" and "is off" in view.status_line
-    result = world["watch_service"].check(watch.id)
-    assert (result.created, result.error) == ([], None)
+    assert sorted(item.id for item in world["usage"].users_of(1)) == sorted([watching.id, world["batches"].list()[0].id])
 
 
 def test_the_pipeline_picker_lists_only_switched_on_pipelines(world):
