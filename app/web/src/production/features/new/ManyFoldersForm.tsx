@@ -30,23 +30,23 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
   const ignoring = ignoresSubfolders(form);
   return (
     <>
+      {watching ? null : (
+        <FormField
+          label="Batch name"
+          value={form.batchName}
+          placeholder={folderNameOf(form.parentFolder.trim()) || 'The parent folder’s name'}
+          helper="Defaults to the parent folder’s name. Type a name to change it."
+          onChange={(event) => onChange({ batchName: event.target.value })}
+        />
+      )}
       <FolderField label="Parent folder" value={form.parentFolder} onChange={(parentFolder) => onChange({ parentFolder })} browse={browse} />
       {watching ? null : (
-        <>
-          <FormField
-            label="Batch name"
-            value={form.batchName}
-            placeholder={folderNameOf(form.parentFolder.trim()) || 'The parent folder’s name'}
-            helper="Defaults to the parent folder’s name. Type a name to change it."
-            onChange={(event) => onChange({ batchName: event.target.value })}
-          />
-          <label className="flex items-center gap-3 text-small text-text-2">
-            <Toggle label="Ignore subfolders" checked={form.ignoreSubfolders} onChange={(ignoreSubfolders) => onChange({ ignoreSubfolders })} />
-            <span>
-              <span className="font-semibold text-text">Ignore subfolders</span> · {form.ignoreSubfolders ? 'the parent folder itself is the one card' : 'each subfolder with videos is a card'}
-            </span>
-          </label>
-        </>
+        <label className="flex items-center gap-3 text-small text-text-2">
+          <Toggle label="Ignore subfolders" checked={form.ignoreSubfolders} onChange={(ignoreSubfolders) => onChange({ ignoreSubfolders })} />
+          <span>
+            <span className="font-semibold text-text">Ignore subfolders</span> · {form.ignoreSubfolders ? 'the parent folder itself is the one card' : 'each subfolder with videos is a card'}
+          </span>
+        </label>
       )}
       {ignoring ? null : (
         <div className="flex items-end gap-3">
