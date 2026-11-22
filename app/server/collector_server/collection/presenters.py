@@ -48,5 +48,6 @@ def present_plan(plan: TransferPlan, transfer: str) -> PlanResult:
         unmatched=len(plan.unmatched),
         not_selected=len(plan.not_selected),
         left_in_place=plan.left_in_place,
+        held_back=plan.held_back,
         left_sample=(plan.unmatched + plan.not_selected)[:LEFT_SAMPLE_SIZE],
     )

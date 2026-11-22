@@ -54,6 +54,8 @@ class TransferPlanner:
         selection = self.select(collector, clips, now)
         buckets, unmatched, left_out = selection.buckets, selection.unmatched, selection.left_out
         plan = self._build(collector.output_folder, buckets)
+        if collector.mode == "auto":
+            self._cap(plan, collector.max_files)
         plan.unmatched = self._names(unmatched, collector.source)
         plan.not_selected = self._names(left_out, collector.source)
         if clips:
@@ -116,6 +118,19 @@ class TransferPlanner:
             if group.renamed:
                 plan.notes.append(f"{relative} already exists, so new clips go to {folder}.")
         return plan
+
+    @staticmethod
+    def _cap(plan: TransferPlan, limit: int) -> None:
+        """An auto-collect run takes at most limit files; the rest stay for the next one."""
+        left = limit
+        for group in plan.groups:
+            kept, group.files = group.files[:left], group.files[left:]
+            plan.held_back += len(group.files)
+            group.files = kept
+            left -= len(kept)
+        plan.groups = [group for group in plan.groups if group.files]
+        if plan.held_back:
+            plan.notes.append(f"{plan.held_back} more matching files will be taken on a later run.")
 
     @staticmethod
     def _names(clips: list[Clip], source: str) -> list[str]:

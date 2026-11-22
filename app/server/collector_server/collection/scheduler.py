@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any, Protocol
 
 from ..shared.clock import Clock
 from .collector_repository import CollectorRepository
@@ -16,6 +18,24 @@ OVERLAP_MESSAGE = "Skipped: the previous run was still moving files"
 UNREACHABLE_MESSAGE = "Source unreachable: nothing was touched"
 
 
+class SourceProbe(Protocol):
+    """What auto-collect looks at: the source's listing, and how many clips the collector's filters would take."""
+
+    def snapshot(self, collector: CollectorRecord) -> Any: ...
+
+    def waiting(self, collector: CollectorRecord) -> int: ...
+
+
+@dataclass
+class WatchInfo:
+    """What is remembered about one auto-collecting collector. Held in memory only, so a restart starts unsettled."""
+
+    last_checked: datetime
+    snapshot: Any = None
+    changed_at: datetime | None = None
+    unreachable: bool = False
+
+
 class Scheduler:
     def __init__(
         self,
@@ -26,6 +46,7 @@ class Scheduler:
         clock: Clock,
         tolerance: timedelta = timedelta(minutes=1),
         undoable: Callable[[int], bool] = lambda run_id: False,
+        probe: SourceProbe | None = None,
     ) -> None:
         self._collectors = collectors
         self._runs = runs
@@ -34,11 +55,13 @@ class Scheduler:
         self._clock = clock
         self._tolerance = tolerance
         self._undoable = undoable
+        self._probe = probe
+        self._watching: dict[int, WatchInfo] = {}
         self._running: set[int] = set()
         self._guard = threading.Lock()
 
     def due_slot(self, collector: CollectorRecord, now: datetime) -> datetime | None:
-        if not collector.enabled or collector.last_slot is None or not collector.cron:
+        if collector.mode != "schedule" or not collector.enabled or collector.last_slot is None or not collector.cron:
             return None
         slot = CronExpression.parse(collector.cron).next_after(collector.last_slot)
         return slot if slot is not None and slot <= now else None
@@ -55,7 +78,43 @@ class Scheduler:
             trigger = "scheduled" if now - slot <= self._tolerance else "caught_up"
             self._collectors.set_last_slot(collector.id, now)
             results.append(self.run(collector, trigger))
+        results.extend(self._poll(now))
         return results
+
+    def watch_info(self, collector_id: int) -> WatchInfo | None:
+        return self._watching.get(collector_id)
+
+    def _poll(self, now: datetime) -> list[RunRecord]:
+        """Auto-collect: look at each source every poll interval, and run once it has held still and clips are waiting."""
+        if self._probe is None:
+            return []
+        runs: list[RunRecord] = []
+        for collector in self._collectors.list():
+            if collector.mode != "auto" or not collector.active:
+                self._watching.pop(collector.id, None)
+                continue
+            seen = self._watching.get(collector.id)
+            if seen is not None and now - seen.last_checked < timedelta(seconds=collector.poll_seconds):
+                continue
+            if not self._checker.is_reachable(collector.source):
+                self._watching[collector.id] = WatchInfo(now, unreachable=True)  # nothing recorded: a down source would fill the history
+                continue
+            snapshot = self._probe.snapshot(collector)
+            if seen is None or seen.unreachable or snapshot != seen.snapshot:
+                self._watching[collector.id] = WatchInfo(now, snapshot, now)
+                continue
+            seen.last_checked = now
+            assert seen.changed_at is not None
+            if now - seen.changed_at < timedelta(seconds=collector.settle_seconds) or self._is_running(collector.id):
+                continue
+            if self._probe.waiting(collector) > 0:
+                runs.append(self.run(collector, "watched"))
+                self._watching[collector.id] = WatchInfo(now)  # the folder has just changed: settle again before the next run
+        return runs
+
+    def _is_running(self, collector_id: int) -> bool:
+        with self._guard:
+            return collector_id in self._running
 
     def run(self, collector: CollectorRecord, trigger: str) -> RunRecord:
         return self.start(collector, trigger, background=False)

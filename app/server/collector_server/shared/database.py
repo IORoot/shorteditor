@@ -52,6 +52,10 @@ _NEW_COLUMNS = {
     "random_selection": "TEXT NOT NULL DEFAULT '{}'",
     "date_sources": "TEXT NOT NULL DEFAULT '[\"mtime\"]'",
     "filename_pattern": "TEXT NOT NULL DEFAULT ''",
+    "mode": "TEXT NOT NULL DEFAULT 'schedule'",
+    "poll_seconds": "INTEGER NOT NULL DEFAULT 60",
+    "settle_seconds": "INTEGER NOT NULL DEFAULT 120",
+    "max_files": "INTEGER NOT NULL DEFAULT 50",
 }
 
 

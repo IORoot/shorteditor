@@ -36,6 +36,10 @@ def _to_record(row: sqlite3.Row) -> CollectorRecord:
         filters=[FilterGroup.model_validate(group) for group in json.loads(row["filters"])],
         date_source=_stored_source(row["date_sources"]),
         filename_pattern=row["filename_pattern"],
+        mode=row["mode"],
+        poll_seconds=row["poll_seconds"],
+        settle_seconds=row["settle_seconds"],
+        max_files=row["max_files"],
     )
 
 
@@ -105,7 +109,7 @@ class CollectorRepository:
 
     def save_schedule(self, collector_id: int, draft: ScheduleDraft, cron: str, now: datetime) -> CollectorRecord | None:
         self._db.execute(
-            "UPDATE collectors SET enabled=?, kind=?, time=?, weekdays=?, day_of_month=?, cron=?, last_slot=? WHERE id=?",
+            "UPDATE collectors SET enabled=?, kind=?, time=?, weekdays=?, day_of_month=?, cron=?, last_slot=?, mode=?, poll_seconds=?, settle_seconds=?, max_files=? WHERE id=?",
             (
                 int(draft.enabled),
                 draft.kind,
@@ -114,6 +118,10 @@ class CollectorRepository:
                 draft.day_of_month,
                 cron,
                 now.isoformat(),
+                draft.mode,
+                draft.poll_seconds,
+                draft.settle_seconds,
+                draft.max_files,
                 collector_id,
             ),
         )

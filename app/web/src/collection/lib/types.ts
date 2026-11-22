@@ -1,7 +1,8 @@
 export type ScheduleKind = 'daily' | 'weekly' | 'monthly' | 'cron';
 export type Transfer = 'move' | 'copy' | 'link';
 export type RunStatus = 'running' | 'done' | 'skipped' | 'failed';
-export type RunTrigger = 'scheduled' | 'manual' | 'caught_up';
+export type RunTrigger = 'scheduled' | 'manual' | 'caught_up' | 'watched';
+export type ScheduleMode = 'schedule' | 'auto';
 export type SourceType = 'local' | 'ssh';
 export type GroupBy = 'none' | 'day' | 'week' | 'month';
 export type RuleKind = 'name' | 'glob' | 'regex' | 'date_range' | 'weekday' | 'window' | 'random';
@@ -14,11 +15,18 @@ export interface ScheduleDraft {
   weekdays: number[];
   dayOfMonth: number;
   cron: string;
+  /** Schedule runs at set times. Auto-collect looks at the source and runs once the folder has stopped changing. */
+  mode: ScheduleMode;
+  pollSeconds: number;
+  settleSeconds: number;
+  maxFiles: number;
 }
 
 export interface Schedule extends ScheduleDraft {
   summary: string;
   nextRun: string | null;
+  /** ISO time of the last look at the source, while auto-collecting. */
+  lastChecked: string | null;
 }
 
 export interface StatusNote {
@@ -138,5 +146,7 @@ export interface PlanResult {
   unmatched: number;
   notSelected: number;
   leftInPlace: number;
+  /** Matching files an auto-collect cap leaves for a later run. */
+  heldBack?: number;
   leftSample: string[];
 }

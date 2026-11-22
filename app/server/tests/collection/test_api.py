@@ -80,3 +80,25 @@ def test_seed_only_runs_on_an_empty_database(collectors, runs, clock):
     assert seed_demo(collectors, service.save_schedule) == 4
     assert seed_demo(collectors, service.save_schedule) == 0
     assert len(collectors.list()) == 4
+
+
+AUTO = {"enabled": False, "kind": "daily", "time": "02:00", "mode": "auto", "pollSeconds": 90, "settleSeconds": 180, "maxFiles": 20}
+
+
+def test_auto_collect_settings_save_and_read_back(client):
+    saved = client.put("/api/collectors/1/schedule", json=AUTO)
+    assert saved.status_code == 200
+    schedule = client.get("/api/collectors/1").json()["schedule"]
+    assert (schedule["mode"], schedule["pollSeconds"], schedule["settleSeconds"], schedule["maxFiles"]) == ("auto", 90, 180, 20)
+    assert schedule["summary"].startswith("Auto-collect")
+    assert schedule["lastChecked"] is None
+
+
+def test_existing_collectors_stay_on_their_schedule_with_default_numbers(client):
+    schedule = client.get("/api/collectors/1").json()["schedule"]
+    assert (schedule["mode"], schedule["pollSeconds"], schedule["settleSeconds"], schedule["maxFiles"]) == ("schedule", 60, 120, 50)
+
+
+@pytest.mark.parametrize("bad", [{"pollSeconds": 10}, {"settleSeconds": 5}, {"maxFiles": 0}, {"mode": "sometimes"}])
+def test_out_of_range_auto_collect_settings_are_refused(client, bad):
+    assert client.put("/api/collectors/1/schedule", json={**AUTO, **bad}).status_code == 422

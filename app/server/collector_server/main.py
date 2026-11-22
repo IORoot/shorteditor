@@ -19,6 +19,7 @@ from .collection.planner import TransferPlanner
 from .collection.run_repository import RunRepository
 from .collection.run_service import RunService
 from .collection.scheduler import Scheduler
+from .collection.source_probe import PlannerProbe
 from .collection.seed import seed_demo
 from .collection.service import CollectorService
 from .collection.source_checker import LocalSourceChecker
@@ -45,9 +46,9 @@ def create_default_app() -> FastAPI:
     planner = TransferPlanner(clock)
     mover = LocalMover(planner, TransferExecutor(files, moves))
     scheduler = Scheduler(
-        collectors, runs, LocalSourceChecker(), mover, clock, undoable=lambda run_id: moves.count(run_id) > 0
+        collectors, runs, LocalSourceChecker(), mover, clock, undoable=lambda run_id: moves.count(run_id) > 0, probe=PlannerProbe(planner)
     )
-    service = CollectorService(collectors, runs, clock)
+    service = CollectorService(collectors, runs, clock, scheduler.watch_info)
     run_service = RunService(collectors, planner, scheduler, UndoService(moves, runs, files))
     seed_demo(collectors, service.save_schedule)
     output_root = os.environ.get("SHORT_EDITOR_OUTPUT") or os.path.join(os.path.dirname(os.path.abspath(db_path)), "production_output")

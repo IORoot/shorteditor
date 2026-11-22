@@ -1,4 +1,4 @@
-import { CalendarClock, History, Hand } from 'lucide-react';
+import { CalendarClock, Eye, History, Hand } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { Run, RunStatus } from '../../lib/types';
 import type { Tone } from '../../../shared/lib/types';
@@ -15,6 +15,7 @@ const TRIGGER: Record<Run['trigger'], { label: string; icon: ReactNode }> = {
   scheduled: { label: 'Scheduled', icon: <CalendarClock size={14} aria-hidden="true" /> },
   manual: { label: 'Manual', icon: <Hand size={14} aria-hidden="true" /> },
   caught_up: { label: 'Caught up', icon: <History size={14} aria-hidden="true" /> },
+  watched: { label: 'Watched', icon: <Eye size={14} aria-hidden="true" /> },
 };
 
 export interface RunRowProps {

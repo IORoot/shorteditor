@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from ..shared.clock import Clock
 from .collector_repository import CollectorRepository
 from .domain import CollectorRecord
 from .config_rules import validate_config
 from .filter_preview import FilterPreviewer
 from .planner import TransferPlanner
-from .models import Collector, CollectorConfig, CollectorCreate, FilterPreviewResult, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft
+from .models import Collector, CollectorConfig, CollectorCreate, FilterPreviewResult, FolderPreview, FolderPreviewRequest, Run, Schedule, ScheduleDraft, StatusNote
 from .presenters import format_moment, present_run
 from .preview import FolderPreviewer
 from .run_repository import RunRepository
 from .schedule import ScheduleRule
+from .scheduler import WatchInfo
 
 
 class CollectorService:
-    def __init__(self, collectors: CollectorRepository, runs: RunRepository, clock: Clock) -> None:
+    def __init__(self, collectors: CollectorRepository, runs: RunRepository, clock: Clock, watch_info: Callable[[int], WatchInfo | None] = lambda collector_id: None) -> None:
+        self._watch_info = watch_info
         self._collectors = collectors
         self._runs = runs
         self._clock = clock
@@ -87,7 +91,11 @@ class CollectorService:
             if record.enabled:
                 upcoming = rule.expression().next_after(self._clock.now())
                 next_run = format_moment(upcoming) if upcoming else None
-        schedule = Schedule(**draft.model_dump(), summary=summary, next_run=next_run)
+        watching = self._watch_info(record.id) if record.mode == "auto" and record.active else None
+        if record.mode == "auto":
+            summary = f"Auto-collect: looks every {record.poll_seconds}s, runs once the folder has been still for {record.settle_seconds}s"
+        schedule = Schedule(**draft.model_dump(), summary=summary, next_run=next_run, last_checked=watching.last_checked.isoformat() if watching else None)
+        note = StatusNote(tone="warn", text="Source unreachable: Auto-collect is waiting for it") if watching and watching.unreachable else None
         config = record.config()
         source = f"ssh://{record.ssh_host}{record.source}" if record.source_type == "ssh" else record.source
         return Collector(
@@ -98,4 +106,5 @@ class CollectorService:
             transfer=record.transfer,  # type: ignore[arg-type]
             config=config,
             schedule=schedule,
+            status_note=note,
         )

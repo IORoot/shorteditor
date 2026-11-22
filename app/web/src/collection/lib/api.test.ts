@@ -24,7 +24,7 @@ describe('ApiClient', () => {
 
   it('sends the schedule draft as a PUT body', { tags: ['full'] }, async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(makeCollector({ id: 2 })));
-    const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '23:00', weekdays: [], dayOfMonth: 1, cron: '' };
+    const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '23:00', weekdays: [], dayOfMonth: 1, cron: '', mode: 'schedule', pollSeconds: 60, settleSeconds: 120, maxFiles: 50 };
     await new ApiClient(fetchImpl).saveSchedule(2, draft);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/collectors/2/schedule');

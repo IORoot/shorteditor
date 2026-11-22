@@ -44,7 +44,13 @@ describe('normalizeCollector', () => {
     const result = normalizeCollector(collector);
     expect(result.config.filters).toEqual([]);
     expect(result.name).toBe('Coach Saturdays');
-    expect(result.schedule).toBe(collector.schedule);
+    expect(result.schedule).toEqual(collector.schedule);
+  });
+
+  it('gives a schedule from a backend without Auto-collect the Schedule mode and default numbers', () => {
+    const { mode, pollSeconds, settleSeconds, maxFiles, lastChecked, ...old } = makeCollector().schedule;
+    const result = normalizeCollector({ ...makeCollector(), schedule: old as never });
+    expect(result.schedule).toMatchObject({ mode: 'schedule', pollSeconds: 60, settleSeconds: 120, maxFiles: 50, lastChecked: null });
   });
 });
 

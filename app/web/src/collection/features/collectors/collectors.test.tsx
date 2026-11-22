@@ -25,6 +25,17 @@ describe('CollectorRow', () => {
     expect(screen.getByText('1 skipped')).toBeInTheDocument();
   });
 
+  it('shows when an auto-collecting collector last looked, and that it waits while the source is down', () => {
+    const now = Date.now();
+    const auto = { ...base, schedule: { ...base.schedule, mode: 'auto' as const, lastChecked: new Date(now - 12_000).toISOString() } };
+    const { rerender } = render(<CollectorRow collector={auto} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
+    expect(screen.getByText('Auto-collecting · checked 12s ago')).toBeInTheDocument();
+    rerender(<CollectorRow collector={{ ...auto, schedule: { ...auto.schedule, lastChecked: null } }} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
+    expect(screen.getByText('Auto-collecting · not checked yet')).toBeInTheDocument();
+    rerender(<CollectorRow collector={{ ...auto, active: false }} selected={false} onSelect={() => undefined} onToggle={() => undefined} />);
+    expect(screen.getByText('Turned off')).toBeInTheDocument();
+  });
+
   it('selects by id and toggles with the new value', () => {
     const onSelect = vi.fn();
     const onToggle = vi.fn();

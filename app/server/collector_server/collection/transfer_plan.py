@@ -36,6 +36,7 @@ class TransferPlan:
     notes: list[str] = field(default_factory=list)
     unmatched: list[str] = field(default_factory=list)
     not_selected: list[str] = field(default_factory=list)
+    held_back: int = 0  # matching files left for a later run by an auto-collect cap
 
     @property
     def left_in_place(self) -> int:

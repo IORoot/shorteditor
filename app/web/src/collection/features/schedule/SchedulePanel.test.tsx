@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ScheduleDraft } from '../../lib/types';
 import { SchedulePanel } from './SchedulePanel';
 
-const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '02:00', weekdays: [], dayOfMonth: 1, cron: '0 2 * * *' };
+const draft: ScheduleDraft = { enabled: true, kind: 'daily', time: '02:00', weekdays: [], dayOfMonth: 1, cron: '0 2 * * *', mode: 'schedule', pollSeconds: 60, settleSeconds: 120, maxFiles: 50 };
 
 function renderPanel(overrides: Partial<Parameters<typeof SchedulePanel>[0]> = {}) {
   const props = {
@@ -60,5 +60,28 @@ describe('SchedulePanel', () => {
   it('shows a save error', { tags: ['full'] }, () => {
     renderPanel({ error: 'Cron has 4 fields' });
     expect(screen.getByRole('alert')).toHaveTextContent('Cron has 4 fields');
+  });
+
+  it('switches the collector between a schedule and Auto-collect', () => {
+    const props = renderPanel();
+    expect(screen.queryByLabelText('Check every (seconds)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Auto-collect' }));
+    expect(props.onChange).toHaveBeenCalledWith({ ...draft, mode: 'auto' });
+  });
+
+  it('under Auto-collect shows the look interval, settle time and cap, not the schedule fields, and sends changes', () => {
+    const props = renderPanel({ draft: { ...draft, mode: 'auto' } });
+    expect(screen.getByLabelText('Check every (seconds)')).toHaveValue(60);
+    expect(screen.getByLabelText('Wait until still for (seconds)')).toHaveValue(120);
+    expect(screen.getByLabelText('Most files per run')).toHaveValue(50);
+    expect(screen.queryByLabelText('Time')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Weekly' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Check every (seconds)'), { target: { value: '90' } });
+    expect(props.onChange).toHaveBeenLastCalledWith({ ...draft, mode: 'auto', pollSeconds: 90 });
+  });
+
+  it('says how many matching files are waiting before the first run', () => {
+    renderPanel({ draft: { ...draft, mode: 'auto' }, waiting: 12 });
+    expect(screen.getByText('12 matching files are waiting. The first run will take them.')).toBeInTheDocument();
   });
 });

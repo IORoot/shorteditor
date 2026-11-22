@@ -31,6 +31,10 @@ class CollectorRecord:
     filters: list[FilterGroup] = field(default_factory=list)
     date_source: str = "modified"
     filename_pattern: str = ""
+    mode: str = "schedule"
+    poll_seconds: int = 60
+    settle_seconds: int = 120
+    max_files: int = 50
 
     @classmethod
     def from_config(cls, config: CollectorConfig) -> "CollectorRecord":
@@ -69,6 +73,10 @@ class CollectorRecord:
             weekdays=self.weekdays,
             day_of_month=self.day_of_month,
             cron=self.cron,
+            mode=self.mode,  # type: ignore[arg-type]
+            poll_seconds=self.poll_seconds,
+            settle_seconds=self.settle_seconds,
+            max_files=self.max_files,
         )
 
 

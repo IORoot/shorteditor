@@ -13,8 +13,8 @@ import { EditCollectorScreen } from './features/editor/EditCollectorScreen';
 import { PlanDialog, type PlanMode } from './features/transfer/PlanDialog';
 
 function draftFrom(collector: Collector): ScheduleDraft {
-  const { enabled, kind, time, weekdays, dayOfMonth, cron } = collector.schedule;
-  return { enabled, kind, time, weekdays, dayOfMonth, cron };
+  const { enabled, kind, time, weekdays, dayOfMonth, cron, mode, pollSeconds, settleSeconds, maxFiles } = collector.schedule;
+  return { enabled, kind, time, weekdays, dayOfMonth, cron, mode, pollSeconds, settleSeconds, maxFiles };
 }
 
 export interface CollectionPageProps {
@@ -54,6 +54,9 @@ export function CollectionPage({ active = true }: CollectionPageProps) {
 
   const runs = useLoad<Run[]>(selected ? () => api.listRuns(selected.id) : null, [selected?.id]);
   const plan = useLoad<PlanResult>(dialog && selected ? () => api.dryRun(selected.id) : null, [dialog?.opened, selected?.id]);
+  // under Auto-collect, how many matching clips the source already holds: the first run will take them
+  const draftMode = (localDraft ?? (selected ? draftFrom(selected) : null))?.mode;
+  const waiting = useLoad<PlanResult>(selected && draftMode === 'auto' ? () => api.dryRun(selected.id) : null, [selected?.id, draftMode]);
   const anyRunning = runs.state.status === 'ready' && runs.state.data.some((run) => run.status === 'running');
 
   useEffect(() => {
@@ -61,6 +64,17 @@ export function CollectionPage({ active = true }: CollectionPageProps) {
     const timer = setInterval(runs.reload, 1500);
     return () => clearInterval(timer);
   }, [anyRunning, active, runs.reload]);
+
+  // an auto-collecting collector looks at its source on its own: keep "last checked" and any run it made fresh
+  const watching = list.some((c) => c.active && c.schedule.mode === 'auto');
+  useEffect(() => {
+    if (!watching || !active) return;
+    const timer = setInterval(() => {
+      collectors.reload();
+      runs.reload();
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [watching, active, collectors.reload, runs.reload]);
 
   const openDialog = (mode: PlanMode) => {
     setDialogError(null);
@@ -267,6 +281,7 @@ export function CollectionPage({ active = true }: CollectionPageProps) {
             draft={draft}
             summary={selected.schedule.summary}
             nextRun={selected.schedule.nextRun}
+            waiting={waiting.state.status === 'ready' ? waiting.state.data.totalFiles + (waiting.state.data.heldBack ?? 0) : null}
             saving={saving}
             error={saveError}
             onChange={setLocalDraft}

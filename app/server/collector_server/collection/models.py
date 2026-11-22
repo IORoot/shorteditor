@@ -22,11 +22,17 @@ class ScheduleDraft(CamelModel):
     weekdays: list[int] = Field(default_factory=list)
     day_of_month: int = Field(default=1, ge=1, le=31)
     cron: str = ""
+    # Auto-collect: instead of a schedule, look at the source and run when matching files have stopped changing.
+    mode: Literal["schedule", "auto"] = "schedule"
+    poll_seconds: int = Field(default=60, ge=30, le=86400)
+    settle_seconds: int = Field(default=120, ge=30, le=86400)
+    max_files: int = Field(default=50, ge=1, le=100000)
 
 
 class Schedule(ScheduleDraft):
     summary: str
     next_run: str | None
+    last_checked: str | None = None  # ISO time of the last look at the source, while auto-collecting
 
 
 class StatusNote(CamelModel):
@@ -143,7 +149,7 @@ class Run(CamelModel):
     id: int
     collector_id: int
     started_at: str
-    trigger: Literal["scheduled", "manual", "caught_up"]
+    trigger: Literal["scheduled", "manual", "caught_up", "watched"]
     status: Literal["running", "done", "skipped", "failed"]
     outcome: str
     can_undo: bool
@@ -168,4 +174,5 @@ class PlanResult(CamelModel):
     unmatched: int = 0
     not_selected: int = 0
     left_in_place: int = 0
+    held_back: int = 0  # matching files an auto-collect cap leaves for a later run
     left_sample: list[str] = Field(default_factory=list)

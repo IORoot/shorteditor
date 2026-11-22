@@ -22,7 +22,9 @@ export function normalizeConfig(config: CollectorConfig): CollectorConfig {
 }
 
 export function normalizeCollector(collector: Collector): Collector {
-  return { ...collector, active: collector.active ?? true, config: normalizeConfig(collector.config) };
+  const { schedule } = collector;
+  const filled = { ...schedule, mode: schedule.mode ?? 'schedule', pollSeconds: schedule.pollSeconds ?? 60, settleSeconds: schedule.settleSeconds ?? 120, maxFiles: schedule.maxFiles ?? 50, lastChecked: schedule.lastChecked ?? null };
+  return { ...collector, active: collector.active ?? true, schedule: filled, config: normalizeConfig(collector.config) };
 }
 
 export function isOutdatedBackendConfig(config: CollectorConfig): boolean {
