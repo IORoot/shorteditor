@@ -15,3 +15,5 @@
 **Post type**: whether the Postiz pipeline schedules a post in its next free slot, or saves it as a draft. Default: schedule.
 
 **Output (tab)**: where the results of export stages are shown.
+
+**Auto-collect**: a collector mode, chosen instead of a schedule, that runs the collector when files matching its filters appear in the source and have stopped changing. It only collects; it does not start Production. Not the same as a Production watch, which creates batches from a folder.
