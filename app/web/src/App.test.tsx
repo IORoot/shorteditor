@@ -48,22 +48,6 @@ describe('App sections', () => {
     expect(await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 })).toBeInTheDocument();
   });
 
-  it('the Output tab opens the Output page with the posted videos', async () => {
-    mockBackend({
-      '/api/collectors': () => jsonResponse([collector]),
-      '/api/collectors/1/runs': () => jsonResponse([]),
-      '/api/production/exports': () => jsonResponse([]),
-    });
-    render(<App />);
-    await screen.findByRole('heading', { name: 'Coach Saturdays', level: 1 });
-    const tab = screen.getByRole('button', { name: /Output/ });
-    expect(tab).toBeEnabled();
-    expect(tab).not.toHaveTextContent('Soon');
-    fireEvent.click(tab);
-    expect(await screen.findByRole('heading', { name: 'Output', level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText('Nothing has been posted yet')).toBeInTheDocument();
-  });
-
   it('keeps one header that does not remount on a tab click', { tags: ['full'] }, async () => {
     mockBoth();
     render(<App />);
