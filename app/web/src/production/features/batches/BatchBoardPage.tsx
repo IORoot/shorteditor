@@ -1,7 +1,6 @@
 import { ArrowLeft, CheckSquare, Pencil, Play } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
-import { Toggle } from '../../../shared/components/ui/Toggle';
 import { useAction } from '../../../shared/hooks/useAction';
 import { useLoad } from '../../../shared/hooks/useLoad';
 import { cardHash, goTo } from '../../../shared/lib/route';
@@ -38,7 +37,6 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
   const run = useAction();
   const save = useAction();
   const act = useAction();
-  const auto = useAction();
   const defaults = useLoad(() => api.defaults(), []);
   const pipelines = useLoad(() => api.pipelines(), []);
   const [editing, setEditing] = useState(false);
@@ -68,12 +66,6 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
     if (await run.run(() => api.runAgain(batchId))) {
       board.reload();
       detail.reload();
-    }
-  };
-  const setAutoRun = async (on: boolean) => {
-    if (await auto.run(() => api.updateBatch(batchId, { autoRun: on }))) {
-      detail.reload();
-      board.reload();
     }
   };
   const toggleChoosing = () => {
@@ -156,10 +148,6 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2.5">
           <Button icon={<CheckSquare size={15} aria-hidden="true" />} onClick={toggleChoosing} disabled={cards.length === 0}>{choosing ? 'Done' : 'Select cards'}</Button>
-          <label className="flex items-center gap-2 text-small font-semibold text-text-2">
-            <Toggle label="Auto run" checked={batch?.autoRun ?? false} disabled={!batch || auto.busy} onChange={(on) => void setAutoRun(on)} />
-            Auto run
-          </label>
           <Button icon={<Pencil size={15} aria-hidden="true" />} onClick={startEdit} disabled={!batch}>Edit</Button>
           <Button variant="primary" icon={<Play size={15} aria-hidden="true" />} onClick={runAgain} disabled={run.busy || busy || cards.length === 0}>
             {run.busy ? 'Starting…' : 'Run again'}
@@ -169,7 +157,6 @@ export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.
         </div>
       </div>
       {run.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{run.error}</p> : null}
-      {auto.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{auto.error}</p> : null}
       {!choosing && act.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{act.error}</p> : null}
       {!choosing ? <Outcome results={results} /> : null}
       {editing && batch ? (

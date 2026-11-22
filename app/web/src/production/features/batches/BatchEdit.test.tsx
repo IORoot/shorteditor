@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProductionApi } from '../../lib/api';
 import type { BatchListItem } from '../../lib/types';
@@ -39,6 +39,17 @@ describe('editing a batch from its board', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(api.updateBatch).toHaveBeenCalledWith(1, { name: 'Coach Tuesdays', pipelineId: 2 }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit batch' })).toBeNull());
+  });
+
+  it('has no Auto run switch in its header: Auto run is set in the dialog', async () => {
+    const api = apiWith();
+    render(<BatchBoardPage api={api as unknown as Api} batchId={1} onBack={() => undefined} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit batch' });
+    expect(screen.getAllByRole('switch', { name: 'Auto run' })).toHaveLength(1);
+    fireEvent.click(within(dialog).getByRole('switch', { name: 'Auto run' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(api.updateBatch).toHaveBeenCalledWith(1, { autoRun: true }));
   });
 
   it('keeps the dialog open with the server message when the save is refused', async () => {

@@ -102,13 +102,3 @@ describe('BatchList row icons', () => {
     expect(screen.queryByRole('button', { name: 'Delete Coach' })).toBeNull();
   });
 });
-
-describe('BatchBoardPage auto run', () => {
-  it('turns auto run on for the batch from its header', { tags: ['full'] }, async () => {
-    const api = apiWith([makeCard({ name: 'Coach', status: 'held', batchId: 1, passId: 11 })]);
-    api.batchDetail.mockResolvedValue({ batch: { id: 1, name: 'Coach', inputFolder: '/in', steps: [], runOn: 'any', outputRoot: '/out', createdAt: '', autoRun: false }, passes: [] });
-    render(<BatchBoardPage api={api as unknown as Api} batchId={1} onBack={() => undefined} />);
-    fireEvent.click(await screen.findByRole('switch', { name: 'Auto run' }));
-    await waitFor(() => expect(api.updateBatch).toHaveBeenCalledWith(1, { autoRun: true }));
-  });
-});
