@@ -71,7 +71,8 @@ def build_router(service: ProductionService, watch_service: WatchService | None 
 
     @router.patch("/batches/{batch_id}", response_model=Batch)
     def update_batch(batch_id: Id, request: BatchUpdate) -> Batch:
-        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root, request.auto_run, request.folder_template, request.pipeline_id, request.run_on))
+        return guarded(lambda: service.update_batch(batch_id, request.name, request.output_root, request.auto_run, request.folder_template, request.pipeline_id, request.run_on,
+                                                                  request.watching, request.watch_interval_minutes, request.watch_settle_minutes, request.watch_max_per_check))
 
     @router.post("/batches/delete", response_model=BatchesDeleted)
     def delete_batches(request: BatchesDelete) -> BatchesDeleted:

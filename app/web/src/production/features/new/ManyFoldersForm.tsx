@@ -30,15 +30,13 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
   const ignoring = ignoresSubfolders(form);
   return (
     <>
-      {watching ? null : (
-        <FormField
-          label="Batch name"
-          value={form.batchName}
-          placeholder={folderNameOf(form.parentFolder.trim()) || 'The parent folder’s name'}
-          helper="Defaults to the parent folder’s name. Type a name to change it."
-          onChange={(event) => onChange({ batchName: event.target.value })}
-        />
-      )}
+      <FormField
+        label="Batch name"
+        value={form.batchName}
+        placeholder={folderNameOf(form.parentFolder.trim()) || 'The parent folder’s name'}
+        helper="Defaults to the parent folder’s name. Type a name to change it."
+        onChange={(event) => onChange({ batchName: event.target.value })}
+      />
       <FolderField label="Parent folder" value={form.parentFolder} onChange={(parentFolder) => onChange({ parentFolder })} browse={browse} />
       {watching ? null : (
         <label className="flex items-center gap-3 text-small text-text-2">
@@ -67,9 +65,6 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
           </div>
         </div>
       )}
-      {watching ? (
-        <FormField label="Name each batch" helper="{name} is the folder name. Groups in the pattern are {1}, {2} or {group_name}." value={form.nameTemplate} onChange={(event) => onChange({ nameTemplate: event.target.value })} />
-      ) : null}
       {ignoring ? null : (
         <section aria-label="Preview" className="flex flex-col gap-2">
           {preview.status === 'idle' ? <p className="text-small text-text-3">Choose a parent folder to see the folders inside it.</p> : null}
@@ -85,7 +80,7 @@ export function ManyFoldersForm({ form, onChange, defaults, pipelines, onManageP
       )}
       {watch !== undefined ? <WatchOptions value={form} onChange={onChange} mode={watch} folderCount={willCreate} /> : null}
       <p className="text-caption font-semibold tracking-wide text-text-3">Settings for every batch</p>
-      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun={watch === undefined} showFolderTemplate={!watching} inputFolder={form.parentFolder} />
+      <BatchSettingsFields value={form} onChange={onChange} defaults={defaults} pipelines={pipelines} onManagePipelines={onManagePipelines} browse={browse} showAutoRun showFolderTemplate inputFolder={form.parentFolder} />
     </>
   );
 }

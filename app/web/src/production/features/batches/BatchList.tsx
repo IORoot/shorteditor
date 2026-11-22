@@ -126,6 +126,7 @@ export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, onEd
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-body font-semibold">{item.name}</span>
                   <span className="truncate text-caption text-text-3">{lastSegment(item.inputFolder)} · {item.folderCount} {item.folderCount === 1 ? 'card' : 'cards'}</span>
+                  {item.watching && item.watchLine ? <span className="truncate text-caption text-primary">{item.watchLine}</span> : null}
                 </span>
               </span>
               <span className="truncate text-small text-text-2">{item.pipelineName ?? 'No pipeline'}</span>

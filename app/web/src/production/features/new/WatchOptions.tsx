@@ -1,6 +1,6 @@
 import { FormField } from '../../../shared/components/ui/FormField';
 import { Toggle } from '../../../shared/components/ui/Toggle';
-import { wholeHint, watchNameOf, type ManyForm } from '../../lib/presets';
+import { wholeHint, type ManyForm } from '../../lib/presets';
 
 /**
  * 'optional': in the new-batch form, with a switch. 'locked': adding a watch, so watching is on already.
@@ -30,8 +30,7 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
     );
   }
 
-  const existingLabel = `Also create batches for the ${folderCount} ${folderCount === 1 ? 'folder' : 'folders'} already there`;
-  const perCheck = value.maxPerCheck.trim() || '20';
+  const existingLabel = `Also add the ${folderCount} ${folderCount === 1 ? 'folder' : 'folders'} already there as cards`;
   return (
     <section aria-label="Watching" className="flex flex-col gap-4 rounded-[14px] bg-surface p-3.5 ring-1 ring-line">
       {mode === 'optional' ? (
@@ -40,12 +39,6 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
           <Toggle label="Keep watching this folder" checked={value.watching} onChange={(checked) => onChange({ watching: checked })} />
         </div>
       ) : null}
-      <FormField
-        label="Watch name"
-        placeholder={watchNameOf({ ...value, watchName: '' })}
-        value={value.watchName}
-        onChange={(event) => onChange({ watchName: event.target.value })}
-      />
       <div className="grid grid-cols-2 gap-4">
         <FormField
           label="Check every (minutes)"
@@ -55,7 +48,7 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
           onChange={(event) => onChange({ intervalMinutes: event.target.value })}
         />
         <FormField
-          label="At most per check (batches)"
+          label="Most new folders per check"
           inputMode="numeric"
           error={wholeHint(value.maxPerCheck, PER_CHECK.min, PER_CHECK.max) ?? undefined}
           value={value.maxPerCheck}
@@ -78,8 +71,8 @@ export function WatchOptions({ value, onChange, mode, folderCount }: WatchOption
           </div>
           <p className="text-caption text-text-3">
             {value.watchExisting
-              ? `On: they are batched now, up to ${perCheck} per check; the rest follow on later checks.`
-              : 'Off: folders already there are skipped. Any still being copied get a batch once they settle.'}
+              ? 'On: they become cards of this batch now.'
+              : 'Off: folders already there are skipped. Any still being copied are added once they settle.'}
           </p>
         </div>
       ) : null}

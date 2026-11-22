@@ -112,53 +112,34 @@ describe('Production folders and watches, end to end', () => {
     backend.state.preview = settledPreview();
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     expect(await screen.findByText('2026-11-14_a')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create 1 batch' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
     expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
-      parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', pipelineId: 1, autoRun: false,
+      parentFolder: '/c', pattern: DATE_PATTERN, name: 'c', nameTemplate: '{name}', runOn: 'any', pipelineId: 1, autoRun: false,
     });
     await waitFor(() => expect(screen.getByRole('button', { name: 'c, Queued' })).toBeInTheDocument());
   });
 
-  it('with Keep watching on, Start watching saves the watch and creates no one-off batches', async () => {
+  it('with Keep watching on, one watching batch is created, and no separate watch', async () => {
     const backend = folderServer();
     backend.state.preview = settledPreview();
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     await screen.findByText('2026-11-14_a');
     fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
-    fireEvent.change(screen.getByLabelText('Watch name'), { target: { value: 'Coach' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Coach' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create batch and start watching' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New batch' })).toBeNull());
-    expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(0);
-    expect(backend.posted(/\/watches$/)[0].body).toEqual({
-      name: 'Coach', parentFolder: '/c', pattern: DATE_PATTERN, nameTemplate: '{name}', runOn: 'any', pipelineId: 1,
-      intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, includeExisting: false, enabled: true,
+    expect(backend.posted(/\/watches$/)).toHaveLength(0);
+    expect(backend.posted(/\/batches\/bulk$/)[0].body).toEqual({
+      parentFolder: '/c', pattern: DATE_PATTERN, name: 'Coach', nameTemplate: '{name}', runOn: 'any', pipelineId: 1, autoRun: false,
+      watching: true, watchExisting: false, watchIntervalMinutes: 5, watchSettleMinutes: 10, watchMaxPerCheck: 20,
     });
-  });
-
-  it('with the existing folders switched on, the watch is created once and says it will batch them now', { tags: ['full'] }, async () => {
-    const backend = folderServer();
-    backend.state.preview = settledPreview();
-    await openProduction();
-    fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
-    fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
-    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-    await screen.findByText('2026-11-14_a');
-    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
-    fireEvent.click(screen.getByRole('switch', { name: 'Also create batches for the 2 folders already there' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Create 2 batches and start watching' }));
-    await waitFor(() => expect(backend.posted(/\/watches$/)).toHaveLength(1));
-    expect(backend.posted(/\/watches$/)[0].body).toMatchObject({ includeExisting: true });
-    expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(0);
   });
 
   it('a pattern the server refuses shows its message and keeps Start watching disabled', { tags: ['full'] }, async () => {
@@ -166,12 +147,11 @@ describe('Production folders and watches, end to end', () => {
     backend.state.previewError = 'The pattern could take far too long to match';
     await openProduction();
     fireEvent.click(await screen.findByRole('button', { name: 'New batch' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Subfolders' }));
     fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/c' } });
     fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
     fireEvent.click(await screen.findByRole('switch', { name: 'Keep watching this folder' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('far too long');
-    expect(screen.getByRole('button', { name: 'Start watching' })).toBeDisabled();
-    expect(backend.posted(/\/watches$/)).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Create batch and start watching' })).toBeDisabled();
+    expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(0);
   });
 });

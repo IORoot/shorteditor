@@ -24,6 +24,7 @@ from .schema import ensure_schema
 from .stage_api import DEFAULT_AI_MODEL
 from .service import ProductionService
 from .watch_repository import WatchRepository
+from .batch_watch import BatchWatcher
 from .watch_scheduler import WatchScheduler
 from .watch_service import WatchService
 from .worker import LocalWorker
@@ -34,6 +35,7 @@ class Production:
     router: APIRouter
     queue: JobQueue
     scheduler: WatchScheduler | None = None
+    batch_watcher: BatchWatcher | None = None
 
     def tick(self) -> None:
         """Check the watches and start whatever can start."""
@@ -46,6 +48,7 @@ class Production:
     def tick_watches(self) -> None:
         """Scanning folders can be slow on a network drive, so the server runs this on its own thread."""
         self._guarded(self.scheduler)
+        self._guarded(self.batch_watcher)
 
     @staticmethod
     def _guarded(part) -> None:  # noqa: ANN001
@@ -85,4 +88,4 @@ def build_production(db: Database, default_output_root: str, library: StageLibra
     service = ProductionService(batches, passes, logs, library, pipelines, _now, default_output_root, list(workers), labels, exports=exports)
     watches = WatchRepository(db)
     watch_service = WatchService(watches, service, time.time)
-    return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time))
+    return Production(build_router(service, watch_service), queue, WatchScheduler(watches, watch_service, time.time), BatchWatcher(service, batches, passes, time.time))

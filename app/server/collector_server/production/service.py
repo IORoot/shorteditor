@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import threading
+import time
 from collections.abc import Callable
 
 from collector_server.shared.handoff import HandoffClip, HandoffFolder, StageHandoff
@@ -56,7 +57,8 @@ def _inherited(overrides: dict[str, dict]) -> dict[str, dict]:
 class ProductionService:
     def __init__(self, batches: BatchRepository, passes: PassRepository, logs: LogRepository, library: StageLibrary, pipelines: PipelineSource,
                  now: Callable[[], str], default_output_root: str, worker_ids: list[str], worker_labels: dict[str, str] | None = None,
-                 runs: RunRepository | None = None, exports: ExportRepository | None = None) -> None:
+                 runs: RunRepository | None = None, exports: ExportRepository | None = None, clock: Callable[[], float] = time.time) -> None:
+        self._clock = clock  # epoch seconds, for how long a new folder has been quiet
         self._batches, self._passes, self._logs, self._library, self._pipelines, self._now = batches, passes, logs, library, pipelines, now
         self._runs = runs or RunRepository(passes.db)
         self._exports = exports or ExportRepository(passes.db, now)
@@ -207,7 +209,8 @@ class ProductionService:
 
     def create_batch(self, name: str, input_folder: str, pipeline_id: int | None, run_on: str, output_root: str | None,
                      steps: list[StageStep] | None = None, folders: list[str] | None = None, folder_pattern: str | None = None,
-                     auto_run: bool = True, folder_template: str | None = None, ignore_subfolders: bool = False) -> Batch:
+                     auto_run: bool = True, folder_template: str | None = None, ignore_subfolders: bool = False,
+                     watching: bool = False, watch_interval_minutes: int = 5, watch_settle_minutes: int = 10, watch_max_per_check: int = 20) -> Batch:
         steps, pipeline_id = self._resolve(pipeline_id, steps)
         name = name.strip()
         if not name or len(name) > 120 or any(ord(c) < 32 for c in name):
@@ -223,7 +226,8 @@ class ProductionService:
             folders = self._card_folders(input_folder)  # the scan is slow, so it is done before the lock is taken
         with self._lock:
             stored = [] if pipeline_id is not None else steps  # a pipeline batch reads its steps from the pipeline
-            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now(), folder_pattern, auto_run, template, ignore_subfolders)
+            batch = self._batches.create(name, input_folder, pipeline_id, stored, run_on, root, self._now(), folder_pattern, auto_run, template, ignore_subfolders,
+                                         watching, watch_interval_minutes, watch_settle_minutes, watch_max_per_check)
             try:
                 self._start_run(batch, folders)
             except Exception:
@@ -344,6 +348,8 @@ class ProductionService:
         # One batch for the parent folder. Each folder the pattern matches that has videos is a card.
         # Ignoring subfolders makes the parent folder the one card, and the pattern is not used.
         pattern = "^.+$" if request.ignore_subfolders else request.pattern
+        if request.watching:
+            self._check_watch(request.ignore_subfolders, request.watch_interval_minutes, request.watch_settle_minutes, request.watch_max_per_check)
         compiled = self.check_folder_settings(request.parent_folder, pattern, request.name_template, request.pipeline_id, request.run_on, request.output_root)
         check_template(request.name_template, re.compile(""))  # the batch is named once, from the parent folder, so only {name} can be used
         scan = None if request.ignore_subfolders else scan_parent(request.parent_folder, compiled)  # the slow part, done before the lock is taken
@@ -355,16 +361,47 @@ class ProductionService:
             if self._parent_batched(request.parent_folder, taken):
                 raise InvalidInputError("This folder already has a batch. Run that batch again to pick up new folders")
             folders = [f for f in folders if os.path.realpath(f) not in taken]  # a folder already in a batch stays in that batch
-            if not folders:
+            if request.watching and not request.watch_existing:
+                folders = []  # the folders already there are skipped for good; only ones that appear later become cards
+            elif not folders:
                 raise InvalidInputError("Nothing to create: no folder that matches the pattern has videos or is not already batched")
             batch = self.create_batch(name, request.parent_folder, request.pipeline_id, request.run_on, request.output_root,
                                       folders=folders, folder_pattern=None if request.ignore_subfolders else request.pattern, auto_run=request.auto_run,
-                                      folder_template=request.folder_template, ignore_subfolders=request.ignore_subfolders)
+                                      folder_template=request.folder_template, ignore_subfolders=request.ignore_subfolders, watching=request.watching,
+                                      watch_interval_minutes=request.watch_interval_minutes, watch_settle_minutes=request.watch_settle_minutes,
+                                      watch_max_per_check=request.watch_max_per_check)
+            if request.watching:
+                self._batches.mark_seen(batch.id, folders, self._now())  # a card deleted later is not added again by the watch
+                if not request.watch_existing and scan is not None:
+                    self._skip_settled(batch, scan)
         if scan is None:
             return BulkResult(created=[batch], skipped=[])
         chosen = set(folders)
         skipped = [self._item(c, taken, batched=False) for c in scan.matches if c.path not in chosen]
         return BulkResult(created=[batch], skipped=skipped)
+
+    def _check_watch(self, ignore_subfolders: bool, interval: int | None, settle: int | None, per_check: int | None) -> None:
+        if ignore_subfolders:
+            raise InvalidInputError("Only a batch made from subfolders can keep watching")
+        for value, low, high, what in ((interval, 1, 1440, "The check interval"), (settle, 0, 1440, "The settle time"), (per_check, 1, 100, "The most folders per check")):
+            if value is not None and not low <= value <= high:
+                raise InvalidInputError(f"{what} must be between {low} and {high}")
+
+    def _skip_settled(self, batch: Batch, scan) -> None:  # noqa: ANN001
+        """The folders already there, and settled, are not for the watch to add later. Ones still being copied stay eligible."""
+        settled = [c.path for c in scan.matches if c.clip_count > 0 and not c.incomplete and (c.newest_change is None or self._clock() - c.newest_change >= batch.watch_settle_minutes * 60)]
+        self._batches.mark_seen(batch.id, settled, self._now())
+
+    def add_cards(self, batch_id: int, folders: list[str]) -> int:
+        """New cards in the batch's newest run, queued when the batch runs by itself and held when not. Used by a batch's watch."""
+        with self._lock:
+            batch = self._need_batch(batch_id)
+            run = self._runs.latest(batch_id) or self._runs.create(batch_id, self._now())
+            status = "queued" if batch.auto_run else "held"
+            for folder in folders:
+                self._passes.create(batch.id, self._now(), None, run_id=run.id, folder=folder, status=status)
+            self._batches.mark_seen(batch_id, folders, self._now())
+            return len(folders)
 
     def taken_folders(self) -> set[str]:
         """Every folder a batch already covers: each batch's input folder and each card's folder."""
@@ -451,7 +488,9 @@ class ProductionService:
         return self._logs.entries(pass_id, kind)
 
     def update_batch(self, batch_id: int, name: str | None, output_root: str | None, auto_run: bool | None = None,
-                     folder_template: str | None = None, pipeline_id: int | None = None, run_on: str | None = None) -> Batch:
+                     folder_template: str | None = None, pipeline_id: int | None = None, run_on: str | None = None,
+                     watching: bool | None = None, watch_interval_minutes: int | None = None, watch_settle_minutes: int | None = None,
+                     watch_max_per_check: int | None = None) -> Batch:
         """Everything a batch is set up with changes at once, except its input folder. The pipeline and worker change only while no card
         is waiting or running, and take effect on the next run. The output folder and folder name can change only while no card
         has a finished video, so every video that is kept can still be served from the folder it was made in."""
@@ -484,6 +523,13 @@ class ProductionService:
                 fields["run_on"] = run_on
             if pipeline_id is not None:
                 self._usable(pipeline_id)
+            if watching or any(v is not None for v in (watch_interval_minutes, watch_settle_minutes, watch_max_per_check)):
+                self._check_watch(batch.ignore_subfolders or batch.folder_pattern is None, watch_interval_minutes, watch_settle_minutes, watch_max_per_check)
+            if watching is not None:
+                fields["watching"] = int(watching)
+            for name, value in (("watch_interval_minutes", watch_interval_minutes), ("watch_settle_minutes", watch_settle_minutes), ("watch_max_per_check", watch_max_per_check)):
+                if value is not None:
+                    fields[name] = value
             if root_changes:
                 fields["output_root"] = output_root
             if template_changes:
@@ -496,6 +542,8 @@ class ProductionService:
                         self._passes.update(card.id, only_if_status="held", status="queued")
             if fields:
                 self._batches.update(batch_id, **fields)
+            if watching and not batch.watching and batch.folder_pattern is not None:  # from now on: what is there already is not the watch's to add
+                self._skip_settled(self._need_batch(batch_id), scan_parent(batch.input_folder, compile_pattern(batch.folder_pattern)))
             if pipeline_id is not None and pipeline_id != batch.pipeline_id:
                 self._batches.set_pipeline(batch_id, pipeline_id)
             return self._need_batch(batch_id)
@@ -606,7 +654,7 @@ class ProductionService:
                 id=batch.id, name=batch.name, input_folder=batch.input_folder, pipeline_name=ref.name if ref else None,
                 run_number=run.number if run else None, run_at=run.created_at if run else None, folder_count=len(cards),
                 approved_count=sum(c.status == "approved" for c in cards), failed_count=sum(c.status == "failed" for c in cards),
-                status=_batch_status(cards),
+                status=_batch_status(cards), watching=batch.watching, watch_line=_watch_line(batch) if batch.watching else None,
             ))
         return items
 
@@ -631,6 +679,18 @@ class ProductionService:
         latest = self._runs.latest(current.batch_id)
         if latest is None or current.run_id != latest.id:
             raise StateError("A newer run exists for this batch. Act on the newest run")
+
+
+def _watch_line(batch: Batch) -> str:
+    """How a batch's watch is doing, in a few words."""
+    if batch.watch_last_error:
+        return f"Watching · problem: {batch.watch_last_error}"
+    if batch.watch_waiting:
+        names = ", ".join(batch.watch_waiting[:2]) + (f" and {len(batch.watch_waiting) - 2} more" if len(batch.watch_waiting) > 2 else "")
+        return f"Watching · waiting for {names} to settle"
+    if batch.watch_last_checked_at is None:
+        return "Watching · not checked yet"
+    return f"Watching · checks every {batch.watch_interval_minutes} min"
 
 
 def _batch_status(cards: list[Pass]) -> str:

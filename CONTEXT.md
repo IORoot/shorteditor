@@ -17,3 +17,5 @@
 **Output (tab)**: where the results of export stages are shown.
 
 **Auto-collect**: a collector mode, chosen instead of a schedule, that runs the collector when files matching its filters appear in the source and have stopped changing. It only collects; it does not start Production. Not the same as a Production watch, which creates batches from a folder.
+
+**Watching batch**: a batch made from subfolders with watching on. It checks its input folder every few minutes, and each new matching folder that has stopped changing becomes a new card in the same batch. There is no separate watch record for a new one. (Older separate watches still run on the server until they are converted.)

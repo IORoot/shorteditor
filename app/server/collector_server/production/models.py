@@ -29,6 +29,13 @@ class Batch(CamelModel):
     folder_pattern: str | None = None  # set for a batch made from many folders: the folders its pattern matches are its cards
     auto_run: bool = True  # on: new cards start by themselves. Off: they wait as held until started
     ignore_subfolders: bool = False  # on: the batch's one card is the input folder itself, not its subfolders
+    watching: bool = False  # on: the batch keeps checking its input folder, and a new matching folder becomes a new card
+    watch_interval_minutes: int = 5
+    watch_settle_minutes: int = 10  # a new folder must have been quiet this long before it becomes a card
+    watch_max_per_check: int = 20
+    watch_last_checked_at: str | None = None
+    watch_last_error: str | None = None
+    watch_waiting: list[str] = []  # new folders still changing, by name
 
 
 class Run(CamelModel):
@@ -78,6 +85,10 @@ class BatchUpdate(CamelModel):
     auto_run: bool | None = None  # None leaves it alone; turning it on starts the cards that are held
     pipeline_id: int | None = None  # None leaves the pipeline alone; takes effect on the next run, and not while a card is waiting or running
     run_on: str | None = Field(None, max_length=100)  # None leaves the worker alone; the same rule as the pipeline
+    watching: bool | None = None  # None leaves it alone; only a batch made from subfolders can watch
+    watch_interval_minutes: int | None = None
+    watch_settle_minutes: int | None = None
+    watch_max_per_check: int | None = None
 
 
 class BatchesDelete(CamelModel):
@@ -134,6 +145,8 @@ class BatchListItem(CamelModel):
     approved_count: int
     failed_count: int
     status: str  # empty, queued, running, review, failed or approved, derived from the cards of the newest run
+    watching: bool = False
+    watch_line: str | None = None  # how the watch is doing, for a watching batch
 
 
 class BatchCard(CamelModel):
@@ -224,6 +237,11 @@ class BulkCreate(CamelModel):
     output_root: str | None = None
     folder_template: str | None = None  # None uses the default folder name
     auto_run: bool = False  # off: the cards wait until the batch is started
+    watching: bool = False  # keep checking the parent folder: a new matching folder becomes a new card of this batch
+    watch_existing: bool = True  # when watching: the folders already there become cards (else they are skipped for good)
+    watch_interval_minutes: int = 5
+    watch_settle_minutes: int = 10
+    watch_max_per_check: int = 20
 
 
 class BulkResult(CamelModel):

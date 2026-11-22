@@ -89,10 +89,10 @@ describe('batchesNow', () => {
     { name: 'old', path: '/p/old', clipCount: 2, status: 'already_batched' },
   ] as never, notMatching: 0, truncated: false };
 
-  it('counts the batches created now: one for a one-off run, or the existing folders when watching includes them', { tags: ['full'] }, () => {
+  it('counts one batch for the parent folder, and a watching batch is made even with nothing there yet', { tags: ['full'] }, () => {
     expect(batchesNow(many(), preview)).toBe(1);
-    expect(batchesNow(many({ watching: true }), preview)).toBe(0);
-    expect(batchesNow(many({ watching: true, watchExisting: true }), preview)).toBe(2);
+    expect(batchesNow(many({ watching: true }), preview)).toBe(1);
+    expect(batchesNow(many({ watching: true, watchExisting: true }), preview)).toBe(1);
   });
 });
 
@@ -102,6 +102,13 @@ describe('toBulkRequest', () => {
       parentFolder: '/Volumes/Edit/Collected', pattern: PATTERN_PRESETS[0].pattern, name: 'Collected', nameTemplate: '{name} coach', runOn: 'studio', pipelineId: 1, autoRun: false,
     });
     expect(toBulkRequest(many({ outputRoot: ' /out ' })).outputRoot).toBe('/out');
+  });
+
+  it('a watching batch also sends its watch settings', () => {
+    expect(toBulkRequest(many({ watching: true, watchExisting: true, intervalMinutes: '15', settleMinutes: '3', maxPerCheck: '7' }))).toMatchObject({
+      watching: true, watchExisting: true, watchIntervalMinutes: 15, watchSettleMinutes: 3, watchMaxPerCheck: 7,
+    });
+    expect(toBulkRequest(many()).watching).toBeUndefined();
   });
 });
 

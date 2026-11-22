@@ -91,6 +91,16 @@ export interface Batch {
   createdAt: string;
   /** On: new cards start by themselves. Off: they wait as held until started. */
   autoRun: boolean;
+  /** Set for a batch made from subfolders: the pattern the subfolders match. Only such a batch can watch. */
+  folderPattern?: string | null;
+  /** On: the batch keeps checking its input folder, and a new matching folder becomes a new card. */
+  watching?: boolean;
+  watchIntervalMinutes?: number;
+  watchSettleMinutes?: number;
+  watchMaxPerCheck?: number;
+  watchLastCheckedAt?: string | null;
+  watchLastError?: string | null;
+  watchWaiting?: string[];
 }
 
 /** One row of the batch list: a batch with the status of its newest run. */
@@ -105,6 +115,9 @@ export interface BatchListItem {
   approvedCount: number;
   failedCount: number;
   status: 'empty' | 'queued' | 'held' | 'paused' | 'running' | 'review' | 'failed' | 'stopped' | 'approved';
+  /** On: the batch watches its folder. `watchLine` says how that is going. */
+  watching?: boolean;
+  watchLine?: string | null;
 }
 
 export interface BatchUpdate {
@@ -115,6 +128,10 @@ export interface BatchUpdate {
   /** Takes effect on the next run, and not while a card is waiting or running. */
   pipelineId?: number;
   runOn?: string;
+  watching?: boolean;
+  watchIntervalMinutes?: number;
+  watchSettleMinutes?: number;
+  watchMaxPerCheck?: number;
 }
 
 export type StageRunStatus = 'running' | 'done' | 'failed' | 'blocked';
@@ -187,6 +204,13 @@ export interface FolderPreview {
 }
 
 export interface BulkCreate {
+  /** Keep checking the parent folder: a new matching folder becomes a new card of this batch. */
+  watching?: boolean;
+  /** When watching: the folders already there become cards (else they are skipped for good). */
+  watchExisting?: boolean;
+  watchIntervalMinutes?: number;
+  watchSettleMinutes?: number;
+  watchMaxPerCheck?: number;
   parentFolder: string;
   pattern: string;
   /** The batch's name. Left out, the server uses the parent folder's name. */

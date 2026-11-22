@@ -6,6 +6,7 @@ import { EditBatchDialog } from './EditBatchDialog';
 const batch: Batch = {
   id: 7, name: 'Coach', inputFolder: '/Volumes/Edit/Sat', steps: [], pipelineId: 1, runOn: 'any', outputRoot: '/Volumes/Edit/output',
   folderTemplate: '{{name}}-{{id}}', createdAt: '2026-11-20T10:00:00Z', autoRun: false,
+  folderPattern: '^.+$', watching: false, watchIntervalMinutes: 5, watchSettleMinutes: 10, watchMaxPerCheck: 20,
 };
 const defaults = { outputRoot: '/out', workers: [{ id: 'local', label: 'This computer' }, { id: 'studio', label: 'Studio Mac' }] };
 const pipelines = [{ id: 1, name: 'Join clips', stageCount: 5 }, { id: 2, name: 'Highlights', stageCount: 4 }];
@@ -55,5 +56,40 @@ describe('EditBatchDialog', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(props.onClose).toHaveBeenCalled();
+  });
+
+  it('switches watching on, with its timing, for a batch made from subfolders', () => {
+    const props = show();
+    expect(screen.getByRole('switch', { name: 'Keep watching this folder' })).not.toBeChecked();
+    expect(screen.queryByLabelText('Check every (minutes)')).toBeNull();
+    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
+    expect(screen.getByLabelText('Check every (minutes)')).toHaveValue('5');
+    fireEvent.change(screen.getByLabelText('Check every (minutes)'), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText('Wait until nothing has changed for (minutes)'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Most new folders per check'), { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(props.onSave).toHaveBeenCalledWith({ watching: true, watchIntervalMinutes: 15, watchSettleMinutes: 3, watchMaxPerCheck: 7 });
+  });
+
+  it('shows the watch settings of a batch that is already watching, and switches it off', () => {
+    const props = show({ batch: { ...batch, watching: true, watchIntervalMinutes: 9 } });
+    expect(screen.getByRole('switch', { name: 'Keep watching this folder' })).toBeChecked();
+    expect(screen.getByLabelText('Check every (minutes)')).toHaveValue('9');
+    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(props.onSave).toHaveBeenCalledWith({ watching: false });
+  });
+
+  it('keeps Save off for a timing number the server would refuse', () => {
+    show({ batch: { ...batch, watching: true } });
+    fireEvent.change(screen.getByLabelText('Check every (minutes)'), { target: { value: '0' } });
+    expect(screen.getByText('Use a whole number from 1 to 1440')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('says a batch of one folder cannot watch, and offers no switch', () => {
+    show({ batch: { ...batch, folderPattern: null } });
+    expect(screen.queryByRole('switch', { name: 'Keep watching this folder' })).toBeNull();
+    expect(screen.getByText(/Only a batch made from subfolders can watch/)).toBeInTheDocument();
   });
 });

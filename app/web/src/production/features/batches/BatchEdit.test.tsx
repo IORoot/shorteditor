@@ -74,6 +74,11 @@ describe('editing a batch from the list', () => {
     expect(onEdit).toHaveBeenCalledWith(item);
   });
 
+  it('shows how a watching batch is doing under its name', () => {
+    render(<BatchList items={[{ ...item, watching: true, watchLine: 'Watching · waiting for 2026-11-14_b to settle' }]} filter="all" onFilter={() => undefined} onOpen={() => undefined} />);
+    expect(screen.getByText('Watching · waiting for 2026-11-14_b to settle')).toBeInTheDocument();
+  });
+
   it('has no Edit button when the list cannot edit', () => {
     render(<BatchList items={[item]} filter="all" onFilter={() => undefined} onOpen={() => undefined} onAct={() => undefined} />);
     expect(screen.queryByRole('button', { name: 'Edit Coach' })).toBeNull();

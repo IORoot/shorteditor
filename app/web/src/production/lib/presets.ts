@@ -68,7 +68,6 @@ export function wholeHint(text: string, min: number, max: number): string | null
   return value >= min && value <= max ? null : `Use a whole number from ${min} to ${max}`;
 }
 
-const MAX_NAME = 120;
 /** The last part of a folder path: the folder's own name. */
 /** The default output folder: an "output" folder beside the input folder. Mirrors the server. Empty when the folder has no parent to sit beside. */
 export const outputBeside = (inputFolder: string): string => {
@@ -87,14 +86,12 @@ export function watchNameOf(form: ManyForm): string {
 const watchValid = (form: ManyForm): boolean =>
   wholeHint(form.intervalMinutes, 1, 1440) === null &&
   wholeHint(form.settleMinutes, 0, 1440) === null &&
-  wholeHint(form.maxPerCheck, 1, 100) === null &&
-  watchNameOf(form).length > 0 && watchNameOf(form).length <= MAX_NAME;
+  wholeHint(form.maxPerCheck, 1, 100) === null;
 
-/** How many batches Create will make right now: the one-off ones, or only the existing folders a watch batches at its start. */
+/** How many batches Create will make: one for the parent folder, unless every folder with videos is already in a batch. A watching batch is made regardless. */
 export function batchesNow(form: ManyForm, preview: FolderPreview): number {
   if (ignoresSubfolders(form)) return 1;
-  if (!form.watching) return createCount(preview);
-  return form.watchExisting ? preview.matches.filter((m) => m.status === 'will_create').length : 0;
+  return form.watching ? 1 : createCount(preview);  // a watching batch is made even when no folder is there yet
 }
 
 /** The form for editing a saved watch. The existing-folders switch is not part of a watch, so it stays off. */
@@ -146,6 +143,13 @@ export function toBulkRequest(form: ManyForm): BulkCreate {
     pipelineId: form.pipelineId as number, runOn: form.runOn, autoRun: form.autoRun,
   };
   if (ignoresSubfolders(form)) request.ignoreSubfolders = true;
+  if (form.watching) {
+    request.watching = true;
+    request.watchExisting = form.watchExisting;
+    request.watchIntervalMinutes = Number(form.intervalMinutes.trim());
+    request.watchSettleMinutes = Number(form.settleMinutes.trim());
+    request.watchMaxPerCheck = Number(form.maxPerCheck.trim());
+  }
   if (form.outputRoot.trim() !== '') request.outputRoot = form.outputRoot.trim();
   if (customTemplate(form.folderTemplate)) request.folderTemplate = form.folderTemplate.trim();
   return request;

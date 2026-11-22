@@ -66,6 +66,12 @@ CREATE TABLE IF NOT EXISTS production_exports (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS production_batch_seen (
+    batch_id INTEGER NOT NULL REFERENCES production_batches(id) ON DELETE CASCADE,
+    folder TEXT NOT NULL,
+    seen_at TEXT NOT NULL,
+    PRIMARY KEY (batch_id, folder)
+);
 CREATE INDEX IF NOT EXISTS production_exports_by_card ON production_exports (card_id, id);
 CREATE INDEX IF NOT EXISTS production_exports_by_sha ON production_exports (sha256);
 CREATE INDEX IF NOT EXISTS production_cards_by_status ON production_cards (status, id);
@@ -75,7 +81,7 @@ CREATE INDEX IF NOT EXISTS production_logs_by_card ON production_logs (card_id, 
 
 # Columns added after the tables first existed. CREATE TABLE IF NOT EXISTS never adds them to an old table.
 _NEW_COLUMNS = {
-    "production_batches": {"pipeline_id": "INTEGER", "folder_pattern": "TEXT", "auto_run": "INTEGER NOT NULL DEFAULT 1", "folder_template": "TEXT NOT NULL DEFAULT '{{name}}-{{id}}'", "ignore_subfolders": "INTEGER NOT NULL DEFAULT 0"},
+    "production_batches": {"pipeline_id": "INTEGER", "folder_pattern": "TEXT", "auto_run": "INTEGER NOT NULL DEFAULT 1", "folder_template": "TEXT NOT NULL DEFAULT '{{name}}-{{id}}'", "ignore_subfolders": "INTEGER NOT NULL DEFAULT 0", "watching": "INTEGER NOT NULL DEFAULT 0", "watch_interval_minutes": "INTEGER NOT NULL DEFAULT 5", "watch_settle_minutes": "INTEGER NOT NULL DEFAULT 10", "watch_max_per_check": "INTEGER NOT NULL DEFAULT 20", "watch_last_checked_at": "TEXT", "watch_last_error": "TEXT", "watch_waiting": "TEXT NOT NULL DEFAULT '[]'"},
     "production_cards": {"steps_used": "TEXT NOT NULL DEFAULT '[]'", "blocked_items": "TEXT NOT NULL DEFAULT '[]'", "stages": "TEXT NOT NULL DEFAULT '[]'"},
     "production_watches": {"pipeline_id": "INTEGER"},
     "production_exports": {"batch_id": "INTEGER NOT NULL DEFAULT 0", "source_folder": "TEXT NOT NULL DEFAULT ''", "batch_name": "TEXT NOT NULL DEFAULT ''", "card_number": "INTEGER NOT NULL DEFAULT 0"},  # for a table made before records outlived their cards

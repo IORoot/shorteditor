@@ -22,10 +22,13 @@ class BatchRepository:
 
     def create(self, name: str, input_folder: str, pipeline_id: int | None, steps: list[StageStep], run_on: str, output_root: str, now: str,
                folder_pattern: str | None = None, auto_run: bool = True, folder_template: str = DEFAULT_FOLDER_TEMPLATE,
-               ignore_subfolders: bool = False) -> Batch:
+               ignore_subfolders: bool = False, watching: bool = False, watch_interval_minutes: int = 5, watch_settle_minutes: int = 10,
+               watch_max_per_check: int = 20) -> Batch:
         cursor = self._db.execute(
-            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at, folder_pattern, auto_run, folder_template, ignore_subfolders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now, folder_pattern, int(auto_run), folder_template, int(ignore_subfolders)),
+            "INSERT INTO production_batches (name, input_folder, pipeline_id, steps, run_on, output_root, created_at, folder_pattern, auto_run, folder_template, ignore_subfolders, "
+            "watching, watch_interval_minutes, watch_settle_minutes, watch_max_per_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (name, input_folder, pipeline_id, json.dumps([step.model_dump() for step in steps]), run_on, output_root, now, folder_pattern, int(auto_run), folder_template, int(ignore_subfolders),
+             int(watching), watch_interval_minutes, watch_settle_minutes, watch_max_per_check),
         )
         return self.get(cursor.lastrowid)  # type: ignore[return-value]
 
@@ -38,11 +41,21 @@ class BatchRepository:
 
     def update(self, batch_id: int, **fields: str) -> None:
         """Only the name, the output folder, its folder name, the auto run flag and the worker can be changed in place."""
-        unknown = set(fields) - {"name", "output_root", "folder_template", "auto_run", "run_on"}
+        unknown = set(fields) - {"name", "output_root", "folder_template", "auto_run", "run_on", "watching", "watch_interval_minutes", "watch_settle_minutes", "watch_max_per_check"}
         if unknown:
             raise ValueError(f"Cannot update {', '.join(sorted(unknown))}")
         assignments = ", ".join(f"{name} = ?" for name in fields)
         self._db.execute(f"UPDATE production_batches SET {assignments} WHERE id = ?", (*fields.values(), batch_id))
+
+    def record_watch_check(self, batch_id: int, at: str, error: str | None, waiting: list[str]) -> None:
+        self._db.execute("UPDATE production_batches SET watch_last_checked_at = ?, watch_last_error = ?, watch_waiting = ? WHERE id = ?", (at, error, json.dumps(waiting), batch_id))
+
+    def seen(self, batch_id: int) -> set[str]:
+        """Folders the batch's watch has dealt with: a card was made for them, or they were skipped on purpose."""
+        return {row["folder"] for row in self._db.query("SELECT folder FROM production_batch_seen WHERE batch_id = ?", (batch_id,))}
+
+    def mark_seen(self, batch_id: int, folders: list[str], at: str) -> None:
+        self._db.executemany("INSERT OR IGNORE INTO production_batch_seen (batch_id, folder, seen_at) VALUES (?, ?, ?)", [(batch_id, folder, at) for folder in folders])
 
     def set_pipeline(self, batch_id: int, pipeline_id: int) -> None:
         self._db.execute("UPDATE production_batches SET pipeline_id = ? WHERE id = ?", (pipeline_id, batch_id))
@@ -60,6 +73,9 @@ class BatchRepository:
             pipeline_id=row["pipeline_id"], steps=[StageStep(**step) for step in json.loads(row["steps"])],
             output_root=row["output_root"], folder_template=row["folder_template"], created_at=row["created_at"], folder_pattern=row["folder_pattern"],
             auto_run=bool(row["auto_run"]), ignore_subfolders=bool(row["ignore_subfolders"]),
+            watching=bool(row["watching"]), watch_interval_minutes=row["watch_interval_minutes"], watch_settle_minutes=row["watch_settle_minutes"],
+            watch_max_per_check=row["watch_max_per_check"], watch_last_checked_at=row["watch_last_checked_at"], watch_last_error=row["watch_last_error"],
+            watch_waiting=json.loads(row["watch_waiting"]),
         )
 
 

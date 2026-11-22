@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PATTERN_PRESETS } from '../../lib/presets';
 import { FolderField } from './FolderField';
@@ -24,11 +24,10 @@ const preview = {
 
 function open(over: Partial<React.ComponentProps<typeof NewBatchDialog>> = {}) {
   const onCreateMany = vi.fn();
-  const onSaveWatch = vi.fn();
   const onClose = vi.fn();
   const previewFolders = vi.fn().mockResolvedValue(preview);
-  render(<NewBatchDialog defaults={defaults} pipelines={[{ id: 1, name: 'Join clips', stageCount: 5 }]} busy={false} error={null} onCreateMany={onCreateMany} onSaveWatch={onSaveWatch} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
-  return { onCreateMany, onSaveWatch, onClose, previewFolders };
+  render(<NewBatchDialog defaults={defaults} pipelines={[{ id: 1, name: 'Join clips', stageCount: 5 }]} busy={false} error={null} onCreateMany={onCreateMany} onClose={onClose} browse={browse} previewFolders={previewFolders} {...over} />);
+  return { onCreateMany, onClose, previewFolders };
 }
 
 
@@ -223,52 +222,37 @@ describe('NewBatchDialog, keeping watch', () => {
   const pipeline = () => fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
   const settled = async () => { await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); }); };
 
-  it('with Keep watching on, Start watching saves a watch and creates no one-off batches', async () => {
-    const { onSaveWatch, onCreateMany } = open();
+  it('with Keep watching on, one watching batch is created, named like any batch', async () => {
+    const { onCreateMany } = open();
     parent('/c');
     pipeline();
     await settled();
     fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
-    fireEvent.change(screen.getByLabelText('Watch name'), { target: { value: 'Coach' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
-    expect(onSaveWatch).toHaveBeenCalledTimes(1);
-    expect(onSaveWatch.mock.calls[0]).toEqual([expect.objectContaining({ parentFolder: '/c', watching: true, watchName: 'Coach', watchExisting: false }), null]);
-    expect(onCreateMany).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Batch name')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Watch name')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Batch name'), { target: { value: 'Coach' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create batch and start watching' }));
+    expect(onCreateMany).toHaveBeenCalledTimes(1);
+    expect(onCreateMany.mock.calls[0][0]).toEqual(expect.objectContaining({ parentFolder: '/c', watching: true, batchName: 'Coach', watchExisting: false }));
   });
 
-  it('with the existing folders switched on, the button says it creates them and starts watching', { tags: ['full'] }, async () => {
-    open();
+  it('can start watching a folder that has nothing in it yet', async () => {
+    open({ previewFolders: vi.fn().mockResolvedValue({ matches: [], notMatching: 0, truncated: false }) });
+    parent('/empty');
+    pipeline();
+    await settled();
+    fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
+    expect(screen.getByRole('button', { name: 'Create batch and start watching' })).toBeEnabled();
+  });
+
+  it('the existing folders can be switched on to become cards now', { tags: ['full'] }, async () => {
+    const { onCreateMany } = open();
     parent('/c');
     pipeline();
     await settled();
     fireEvent.click(screen.getByRole('switch', { name: 'Keep watching this folder' }));
-    fireEvent.click(screen.getByRole('switch', { name: 'Also create batches for the 2 folders already there' }));
-    expect(screen.getByRole('button', { name: 'Create 2 batches and start watching' })).toBeEnabled();
-  });
-
-  it('adding a watch from the Watches panel is watch-only, with no mode switch and a title that says so', { tags: ['full'] }, async () => {
-    const { onSaveWatch } = open({ watchTarget: { kind: 'add' } });
-    expect(screen.getByRole('heading', { name: 'New watch' })).toBeInTheDocument();
-    parent('/c');
-    pipeline();
-    await settled();
-    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
-    expect(onSaveWatch).toHaveBeenCalledWith(expect.objectContaining({ parentFolder: '/c', watching: true }), null);
-  });
-
-  it('editing a watch is prefilled, saves to that watch, and offers no existing-folders switch', { tags: ['full'] }, async () => {
-    const watch = {
-      id: 3, name: 'Coach', parentFolder: '/c/coach', pattern: PATTERN_PRESETS[0].pattern, nameTemplate: '{name}', runOn: 'any', outputRoot: null,
-      steps: [], pipelineId: 1, pipelineName: 'Join clips', intervalMinutes: 5, settleMinutes: 10, maxPerCheck: 20, enabled: true, createdAt: 'x', lastCheckedAt: null, lastError: null, waiting: [], createdTotal: 0,
-      status: 'watching' as const, statusLine: '',
-    };
-    const { onSaveWatch } = open({ watchTarget: { kind: 'edit', watch } });
-    expect(screen.getByRole('heading', { name: 'Edit watch' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Parent folder')).toHaveValue('/c/coach');
-    expect(screen.getByLabelText('Watch name')).toHaveValue('Coach');
-    expect(screen.queryByRole('switch', { name: /Also create batches/ })).toBeNull();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save watch' })).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: 'Save watch' }));
-    expect(onSaveWatch).toHaveBeenCalledWith(expect.objectContaining({ parentFolder: '/c/coach', watching: true }), 3);
+    fireEvent.click(screen.getByRole('switch', { name: 'Also add the 2 folders already there as cards' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create batch and start watching' }));
+    expect(onCreateMany.mock.calls[0][0]).toEqual(expect.objectContaining({ watching: true, watchExisting: true }));
   });
 });

@@ -8,7 +8,7 @@ import type { BrowseResult } from '../../../shared/lib/types';
 import { useAction } from '../../../shared/hooks/useAction';
 import type { ProductionApi } from '../../lib/api';
 import { listSubtitle, type BatchFilter } from '../../lib/batchList';
-import { toBulkRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
+import { toBulkRequest } from '../../lib/presets';
 import type { ActionName, ActionResult, Batch, BatchListItem, BatchUpdate, Defaults, PipelineChoice } from '../../lib/types';
 import { BatchList } from '../batches/BatchList';
 import { NewBatchDialog } from '../new/NewBatchDialog';
@@ -17,7 +17,7 @@ import { DeleteBatchesDialog } from './DeleteBatchesDialog';
 import { ChosenBar, Outcome } from '../actions/ActionBar';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'batchList' | 'batchDetail' | 'updateBatch' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'createWatch' | 'deleteBatches' | 'batchActions'>;
+  api: Pick<ProductionApi, 'batchList' | 'batchDetail' | 'updateBatch' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'deleteBatches' | 'batchActions'>;
   browse?: (path?: string) => Promise<BrowseResult>;
   /** Opens the Pipeline tab from the New batch dialog. */
   onManagePipelines?: () => void;
@@ -128,13 +128,6 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
     create.clear();
     setNewOpen(false);
   };
-  const saveWatch = async (form: ManyForm) => {
-    const saved = await create.run(() => api.createWatch(toWatchRequest(form, form.watchExisting)));
-    if (!saved) return;
-    list.reload(); // a new watch may have made batches straight away
-    closeNew();
-  };
-
   return (
     <main className="flex flex-1 flex-col gap-5 px-2">
       <div className="flex items-center justify-between gap-4">
@@ -217,7 +210,6 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
               list.reload();
             }
           }}
-          onSaveWatch={saveWatch}
         />
       ) : null}
     </main>

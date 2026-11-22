@@ -2,12 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import type { BrowseResult } from '../../../shared/lib/types';
 import { useFolderPreview } from '../../hooks/useFolderPreview';
-import { batchesNow, defaultManyForm, folderNameOf, formFromWatch, ignoresSubfolders, manyIsValid, type ManyForm } from '../../lib/presets';
-import type { Defaults, FolderPreview, PipelineChoice, WatchView } from '../../lib/types';
+import { batchesNow, defaultManyForm, folderNameOf, ignoresSubfolders, manyIsValid, type ManyForm } from '../../lib/presets';
+import type { Defaults, FolderPreview, PipelineChoice } from '../../lib/types';
 import { ManyFoldersForm } from './ManyFoldersForm';
-
-/** Opened from the Watches panel: adding a new watch, or changing a saved one. */
-export type WatchTarget = { kind: 'add' } | { kind: 'edit'; watch: WatchView };
 
 export interface NewBatchDialogProps {
   defaults: Defaults;
@@ -16,21 +13,13 @@ export interface NewBatchDialogProps {
   busy: boolean;
   error: string | null;
   onCreateMany: (form: ManyForm) => void;
-  /** A watch is saved: `watchId` is null for a new one. */
-  onSaveWatch: (form: ManyForm, watchId: number | null) => void;
   onClose: () => void;
   browse: (path?: string) => Promise<BrowseResult>;
   previewFolders: (parentFolder: string, pattern: string, outputRoot?: string) => Promise<FolderPreview>;
-  watchTarget?: WatchTarget;
 }
 
-function initialMany(target: WatchTarget | undefined): ManyForm {
-  if (!target) return defaultManyForm();
-  return target.kind === 'edit' ? formFromWatch(target.watch) : { ...defaultManyForm(), watching: true };
-}
-
-export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, error, onCreateMany, onSaveWatch, onClose, browse, previewFolders, watchTarget }: NewBatchDialogProps) {
-  const [many, setMany] = useState<ManyForm>(() => initialMany(watchTarget));
+export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, error, onCreateMany, onClose, browse, previewFolders }: NewBatchDialogProps) {
+  const [many, setMany] = useState<ManyForm>(defaultManyForm);
   const watchingNow = many.watching;
   const ignoring = ignoresSubfolders(many);
   const preview = useFolderPreview(previewFolders, many.parentFolder, many.pattern, many.outputRoot, 400, !ignoring);
@@ -58,15 +47,13 @@ export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, e
   const ready = ignoring ? manyIsValid(many) : manyIsValid(many) && preview.status === 'ready' && (watchingNow || count > 0);
   const batches = `${count} ${count === 1 ? 'batch' : 'batches'}`;
   const label = (() => {
-    if (watchTarget?.kind === 'edit') return busy ? 'Saving…' : 'Save watch';
-    if (watchingNow) return busy ? 'Starting…' : count > 0 && many.watchExisting ? `Create ${batches} and start watching` : 'Start watching';
+    if (watchingNow) return busy ? 'Starting…' : 'Create batch and start watching';
     return busy ? 'Creating…' : count === 0 ? 'Create batches' : `Create ${batches}`;
   })();
   const submit = () => {
-    if (watchingNow) onSaveWatch(many, watchTarget?.kind === 'edit' ? watchTarget.watch.id : null);
-    else onCreateMany(many);
+    onCreateMany(many);
   };
-  const title = watchTarget ? (watchTarget.kind === 'edit' ? 'Edit watch' : 'New watch') : 'New batch';
+  const title = 'New batch';
 
   return (
     <dialog open aria-label={title} className="modal modal-open">
@@ -80,7 +67,7 @@ export function NewBatchDialog({ defaults, pipelines, onManagePipelines, busy, e
           onManagePipelines={onManagePipelines}
           browse={browse}
           preview={preview}
-          watch={watchTarget ? (watchTarget.kind === 'edit' ? 'edit' : 'locked') : 'optional'}
+          watch="optional"
         />
         {error ? <p role="alert" className="break-words rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{error}</p> : null}
         <div className="flex justify-end gap-2.5">
