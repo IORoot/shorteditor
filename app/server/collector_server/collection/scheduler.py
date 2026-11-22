@@ -34,6 +34,8 @@ class WatchInfo:
     snapshot: Any = None
     changed_at: datetime | None = None
     unreachable: bool = False
+    nothing_to_take: bool = False  # the filters matched no clip for this listing, so it is not planned again until it changes
+    failed_here: bool = False  # a run on this listing failed, so it is not retried until the listing changes
 
 
 class Scheduler:
@@ -107,9 +109,15 @@ class Scheduler:
             assert seen.changed_at is not None
             if now - seen.changed_at < timedelta(seconds=collector.settle_seconds) or self._is_running(collector.id):
                 continue
-            if self._probe.waiting(collector) > 0:
-                runs.append(self.run(collector, "watched"))
-                self._watching[collector.id] = WatchInfo(now)  # the folder has just changed: settle again before the next run
+            if seen.nothing_to_take or seen.failed_here:
+                continue
+            if self._probe.waiting(collector) == 0:
+                seen.nothing_to_take = True
+                continue
+            run = self.run(collector, "watched")
+            runs.append(run)
+            # the folder has just changed: settle again before the next run. After a failure, wait for it to change on its own.
+            self._watching[collector.id] = WatchInfo(now, self._probe.snapshot(collector), now, failed_here=True) if run.status == "failed" else WatchInfo(now)
         return runs
 
     def _is_running(self, collector_id: int) -> bool:

@@ -188,3 +188,40 @@ def test_the_probe_listing_changes_with_a_file_size_or_a_new_file(collectors, cl
     assert grown != before
     make_clip(source / "f.mp4", SAT)
     assert probe.snapshot(record) != grown
+
+
+def test_a_settled_folder_with_nothing_to_collect_is_not_planned_again_until_it_changes(setup):
+    _, _, _, probe, _, poll, _ = setup
+    asked = []
+    original = probe.waiting
+    probe.waiting = lambda collector: (asked.append(1), original(collector))[1]
+    probe.matching = 0
+    for _ in range(8):
+        poll()
+    assert len(asked) == 1
+    probe.listing = ("a.mp4", "b.mp4")
+    probe.matching = 1
+    poll(); poll()
+    assert [r.status for r in poll()] == ["done"]
+
+
+def test_a_run_that_fails_is_not_repeated_until_the_folder_changes(setup, runs):
+    _, _, mover, probe, collector_id, poll, _ = setup
+    mover.error = RuntimeError("disk full")
+    poll(); poll()
+    assert [r.status for r in poll()] == ["failed"]
+    for _ in range(8):
+        assert poll() == []
+    assert len(runs.recent(collector_id)) == 1
+    mover.error = None
+    probe.listing = ("b.mp4",)
+    poll(); poll()
+    assert [r.status for r in poll()] == ["done"]
+
+
+def test_a_copy_of_an_auto_collecting_collector_starts_on_a_schedule_not_auto_collecting(collectors, runs, clock):
+    service = CollectorService(collectors, runs, clock)
+    record = collectors.add("Coach", "/Volumes/Coach")
+    service.save_schedule(record.id, auto())
+    copy = service.duplicate_collector(record.id)
+    assert (copy.schedule.mode, copy.schedule.enabled) == ("schedule", False)

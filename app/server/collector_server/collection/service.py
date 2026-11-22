@@ -48,7 +48,7 @@ class CollectorService:
             return None
         config = record.config().model_copy(update={"name": f"{record.name} copy"})
         copy = self._collectors.add_with_config(config)
-        draft = record.draft().model_copy(update={"enabled": False})
+        draft = record.draft().model_copy(update={"enabled": False, "mode": "schedule"})
         saved = self._collectors.save_schedule(copy.id, draft, ScheduleRule(draft).cron, self._clock.now())
         return self._present(saved) if saved else None
 
