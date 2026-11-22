@@ -76,6 +76,8 @@ class BatchUpdate(CamelModel):
     output_root: str | None = None  # None leaves the output folder alone; allowed only while no card has a finished video
     folder_template: str | None = None  # None leaves the folder name alone; allowed only under the same rule as the output folder
     auto_run: bool | None = None  # None leaves it alone; turning it on starts the cards that are held
+    pipeline_id: int | None = None  # None leaves the pipeline alone; takes effect on the next run, and not while a card is waiting or running
+    run_on: str | None = Field(None, max_length=100)  # None leaves the worker alone; the same rule as the pipeline
 
 
 class BatchesDelete(CamelModel):

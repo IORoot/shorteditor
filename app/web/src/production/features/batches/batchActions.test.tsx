@@ -11,12 +11,14 @@ function apiWith(cards: ReturnType<typeof makeCard>[]) {
     batchDetail: vi.fn().mockResolvedValue({ batch: { id: 1, name: 'Coach', inputFolder: '/in', steps: [], runOn: 'any', outputRoot: '/out', createdAt: '' }, passes: [] }),
     runAgain: vi.fn().mockResolvedValue({ batch: {}, passes: [] }),
     updateBatch: vi.fn().mockResolvedValue({}),
+    defaults: vi.fn().mockResolvedValue({ outputRoot: '/out', workers: [] }),
+    pipelines: vi.fn().mockResolvedValue([]),
     batchActions: vi.fn().mockResolvedValue({ results: [{ id: 1, ok: true, message: 'Paused 2 cards' }] }),
     cardActions: vi.fn().mockResolvedValue({ results: [{ id: 11, ok: true, message: 'Paused' }, { id: 12, ok: false, message: 'A approved card cannot be paused' }] }),
   };
 }
 
-type Api = Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'batchActions' | 'cardActions'>;
+type Api = Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'defaults' | 'pipelines' | 'batchActions' | 'cardActions'>;
 
 describe('BatchBoardPage actions', () => {
   it('chooses cards on the board and pauses them together', { tags: ['full'] }, async () => {

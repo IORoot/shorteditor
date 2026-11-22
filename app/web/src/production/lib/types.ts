@@ -81,6 +81,8 @@ export interface Batch {
   id: number;
   name: string;
   inputFolder: string;
+  /** The pipeline the batch runs. Null only for a batch made before pipelines. */
+  pipelineId: number | null;
   steps: StageStep[];
   runOn: string;
   outputRoot: string;
@@ -110,6 +112,9 @@ export interface BatchUpdate {
   outputRoot?: string;
   folderTemplate?: string;
   autoRun?: boolean;
+  /** Takes effect on the next run, and not while a card is waiting or running. */
+  pipelineId?: number;
+  runOn?: string;
 }
 
 export type StageRunStatus = 'running' | 'done' | 'failed' | 'blocked';

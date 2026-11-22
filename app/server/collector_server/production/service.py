@@ -451,8 +451,9 @@ class ProductionService:
         return self._logs.entries(pass_id, kind)
 
     def update_batch(self, batch_id: int, name: str | None, output_root: str | None, auto_run: bool | None = None,
-                     folder_template: str | None = None) -> Batch:
-        """Name, output folder and folder name change at once. The output folder and folder name can change only while no card
+                     folder_template: str | None = None, pipeline_id: int | None = None, run_on: str | None = None) -> Batch:
+        """Everything a batch is set up with changes at once, except its input folder. The pipeline and worker change only while no card
+        is waiting or running, and take effect on the next run. The output folder and folder name can change only while no card
         has a finished video, so every video that is kept can still be served from the folder it was made in."""
         with self._lock:
             batch = self._need_batch(batch_id)
@@ -474,6 +475,15 @@ class ProductionService:
             if root_changes or template_changes:
                 if any(c.output is not None for c in self._passes.for_batch(batch_id)):
                     raise StateError("The output folder or folder name cannot change after a card has a finished video. Start a new batch for a new output folder")
+            changes_how_it_runs = (pipeline_id is not None and pipeline_id != batch.pipeline_id) or (run_on is not None and run_on != batch.run_on)
+            if changes_how_it_runs and any(c.status in ("queued", "running") for c in self._passes.for_batch(batch_id)):
+                raise StateError("This batch is waiting or running. Pause or stop it before changing its pipeline or worker")
+            if run_on is not None:
+                if run_on != "any" and run_on not in self._workers:
+                    raise InvalidInputError(f"There is no worker called {run_on}")
+                fields["run_on"] = run_on
+            if pipeline_id is not None:
+                self._usable(pipeline_id)
             if root_changes:
                 fields["output_root"] = output_root
             if template_changes:
@@ -486,6 +496,8 @@ class ProductionService:
                         self._passes.update(card.id, only_if_status="held", status="queued")
             if fields:
                 self._batches.update(batch_id, **fields)
+            if pipeline_id is not None and pipeline_id != batch.pipeline_id:
+                self._batches.set_pipeline(batch_id, pipeline_id)
             return self._need_batch(batch_id)
 
     # ---- pause, resume, stop, rerun, delete: one card, one batch, or many at once

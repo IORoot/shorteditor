@@ -9,33 +9,39 @@ import { useBoard } from '../../hooks/useBoard';
 import type { ProductionApi } from '../../lib/api';
 import { ACTION_LABEL, batchCan } from '../../lib/actions';
 import { subtitle } from '../../lib/board';
-import type { ActionName, ActionResult } from '../../lib/types';
+import type { ActionName, ActionResult, BatchUpdate, Defaults, PipelineChoice } from '../../lib/types';
 import { Board } from '../board/Board';
 import { Breadcrumbs } from '../shared/Breadcrumbs';
-import { FolderNameField } from '../new/FolderNameField';
+import { fsApi } from '../../../shared/lib/fsApi';
+import type { BrowseResult } from '../../../shared/lib/types';
+import { EditBatchDialog } from './EditBatchDialog';
 import { ActionButtons, ChosenBar, ConfirmDialog, Outcome } from '../actions/ActionBar';
 
 export interface BatchBoardPageProps {
-  api: Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'batchActions' | 'cardActions'>;
+  api: Pick<ProductionApi, 'cards' | 'batchDetail' | 'runAgain' | 'updateBatch' | 'defaults' | 'pipelines' | 'batchActions' | 'cardActions'>;
   batchId: number;
   onBack: () => void;
+  browse?: (path?: string) => Promise<BrowseResult>;
 }
+
+// Without the server's defaults the dialog still works: an empty output folder keeps the current one.
+const NO_DEFAULTS: Defaults = { outputRoot: '', workers: [] };
+const NO_PIPELINES: PipelineChoice[] = [];
 
 /** Actions a batch can take from its own page. Run again and delete have their own buttons. */
 const BATCH_ACTIONS: ActionName[] = ['pause', 'resume', 'stop'];
 
 /** One batch's board: its cards in Queued, Running, Review and Approved, with the batch's own actions and card selection. */
-export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
+export function BatchBoardPage({ api, batchId, onBack, browse = (path) => fsApi.browse(path) }: BatchBoardPageProps) {
   const board = useBoard(api);
   const detail = useLoad(() => api.batchDetail(batchId), [batchId]);
   const run = useAction();
   const save = useAction();
   const act = useAction();
   const auto = useAction();
+  const defaults = useLoad(() => api.defaults(), []);
+  const pipelines = useLoad(() => api.pipelines(), []);
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [outputRoot, setOutputRoot] = useState('');
-  const [folderTemplate, setFolderTemplate] = useState('');
   const [choosing, setChoosing] = useState(false);
   const [chosen, setChosen] = useState<number[]>([]);
   const [results, setResults] = useState<ActionResult[] | null>(null);
@@ -48,15 +54,11 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
   const chosenSet = new Set(chosen.filter((id) => cards.some((card) => card.passId === id)));
 
   const startEdit = () => {
-    if (!batch) return;
-    setName(batch.name);
-    setOutputRoot(batch.outputRoot);
-    setFolderTemplate(batch.folderTemplate);
     save.clear();
     setEditing(true);
   };
-  const saveEdit = async () => {
-    if (await save.run(() => api.updateBatch(batchId, { name, outputRoot, folderTemplate }))) {
+  const saveEdit = async (patch: BatchUpdate) => {
+    if (await save.run(() => api.updateBatch(batchId, patch))) {
       setEditing(false);
       detail.reload();
       board.reload();
@@ -158,7 +160,7 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
             <Toggle label="Auto run" checked={batch?.autoRun ?? false} disabled={!batch || auto.busy} onChange={(on) => void setAutoRun(on)} />
             Auto run
           </label>
-          <Button icon={<Pencil size={15} aria-hidden="true" />} onClick={startEdit} disabled={!batch || busy}>Edit</Button>
+          <Button icon={<Pencil size={15} aria-hidden="true" />} onClick={startEdit} disabled={!batch}>Edit</Button>
           <Button variant="primary" icon={<Play size={15} aria-hidden="true" />} onClick={runAgain} disabled={run.busy || busy || cards.length === 0}>
             {run.busy ? 'Starting…' : 'Run again'}
           </Button>
@@ -171,32 +173,16 @@ export function BatchBoardPage({ api, batchId, onBack }: BatchBoardPageProps) {
       {!choosing && act.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{act.error}</p> : null}
       {!choosing ? <Outcome results={results} /> : null}
       {editing && batch ? (
-        <form
-          aria-label="Edit batch"
-          className="flex flex-wrap items-end gap-4 rounded-2xl bg-surface p-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveEdit();
-          }}
-        >
-          <label className="flex min-w-[200px] flex-1 flex-col gap-1.5 text-caption font-semibold text-text-2">
-            Name
-            <input value={name} onChange={(event) => setName(event.target.value)} className="rounded-[10px] bg-fill-2 px-3 py-2 text-body font-normal text-text" />
-          </label>
-          <label className="flex min-w-[280px] flex-[2] flex-col gap-1.5 text-caption font-semibold text-text-2">
-            Output folder
-            <input value={outputRoot} onChange={(event) => setOutputRoot(event.target.value)} className="rounded-[10px] bg-fill-2 px-3 py-2 font-mono text-caption font-normal text-text" />
-            <span className="font-normal text-text-3">The output folder can change only before any card has a finished video.</span>
-          </label>
-          <div className="flex min-w-[280px] flex-[2] flex-col gap-1.5">
-            <FolderNameField value={folderTemplate} onChange={setFolderTemplate} outputRoot={outputRoot} />
-          </div>
-          {save.error ? <p role="alert" className="w-full text-small text-bad">{save.error}</p> : null}
-          <div className="flex gap-2.5">
-            <Button onClick={() => setEditing(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" disabled={save.busy}>Save</Button>
-          </div>
-        </form>
+        <EditBatchDialog
+          batch={batch}
+          defaults={defaults.state.status === 'ready' ? defaults.state.data : NO_DEFAULTS}
+          pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
+          browse={browse}
+          busy={save.busy}
+          error={save.error}
+          onSave={(patch) => void saveEdit(patch)}
+          onClose={() => setEditing(false)}
+        />
       ) : null}
       {choosing ? (
         <div className="flex flex-col gap-2">

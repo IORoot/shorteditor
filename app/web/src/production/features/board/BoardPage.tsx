@@ -9,14 +9,15 @@ import { useAction } from '../../../shared/hooks/useAction';
 import type { ProductionApi } from '../../lib/api';
 import { listSubtitle, type BatchFilter } from '../../lib/batchList';
 import { toBulkRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
-import type { ActionName, ActionResult, BatchListItem, Defaults, PipelineChoice } from '../../lib/types';
+import type { ActionName, ActionResult, Batch, BatchListItem, BatchUpdate, Defaults, PipelineChoice } from '../../lib/types';
 import { BatchList } from '../batches/BatchList';
 import { NewBatchDialog } from '../new/NewBatchDialog';
+import { EditBatchDialog } from '../batches/EditBatchDialog';
 import { DeleteBatchesDialog } from './DeleteBatchesDialog';
 import { ChosenBar, Outcome } from '../actions/ActionBar';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'createWatch' | 'deleteBatches' | 'batchActions'>;
+  api: Pick<ProductionApi, 'batchList' | 'batchDetail' | 'updateBatch' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'createWatch' | 'deleteBatches' | 'batchActions'>;
   browse?: (path?: string) => Promise<BrowseResult>;
   /** Opens the Pipeline tab from the New batch dialog. */
   onManagePipelines?: () => void;
@@ -42,6 +43,8 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [filter, setFilter] = useState<BatchFilter>('all');
   const bulk = useAction();
+  const edit = useAction();
+  const [editBatch, setEditBatch] = useState<Batch | null>(null);
   const [results, setResults] = useState<ActionResult[] | null>(null);
   const chosenSet = useMemo(() => new Set(chosen.filter((id) => items.some((item) => item.id === id))), [chosen, items]);
 
@@ -58,6 +61,19 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
     setChosen((ids) => (ids.includes(item.id) ? ids.filter((id) => id !== item.id) : [...ids, item.id]));
   };
   // Pause, resume, stop and run again go to every chosen batch at once; delete asks first.
+  // The batch's whole settings come from the server, so the dialog starts from what is saved.
+  const openEdit = async (item: BatchListItem) => {
+    bulk.clear();
+    edit.clear();
+    await bulk.run(async () => setEditBatch((await api.batchDetail(item.id)).batch));
+  };
+  const saveEdit = async (patch: BatchUpdate) => {
+    if (!editBatch) return;
+    if (await edit.run(() => api.updateBatch(editBatch.id, patch))) {
+      setEditBatch(null);
+      list.reload();
+    }
+  };
   // One batch, from its row's icons. Delete asks first, like the chosen-batches delete.
   const actOnRow = async (item: BatchListItem, action: ActionName) => {
     if (action === 'delete') {
@@ -160,7 +176,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
       ) : null}
       {!choosing && bulk.error ? <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-small text-bad">{bulk.error}</p> : null}
       {!choosing ? <Outcome results={results} /> : null}
-      {items.length > 0 ? <BatchList items={items} filter={filter} onFilter={setFilter} onOpen={openOrChoose} chosen={choosing ? chosenSet : undefined} onAct={actOnRow} busy={bulk.busy || remove.busy} /> : null}
+      {items.length > 0 ? <BatchList items={items} filter={filter} onFilter={setFilter} onOpen={openOrChoose} chosen={choosing ? chosenSet : undefined} onAct={actOnRow} onEdit={openEdit} busy={bulk.busy || remove.busy} /> : null}
       {confirmOpen ? (
         <DeleteBatchesDialog
           count={chosenSet.size}
@@ -171,6 +187,18 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
             remove.clear();
             setConfirmOpen(false);
           }}
+        />
+      ) : null}
+      {editBatch ? (
+        <EditBatchDialog
+          batch={editBatch}
+          defaults={defaults.state.status === 'ready' ? defaults.state.data : NO_DEFAULTS}
+          pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
+          browse={browse}
+          busy={edit.busy}
+          error={edit.error}
+          onSave={(patch) => void saveEdit(patch)}
+          onClose={() => setEditBatch(null)}
         />
       ) : null}
       {newOpen ? (

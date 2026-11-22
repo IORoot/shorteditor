@@ -37,8 +37,8 @@ class BatchRepository:
         self._db.execute("DELETE FROM production_batches WHERE id = ?", (batch_id,))
 
     def update(self, batch_id: int, **fields: str) -> None:
-        """Only the name, the output folder, its folder name and the auto run flag can be changed in place."""
-        unknown = set(fields) - {"name", "output_root", "folder_template", "auto_run"}
+        """Only the name, the output folder, its folder name, the auto run flag and the worker can be changed in place."""
+        unknown = set(fields) - {"name", "output_root", "folder_template", "auto_run", "run_on"}
         if unknown:
             raise ValueError(f"Cannot update {', '.join(sorted(unknown))}")
         assignments = ", ".join(f"{name} = ?" for name in fields)

@@ -1,4 +1,4 @@
-import { Check, Pause, Play, RotateCw, Square, Trash2 } from 'lucide-react';
+import { Check, Pause, Pencil, Play, RotateCw, Square, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { FILTERS, inFilter, type BatchFilter } from '../../lib/batchList';
 import type { ActionName, BatchListItem } from '../../lib/types';
@@ -39,6 +39,8 @@ export interface BatchListProps {
   chosen?: ReadonlySet<number>;
   /** Runs one action on one batch from its row's icons. Without it the icons are not shown. */
   onAct?: (item: BatchListItem, action: ActionName) => void;
+  /** Opens the batch's settings. Without it the Edit icon is not shown. */
+  onEdit?: (item: BatchListItem) => void;
   /** Disables the row icons while an action is running. */
   busy?: boolean;
 }
@@ -77,7 +79,7 @@ function RowIcon({ action, item, busy, disabled, onAct }: { action: ActionName; 
 
 const COLUMNS = 'grid-cols-[minmax(0,2.4fr)_minmax(0,1.2fr)_90px_120px_minmax(0,1.4fr)_120px]';
 
-export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, busy = false }: BatchListProps) {
+export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, onEdit, busy = false }: BatchListProps) {
   const shown = items.filter((item) => inFilter(item, filter));
   return (
     <div className="flex flex-col gap-4">
@@ -134,6 +136,11 @@ export function BatchList({ items, filter, onFilter, onOpen, chosen, onAct, busy
             </button>
             {onAct ? (
               <span className="flex shrink-0 items-center gap-0.5">
+                {onEdit ? (
+                  <button type="button" aria-label={`Edit ${item.name}`} title="Edit" disabled={busy} onClick={() => onEdit(item)} className="grid size-8 shrink-0 place-items-center rounded-full text-text-2 hover:bg-fill-3 disabled:opacity-35">
+                    <Pencil size={15} aria-hidden="true" />
+                  </button>
+                ) : null}
                 {icons.toggle ? <RowIcon action={icons.toggle} item={item} busy={busy} onAct={onAct} /> : <span aria-hidden="true" className="size-8" />}
                 <RowIcon action={icons.second} item={item} busy={busy} onAct={onAct} />
                 <RowIcon action="delete" item={item} busy={busy} disabled={item.status === 'running'} onAct={onAct} />
