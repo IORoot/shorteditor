@@ -1,4 +1,4 @@
-import { CheckSquare, Eye, Plus } from 'lucide-react';
+import { CheckSquare, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { useLoad } from '../../../shared/hooks/useLoad';
@@ -11,13 +11,12 @@ import { listSubtitle, type BatchFilter } from '../../lib/batchList';
 import { toBulkRequest, toWatchRequest, type ManyForm } from '../../lib/presets';
 import type { ActionName, ActionResult, BatchListItem, Defaults, PipelineChoice } from '../../lib/types';
 import { BatchList } from '../batches/BatchList';
-import { NewBatchDialog, type WatchTarget } from '../new/NewBatchDialog';
-import { WatchesPanel } from '../watches/WatchesPanel';
+import { NewBatchDialog } from '../new/NewBatchDialog';
 import { DeleteBatchesDialog } from './DeleteBatchesDialog';
 import { ChosenBar, Outcome } from '../actions/ActionBar';
 
 export interface BoardPageProps {
-  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'watches' | 'createWatch' | 'updateWatch' | 'setWatchEnabled' | 'checkWatch' | 'deleteWatch' | 'deleteBatches' | 'batchActions'>;
+  api: Pick<ProductionApi, 'batchList' | 'defaults' | 'pipelines' | 'createBatches' | 'previewFolders' | 'createWatch' | 'deleteBatches' | 'batchActions'>;
   browse?: (path?: string) => Promise<BrowseResult>;
   /** Opens the Pipeline tab from the New batch dialog. */
   onManagePipelines?: () => void;
@@ -35,8 +34,6 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
   const defaults = useLoad(() => api.defaults(), []);
   const pipelines = useLoad(() => api.pipelines(), []);  // reloaded each time the board opens, so a new pipeline shows up
   const [newOpen, setNewOpen] = useState(false);
-  const [watchesOpen, setWatchesOpen] = useState(false);
-  const [watchTarget, setWatchTarget] = useState<WatchTarget | null>(null);
   const newButton = useRef<HTMLButtonElement>(null);
   const items: BatchListItem[] = list.state.status === 'ready' ? list.state.data : [];
   const remove = useAction();
@@ -109,33 +106,17 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
   const openNew = () => {
     create.clear();
     if (defaults.state.status === 'error') defaults.reload(); // the server may have been restarting the first time
-    setWatchesOpen(false);
     setNewOpen(true);
   };
   const closeNew = () => {
     create.clear();
     setNewOpen(false);
   };
-  const openWatches = () => {
-    create.clear();
-    setNewOpen(false);
-    setWatchesOpen(true);
-  };
-  // the watch form goes back to the panel it was opened from
-  const closeWatchTarget = () => {
-    create.clear();
-    setWatchTarget(null);
-    setWatchesOpen(true);
-  };
-  const saveWatch = async (form: ManyForm, watchId: number | null) => {
-    const enabled = watchTarget?.kind === 'edit' ? watchTarget.watch.enabled : true;
-    const saved = await create.run(() => (watchId === null
-      ? api.createWatch(toWatchRequest(form, form.watchExisting))
-      : api.updateWatch(watchId, toWatchRequest(form, false, enabled))));
+  const saveWatch = async (form: ManyForm) => {
+    const saved = await create.run(() => api.createWatch(toWatchRequest(form, form.watchExisting)));
     if (!saved) return;
     list.reload(); // a new watch may have made batches straight away
-    if (watchTarget) closeWatchTarget();
-    else closeNew();
+    closeNew();
   };
 
   return (
@@ -147,7 +128,6 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <Button icon={<CheckSquare size={15} aria-hidden="true" />} onClick={toggleChoosing}>{choosing ? 'Done' : 'Select'}</Button>
-          <Button icon={<Eye size={15} aria-hidden="true" />} onClick={openWatches}>Watches</Button>
           <Button
             variant="primary"
             icon={<Plus size={15} aria-hidden="true" />}
@@ -193,24 +173,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
           }}
         />
       ) : null}
-      {watchesOpen && !watchTarget ? (
-        <WatchesPanel
-          api={api}
-          onAdd={() => {
-            create.clear();
-            setWatchesOpen(false);
-            setWatchTarget({ kind: 'add' });
-          }}
-          onEdit={(watch) => {
-            create.clear();
-            setWatchesOpen(false);
-            setWatchTarget({ kind: 'edit', watch });
-          }}
-          onChanged={list.reload}
-          onClose={() => setWatchesOpen(false)}
-        />
-      ) : null}
-      {newOpen || watchTarget ? (
+      {newOpen ? (
         <NewBatchDialog
           defaults={defaults.state.status === 'ready' ? defaults.state.data : NO_DEFAULTS}
           pipelines={pipelines.state.status === 'ready' ? pipelines.state.data : NO_PIPELINES}
@@ -219,8 +182,7 @@ export function BoardPage({ api, browse = (path) => fsApi.browse(path), onManage
           error={create.error}
           browse={browse}
           previewFolders={(parent, pattern, root) => api.previewFolders(parent, pattern, root)}
-          watchTarget={watchTarget ?? undefined}
-          onClose={watchTarget ? closeWatchTarget : closeNew}
+          onClose={closeNew}
           onCreateMany={async (form) => {
             if (await create.run(() => api.createBatches(toBulkRequest(form)))) {
               closeNew();

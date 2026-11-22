@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { makeCollector } from './collection/test/fixtures';
@@ -124,24 +124,6 @@ describe('Production folders and watches, end to end', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'c, Queued' })).toBeInTheDocument());
   });
 
-  it('Add watch from the panel opens a watch-only form, and saving it returns to the panel with the new watch', { tags: ['full'] }, async () => {
-    const backend = folderServer();
-    backend.state.preview = { matches: [], notMatching: 0, truncated: false };
-    await openProduction();
-    fireEvent.click(await screen.findByRole('button', { name: 'Watches' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Add watch' }));
-    expect(await screen.findByRole('heading', { name: 'New watch' })).toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'One folder' })).toBeNull();
-    fireEvent.change(screen.getByLabelText('Parent folder'), { target: { value: '/Volumes/Edit/Sat' } });
-    fireEvent.change(screen.getByLabelText('Pipeline'), { target: { value: '1' } });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Start watching' })).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: 'Start watching' }));
-    await waitFor(() => expect(backend.posted(/\/watches$/)).toHaveLength(1));
-    expect(backend.posted(/\/watches$/)[0].body).toMatchObject({ name: 'Sat', parentFolder: '/Volumes/Edit/Sat', includeExisting: false, enabled: true });
-    expect(await screen.findByRole('dialog', { name: 'Watches' })).toBeInTheDocument();
-    expect(await screen.findByRole('listitem', { name: 'Watch Sat' })).toBeInTheDocument();
-  });
-
   it('with Keep watching on, Start watching saves the watch and creates no one-off batches', async () => {
     const backend = folderServer();
     backend.state.preview = settledPreview();
@@ -177,55 +159,6 @@ describe('Production folders and watches, end to end', () => {
     await waitFor(() => expect(backend.posted(/\/watches$/)).toHaveLength(1));
     expect(backend.posted(/\/watches$/)[0].body).toMatchObject({ includeExisting: true });
     expect(backend.posted(/\/batches\/bulk$/)).toHaveLength(0);
-  });
-
-  it('the Watches panel shows each status, pauses a watch, checks one now, and deletes after asking', { tags: ['full'] }, async () => {
-    const backend = folderServer();
-    backend.state.watches = [
-      watch({ id: 1, name: 'Coach' }),
-      watch({ id: 2, name: 'Camera', status: 'waiting', statusLine: 'Waiting for 2026-11-14_a to settle: files are still changing. It needs 10 quiet minutes.', waiting: ['2026-11-14_a'] }),
-      watch({ id: 3, name: 'Old', enabled: false, status: 'paused', statusLine: 'Paused · last checked 10:42' }),
-      watch({ id: 4, name: 'Broken', status: 'problem', lastError: 'The folder /Volumes/Edit does not exist', statusLine: 'Problem: The folder /Volumes/Edit does not exist. Checking again in 5 minutes.' }),
-    ];
-    backend.state.checkCreates = [makeCard({ batchId: 30, name: '2026-11-07_b', status: 'queued', queuePosition: 0 })];
-    await openProduction();
-    fireEvent.click(await screen.findByRole('button', { name: 'Watches' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Watches' });
-    expect(within(screen.getByRole('listitem', { name: 'Watch Camera' })).getByText('Waiting')).toBeInTheDocument();
-    expect(within(screen.getByRole('listitem', { name: 'Watch Old' })).getByText('Paused')).toBeInTheDocument();
-    expect(within(screen.getByRole('listitem', { name: 'Watch Broken' })).getByText('Problem')).toBeInTheDocument();
-
-    fireEvent.click(within(screen.getByRole('listitem', { name: 'Watch Camera' })).getByRole('switch', { name: 'Watching Camera' }));
-    await waitFor(() => expect(backend.sent('POST', /\/watches\/2\/enabled$/)[0].body).toEqual({ enabled: false }));
-
-    fireEvent.click(within(screen.getByRole('listitem', { name: 'Watch Coach' })).getByRole('button', { name: 'Check now' }));
-    expect(await within(screen.getByRole('listitem', { name: 'Watch Coach' })).findByText('Created 1 batch')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('button', { name: '2026-11-07_b, Queued' })).toBeInTheDocument());
-
-    fireEvent.click(within(screen.getByRole('listitem', { name: 'Watch Old' })).getByRole('button', { name: 'Delete' }));
-    expect(within(screen.getByRole('listitem', { name: 'Watch Old' })).getByText('Delete this watch? Its batches stay.')).toBeInTheDocument();
-    expect(backend.sent('DELETE', /\/watches\/3$/)).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete watch' }));
-    await waitFor(() => expect(backend.sent('DELETE', /\/watches\/3$/)).toHaveLength(1));
-    expect(dialog).toBeInTheDocument();
-  });
-
-  it('editing a watch keeps its id and sends the changed name, and Add watch from the panel goes back to the panel afterwards', { tags: ['full'] }, async () => {
-    const backend = folderServer();
-    backend.state.preview = { matches: [], notMatching: 0, truncated: false };
-    await openProduction();
-    fireEvent.click(await screen.findByRole('button', { name: 'Watches' }));
-    fireEvent.click(within(await screen.findByRole('listitem', { name: 'Watch Coach' })).getByRole('button', { name: 'Edit' }));
-    expect(await screen.findByRole('dialog', { name: 'Edit watch' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Edit watch' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Parent folder')).toHaveValue('/c');
-    fireEvent.change(screen.getByLabelText('Watch name'), { target: { value: 'Coach Sat' } });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save watch' })).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: 'Save watch' }));
-    await waitFor(() => expect(backend.sent('PUT', /\/watches\/1$/)).toHaveLength(1));
-    expect(backend.sent('PUT', /\/watches\/1$/)[0].body).toMatchObject({ name: 'Coach Sat', parentFolder: '/c', includeExisting: false, enabled: true });
-    expect(await screen.findByRole('dialog', { name: 'Watches' })).toBeInTheDocument();
-    expect(await screen.findByRole('listitem', { name: 'Watch Coach Sat' })).toBeInTheDocument();
   });
 
   it('a pattern the server refuses shows its message and keeps Start watching disabled', { tags: ['full'] }, async () => {
